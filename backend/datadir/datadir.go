@@ -1,9 +1,5 @@
-// Package datadir centralizes where TDrive keeps its own files. On desktop,
-// daemon and CLI this stays os.UserConfigDir()/TDrive for data and
-// os.UserCacheDir()/TDrive for cache, exactly as before. On mobile those
-// defaults can be wrong -- Go's home dir is /sdcard on Android when HOME is
-// unset, so the OS-convention dirs land on shared external storage -- and the
-// host overrides the bases with the app-private sandbox at startup.
+// Package datadir centralizes configuration, state, and cache directories
+// for the web and CLI backend, using the operating system user directories.
 package datadir
 
 import (
@@ -39,8 +35,7 @@ var (
 )
 
 // Set overrides the base Dir builds on, replacing the os.UserConfigDir default.
-// Mobile calls it once at startup, before any path is read, with the
-// app-private storage path. An empty dir clears the override.
+// Call before reading paths. An empty dir clears the override.
 func Set(dir string) {
 	mu.Lock()
 	dataOverride = dir
@@ -48,9 +43,7 @@ func Set(dir string) {
 }
 
 // SetCache overrides the base CacheDir builds on, replacing the
-// os.UserCacheDir default. Android needs it (no usable home dir); iOS keeps the
-// default, which already resolves to the app's Library/Caches and stays out of
-// backups. An empty dir clears the override.
+// os.UserCacheDir default. An empty dir clears the override.
 func SetCache(dir string) {
 	mu.Lock()
 	cacheOverride = dir
@@ -77,7 +70,7 @@ func CacheDir() (string, error) {
 
 // CreateCacheTemp creates a private, app-owned temporary file. It is the
 // single temporary-file boundary for data that may contain file bytes or
-// decrypted metadata, so mobile builds never fall back to shared storage.
+// decrypted metadata.
 func CreateCacheTemp(pattern string) (*os.File, error) {
 	dir, err := CacheDir()
 	if err != nil {

@@ -1,53 +1,24 @@
 version: '3'
-
-vars:
-  APP_NAME: "TDrive"
-  # Kept at build/bin (not v3's default bin/) so release.yml, ci.yml and
-  # scripts/package-mpv-darwin.sh don't need every "build/bin" path rewritten.
-  BIN_DIR: "build/bin"
-  PACKAGE_MANAGER: '{{.PACKAGE_MANAGER | default "npm"}}'
-  VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
-  # Version stamped into the binary via -ldflags -X main.appVersion=...
-  # Usage: wails3 task build VERSION=v1.8.1
-  VERSION: '{{.VERSION | default ""}}'
-  # Target OS for build/package/run. Defaults to the host OS, and is overridden
-  # by `wails3 task build GOOS=...` (or the GOOS env var) for cross-compilation. The
-  # tasks below dispatch to the matching platform Taskfile via this variable.
-  GOOS: '{{.GOOS | default OS}}'
-
-includes:
-  common: ./build/Taskfile.yml
-  windows: ./build/windows/Taskfile.yml
-  darwin: ./build/darwin/Taskfile.yml
-  linux: ./build/linux/Taskfile.yml
-  # Mobile. Vars go on the include entry: a root-level var of the same name is
-  # clobbered by the `{{.X | default ...}}` declaration inside these Taskfiles.
-  ios:
-    taskfile: ./build/ios/Taskfile.yml
-    vars:
-      MIN_IOS_VERSION: "16.0" # keep in sync with ios.minIOSVersion in build/config.yml
-  android:
-    taskfile: ./build/android/Taskfile.yml
-    vars:
-      APP_ID: com.jeetraj.tdrive # must match applicationId in build/android/app/build.gradle
-
 tasks:
   build:
-    summary: Builds the application
+    desc: Build the CLI with the embedded web UI
     cmds:
-      - task: "{{.GOOS}}:build"
-
-  package:
-    summary: Packages a production build of the application
-    cmds:
-      - task: "{{.GOOS}}:package"
-
+      - mkdir -p build/bin
+      - go build -trimpath -o build/bin/tdrive ./cmd/tdrive
   run:
-    summary: Runs the application
+    desc: Run the web workspace
     cmds:
-      - task: "{{.GOOS}}:run"
-
-  dev:
-    summary: Runs the application in development mode
+      - go run ./cmd/tdrive web --port 8080
+  test:
     cmds:
-      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+      - go test ./cmd/tdrive ./cmd/tdrived ./backend/...
+      - bash scripts/test-web-ui.sh
+  lint:
+    cmds:
+      - go vet ./cmd/tdrive ./cmd/tdrived ./backend/...
+      - npm --prefix cmd/tdrive/webui run lint
+  package:
+    requires:
+      vars: [VERSION]
+    cmds:
+      - bash scripts/package-cli-release.sh '{{.VERSION}}'

@@ -1,10 +1,10 @@
 // Package processlock enforces one TDrive backend per user data directory: the
-// GUI and the CLI daemon cannot run at the same time.
+// web and CLI clients connect to the same daemon.
 //
 // The lock is a self-describing PID file, not an OS advisory lock. Exclusion
 // comes from creating the file exclusively; its contents record which role
-// holds it and which process, so the caller that loses can say "close the GUI
-// first" rather than merely failing. It locks nothing else — not the database,
+// holds it and which process, so the caller can identify a conflicting owner.
+// It locks nothing else — not the database,
 // not the daemon socket, not mounts, all of which have their own guards.
 //
 // A lock whose process is gone is reclaimed once and then re-created

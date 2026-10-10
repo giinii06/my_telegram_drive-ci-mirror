@@ -1,0 +1,17 @@
+{
+  "name": "tdrive-web-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint index.html",
+    "test": "bash ../../../scripts/test-web-ui.sh",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": {
+    "@shadcn/lint": "0.2.1",
+    "eslint": "9.39.5",
+    "svelte-eslint-parser": "1.6.0",
+    "svelte": "5.55.1",
+    "@playwright/test": "1.63.0"
+  }
+}

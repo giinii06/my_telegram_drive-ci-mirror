@@ -1,226 +1,55 @@
-<p align="center">
-  <img src="assets/tdrive-banner-loop-main.gif" alt="TDrive: your Telegram-powered drive" width="100%">
-</p>
+# TDrive
 
-<h1 align="center">TDrive</h1>
+TDrive is a Telegram-backed cloud drive with a web workspace and command-line interface. The web UI is the main application; both interfaces share the same daemon, storage, and mount backend.
 
-<p align="center">
-  <a href="https://github.com/jeetrex17/TDrive/releases/latest"><img src="https://img.shields.io/github/v/release/jeetrex17/TDrive?style=flat-square&color=0e6ba8" alt="Latest release"></a>
-  <a href="https://github.com/jeetrex17/TDrive/actions/workflows/ci.yml"><img src="https://github.com/jeetrex17/TDrive/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/jeetrex17/TDrive?style=flat-square&color=0e6ba8" alt="License"></a>
-  <a href="https://github.com/jeetrex17/TDrive/releases"><img src="https://img.shields.io/github/downloads/jeetrex17/TDrive/total?style=flat-square&color=0e6ba8" alt="Downloads"></a>
-</p>
+## Build and start
 
-<p align="center">
-  <strong>Your files, organized around your own Telegram account.</strong>
-</p>
+Requires Go 1.25.13 or newer.
 
-<p align="center">
-  A desktop and mobile file manager with media streaming, encrypted photo and video backup, shared drives, and a scriptable CLI.
-</p>
+```sh
+mkdir -p build/bin
+go build -trimpath -o build/bin/tdrive ./cmd/tdrive
+build/bin/tdrive setup --api-id YOUR_ID --api-hash-stdin
+build/bin/tdrive login +15551234567
+build/bin/tdrive drives
+build/bin/tdrive drive use <name-or-id>
+build/bin/tdrive web --port 8080
+```
 
-<p align="center">
-  <a href="https://github.com/jeetrex17/TDrive/releases/latest"><strong>Download TDrive</strong></a>
-  &middot; <a href="#quick-start">Get started</a>
-  &middot; <a href="#features">Features</a>
-  &middot; <a href="#photo-and-video-backup">Photo backup</a>
-  &middot; <a href="#command-line-interface">CLI and agents</a>
-  &middot; <a href="#build-from-source">Build</a>
-</p>
+Open the URL printed by `tdrive web`. By default the server listens on the Tailscale IPv4 address and uses a persisted access token. For localhost use `--listen 127.0.0.1`.
 
-> [!IMPORTANT]
-> TDrive is an independent educational project and is not affiliated with Telegram. Use it responsibly and follow Telegram's terms. Do not treat Telegram or TDrive as the only copy of irreplaceable data.
+## Web workspace
 
-## Download
+Browse and search files, switch between list and icon views, upload files or folders, create folders, rename, copy, move, and delete entries. Preview images, text and PDFs, stream video and audio, and download files. Navigation supports breadcrumbs, history, keyboard shortcuts, and multi-selection.
 
-Download packages from [**GitHub Releases**](https://github.com/jeetrex17/TDrive/releases/latest), not from unofficial mirrors. Open the release's **Assets** list and choose the package for your device.
+The UI lives in `cmd/tdrive/webui/index.html` and is embedded directly into the CLI binary. After a UI change, rebuild the CLI and restart the web service. No desktop runtime or separate production frontend build is required.
 
-| Platform | App package | CLI | Distribution |
-| --- | --- | --- | --- |
-| macOS Apple silicon | `*-macos-arm64.zip` | `*-darwin-arm64-cli.tar.gz` | GitHub Releases |
-| Windows amd64 | `*-windows-amd64-setup.exe` or portable `.zip` | `*-windows-amd64-cli.zip` | GitHub Releases |
-| Linux amd64 | `*-x86_64.AppImage` | `*-linux-amd64-cli.tar.gz` | GitHub Releases |
-| Android ARM64 | `*-android-arm64.apk` when published | Not available | GitHub only, not the Play Store |
-| iOS | No public download yet | Not available | Source builds only |
+For the supplied user service, install the CLI to `~/.local/bin/tdrive`, copy `scripts/tdrive-web.service` to `~/.config/systemd/user/`, and run `systemctl --user daemon-reload` followed by `systemctl --user enable --now tdrive-web.service`. The supplied service uses `--no-auth` on the Tailscale address; omit that option to use token authentication.
 
-The Windows installer runs per user without administrator rights. The portable zip contains the same application without the installer.
+### Run the web service on Linux
 
-Linux AppImages require glibc 2.35 or newer (Ubuntu 22.04 or a compatible distribution). For the first upgrade from v2.0.0 or earlier, download `TDrive-v2.0.1-x86_64.AppImage` manually, make it executable, and launch it. Earlier versions' in-app updater expects the old filename; v2.0.1 recognizes the new name for subsequent updates. Your existing account and drive data are retained.
+```sh
+mkdir -p ~/.local/bin ~/.config/systemd/user
+install -m 755 build/bin/tdrive ~/.local/bin/tdrive
+cp scripts/tdrive-web.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now tdrive-web.service
+```
 
-### Android installation
+After rebuilding, install the updated binary under a temporary name and replace the existing executable before restarting the service:
 
-1. Download the signed ARM64 APK from a release that includes it.
-2. Open the APK and allow installation from your browser or file manager if Android asks.
-3. Install TDrive, then follow [Quick start](#quick-start).
-
-Updates are manual: download a newer APK from GitHub and install it over the existing release build. Official release updates use the same signing certificate.
-
-<details>
-<summary><strong>macOS first-launch warning</strong></summary>
-
-TDrive is not notarized by Apple. If macOS cannot verify the developer, proceed only after checking that you downloaded the app from this repository's releases and trust it.
-
-1. Try opening TDrive and dismiss the warning.
-2. Open **System Settings > Privacy & Security**.
-3. Under **Security**, select **Open Anyway**.
-4. Authenticate and confirm **Open**.
-
-This adds an exception for the app; it does not require disabling Gatekeeper. See [Apple's explanation of these warnings](https://support.apple.com/en-gb/102445).
-
-<p align="center">
-  <img src="notopen_mac_err.png" alt="macOS cannot verify the TDrive developer" width="45%">
-  <img src="fix_open_err_mac.png" alt="Open Anyway in macOS Privacy & Security" width="45%">
-</p>
-
-</details>
-
-## Quick start
-
-1. Install the app for your platform.
-2. Create your own Telegram **API ID** and **API hash** at [my.telegram.org/apps](https://my.telegram.org/apps). Telegram provides [setup instructions](https://core.telegram.org/api/obtaining_api_id).
-3. Enter those credentials in TDrive's setup screen.
-4. Sign in with your phone number, Telegram login code, and 2FA password if enabled.
-5. Choose the Telegram channel containing your existing **My Drive**, or create a new empty drive if this is your first setup.
-6. Upload a file, create a folder, open the gallery, or join a shared drive.
-
-TDrive stores your API credentials locally; it does not ship a shared project-wide Telegram credential. Keep the API hash, login session, and vault password private.
-
-**Already use TDrive on another device?** Sign into the same Telegram account and select the same personal-drive channel. If encryption is configured, unlock it with your existing vault password. A new device does not need a new encryption password for that drive.
-
-## Screenshots
-
-<table>
-  <tr>
-    <td width="33%"><img alt="Photos gallery" src="assets/screenshot-gallery.png"></td>
-    <td width="33%"><img alt="Photo viewer" src="assets/screenshot-viewer.png"></td>
-    <td width="33%"><img alt="Encrypted photo unlock" src="assets/screenshot-unlock.png"></td>
-  </tr>
-  <tr>
-    <td align="center">Gallery</td>
-    <td align="center">File viewer</td>
-    <td align="center">Encrypted file unlock</td>
-  </tr>
-</table>
-
-## Features
-
-### Store and organize
-
-- A private **My Drive** plus collaborative shared drives.
-- Nested folders with rename, move, drag-and-drop, search, and delete.
-- Files larger than 2 GB, automatically split across Telegram messages and presented as one file.
-- Recursive folder downloads with transactional publishing to the destination.
-- Light and dark themes on desktop and mobile.
-
-### Import and transfer
-
-- Upload files or whole folders from the desktop app or CLI.
-- Import `.zip`, `.tar`, and `.tar.gz` archives, with optional extraction.
-- Drop files and folders from the operating system directly into TDrive.
-- Concurrent uploads, cancellable transfers, progress, speed, and resilient retries.
-
-### Preview and stream
-
-- Browse photos in a drive-wide gallery.
-- Preview images, PDF, text, code, audio, and video without leaving the app.
-- Stream media directly from Telegram, including encrypted personal-drive media.
-- Desktop mpv playback for formats the system webview cannot decode, including MKV and HEVC.
-- Audio-track, subtitle, playback-speed, picture-fit, and subtitle-appearance controls.
-- Drag or swipe the video timeline to seek. Available codecs and playback controls depend on the platform and player.
-
-### Back up photos and videos
-
-- Encrypted backup to **My Drive** from selected desktop folders or folders on Android device storage.
-- A persistent queue with pause, resume, retries, and upload progress.
-- Original files stay on your device. See [Photo and video backup](#photo-and-video-backup) for permissions and background limits.
-
-### Share and collaborate
-
-- Shared drives backed by Telegram megagroups.
-- Instant-join or approval-required invite links.
-- Join-request approval and uploader attribution inside TDrive.
-- Collaborative file and folder organization for drive members.
-
-### Mount and automate
-
-- Mount TDrive in Finder, Explorer, or a Linux file manager through a private local WebDAV endpoint.
-- Personal drives are read/write, including encrypted content; shared drives are read-only.
-- Use the CLI for terminal workflows, scripts, imports, vault access, synchronization, and mounts.
-- Interrupted personal-drive writes are journaled and recovered safely.
-
-### Protect and recover
-
-- Optional client-side XChaCha20-Poly1305 encryption for personal-drive file contents.
-- Live synchronization while Telegram activity arrives.
-- Local SQLite state can be rebuilt from Telegram history after cache or configuration loss.
-
-<details>
-<summary><strong>Desktop keyboard navigation</strong></summary>
-
-- **Up/Down/Home/End** move focus in the file grid.
-- **Space** selects or toggles a row; **Shift + Space** selects a range.
-- **Enter** opens a folder, previews a file, or downloads it when no preview is available.
-- **Right** enters row actions; **Left** or **Escape** returns to the row.
-- **F2**, **Delete**, **Menu**, or **Shift + F10** opens the selected row's action menu.
-- Dialogs keep focus inside the active dialog and restore it when closed.
-
-</details>
-
-## Photo and video backup
-
-Open **Photo & video backup** from the desktop account menu or the Android **Account** tab. Choose your folders and start backup. Files go into `Photo backup / <device> / <source>` inside **My Drive**, under your selected destination parent if configured.
-
-| Device | Sources |
-| --- | --- |
-| Desktop | Selected local folders, including subfolders |
-| Android | Permitted photos and videos in selected folders on device storage |
-| iOS source build | Backup source selection is not available |
-
-Backup is encrypted and personal-drive-only. It reuses your drive's existing vault: unlock it with the same password used on your other devices. If that drive has no vault yet, TDrive asks you to set one up.
-
-Backup never deletes device originals. Removing a source does not delete files already uploaded to TDrive. Pause, queue state, and confirmed uploads are remembered across restarts.
-
-Mobile permissions determine which media TDrive can see. Discovery runs while the app is active; an in-flight upload may continue with a native background allowance. Backup is not a continuously scheduled uploader and cannot continue after the app process is terminated. Keep the app open for the initial backup of a large library.
-
-For the detailed recovery, staging, and platform limits, see the [backup documentation](backend/photobackup/README.md).
-
-## How it works
-
-1. **My Drive** is a private Telegram channel owned by you.
-2. **Shared drives** are Telegram megagroups whose members can collaborate.
-3. File bodies are sent as Telegram document messages. Large files use multiple immutable parts.
-4. Folders, moves, renames, deletes, policies, and encryption information are represented by small `TDX1|...` metadata messages.
-5. SQLite is a rebuildable local projection of that Telegram-backed state. TDrive replays Telegram history to synchronize or recover it.
-
-> [!WARNING]
-> `TDX1|...` messages are part of the drive history. Do not edit or delete them in the Telegram app; doing so can damage or desynchronize the projected filesystem.
-
-## Privacy and encryption
-
-Manual uploads on **My Drive** can use client-side XChaCha20-Poly1305 encryption. Photo and video backup always uses encryption. TDrive encrypts file contents before sending them to Telegram and decrypts them after the correct vault password is entered.
-
-Important limits:
-
-- Encryption currently applies to personal-drive file contents, not shared drives.
-- File names, folder names, sizes, Telegram relationships, and operational metadata remain visible.
-- Encrypted streams detect modification and truncation, but the current format does not authenticate namespace/control metadata or bind an entire ciphertext object to one filename.
-- One vault password protects the encrypted personal files. It stays in memory only until the app or CLI daemon exits or the vault is locked.
-- Changing the password re-wraps the existing master key; it does not re-encrypt every stored file.
-- There is no password reset. The optional hint cannot decrypt content.
-
-## Shared drives
-
-Shared drives support file and folder upload, download, rename, move, and delete. Members can see who uploaded a file and can organize the shared namespace.
-
-Invite links should be treated like passwords. Use approval-required links when membership needs review, and revoke links that should no longer grant access.
-
-Deleting a shared folder also deletes its contained files after confirmation. Shared drives mount read-only even though they remain writable through the app and CLI.
+```sh
+install -m 755 build/bin/tdrive ~/.local/bin/tdrive.next
+mv ~/.local/bin/tdrive.next ~/.local/bin/tdrive
+systemctl --user restart tdrive-web.service
+systemctl --user status tdrive-web.service
+```
 
 ## Command-line interface
 
 The CLI is available for macOS, Linux, and Windows amd64. Most commands automatically start a local daemon that keeps the Telegram connection, sync state, and unlocked vault key warm between commands.
 
-The GUI and CLI daemon cannot use the same backend state simultaneously. Close the GUI before using CLI commands; the CLI reports this conflict instead of starting a second backend.
+Web and CLI commands connect to the shared daemon; a process lock prevents multiple backends from modifying the same local state.
 
 ### Install on macOS or Linux
 
@@ -318,135 +147,35 @@ Each successful JSON command writes one schema-versioned object to stdout (`sche
 
 </details>
 
-## Desktop mount
+## Storage and encryption
 
-Use **Mount** in the app, or close the GUI and run `tdrive mount`. TDrive starts a private localhost WebDAV endpoint and attaches the selected drive to the operating system until it is ejected.
+Personal drives use private Telegram channels; shared drives use Telegram groups. File contents are stored as document messages and large files are split into parts. Small metadata messages describe folders and operations. SQLite holds a local projection that can be synchronized or rebuilt from Telegram history. Editing or deleting drive metadata messages in Telegram can break that history.
 
-If the selected encrypted drive is locked, the CLI prompts for its existing vault password and retries the mount. Scripts can supply the password through stdin with `tdrive mount --password-stdin --non-interactive`; mount start does not support JSON mode.
+Personal-drive uploads can use client-side XChaCha20-Poly1305 encryption. File and folder names, sizes, and control metadata remain visible. Shared drives do not use this encryption. The vault key stays in daemon memory while unlocked; `tdrive vault lock` forgets it. There is no password reset that can recover encrypted contents.
 
-- **macOS:** appears in Finder as **Tdrive personal**.
-- **Windows:** defaults to drive `T:`. Windows WebDAV has a default 50,000,000-byte file-size limit that must be changed in the OS for larger files.
-- **Linux:** uses the active GIO/GVfs desktop session and requires the GVfs WebDAV backend, such as `gvfs-backends` on Debian or Ubuntu.
+Configuration and local state use the operating system's user configuration directory under `TDrive`; temporary data and media caches use its user cache directory. Logging out, clearing the local projection, and deleting remote files are separate operations.
 
-Personal-drive mounts support create, replace, rename, move, and delete. Encrypted writes are staged as ciphertext before Telegram commit. Encrypted uploads require a known content length. Shared-drive mounts remain read-only.
+## Mounts
 
-Linux mount behavior depends on the desktop's GIO/GVfs integration and should still be treated as beta.
+`tdrive mount` starts a private localhost WebDAV endpoint and attaches the selected drive to the operating system. Use `tdrive mount status` and `tdrive mount stop` to inspect or detach it. macOS and Linux mount helpers and Windows support remain available through the CLI. Shared and encrypted drives mount read-only; eligible personal plaintext drives support writes.
 
-## Known limitations
+Media conversion and video-poster extraction use optional system tools such as FFmpeg and mpv when available.
 
-- TDrive depends on Telegram availability, account access, API behavior, and rate limits.
-- It is not a substitute for keeping an independent backup of important files.
-- Shared-drive mounts are read-only.
-- The Windows CLI is a portable beta without an installer or background system service.
-- Folder and archive import is copy-style import, not synchronization or merge; importing the same folder repeatedly may create numbered names.
-- `tdrive cat` may stage decrypted content in a temporary file before writing it to standard output.
-- Mobile backup stages originals locally, requires available device storage, and rejects resources larger than 4 GiB. It cannot keep running after the app process is terminated.
-- Backup does not deduplicate content across devices or mirror cloud albums. Album and whole-library backup sources are not available.
-- iOS can be built from source but has no public App Store, TestFlight, or installable release download yet.
+## Development checks
 
-## Build from source
-
-Use the Go version declared in [go.mod](go.mod), Node.js 22 with npm, and the pinned Wails v3 CLI below. Install the native dependencies for your platform first; see the [build guide](build/README.md) and [Wails installation guide](https://v3.wails.io/getting-started/installation/).
-
-Run these commands from the repository root:
-
-```bash
-go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
-
-# Dependencies and embedded frontend
-npm --prefix frontend ci
-npm --prefix frontend run build
-
-# CLI
-go build -o build/bin/tdrive ./cmd/tdrive
-
-# Desktop development/build
-wails3 dev
-wails3 task build      # binary only, into build/bin
-wails3 task package    # + platform packaging (.app / NSIS installer / AppImage)
+```sh
+go test ./cmd/tdrive ./cmd/tdrived ./backend/...
+go vet ./cmd/tdrive ./cmd/tdrived ./backend/...
+npm ci --prefix cmd/tdrive/webui
+npm --prefix cmd/tdrive/webui run lint
+bash scripts/test-web-ui.sh
+cd cmd/tdrive/webui
+npx playwright install chromium
+npm run test:browser
 ```
 
-Android and iOS build commands are in the [mobile build guide](build/README.md#mobile).
-
-<details>
-<summary><strong>Run checks and tests</strong></summary>
-
-After installing the platform build dependencies, run from the repository root:
-
-```bash
-go test ./...
-go vet ./...
-npm --prefix frontend run typecheck
-npm --prefix frontend run lint
-npm --prefix frontend run test:coverage
-npm --prefix frontend run build
-bash scripts/test-android-version-code.sh
-bash scripts/test-android-signer-digests.sh
-```
-
-On Linux, add `-tags=gtk3` to Go build, test, and vet commands to match this project's desktop configuration.
-
-Browser tests run from `frontend/`:
-
-```bash
-npx playwright install --with-deps chromium webkit
-npm run test:e2e
-npx playwright test --config playwright.gallery-webkit.config.ts
-```
-
-</details>
-
-Native playback packaging is handled by the scripts under `scripts/` and the release workflow. When a bundled runtime is unavailable, TDrive can fall back to `mpv` from `PATH`; `TDRIVE_MPV_BIN` overrides that binary.
-
-<details>
-<summary><strong>Local data locations</strong></summary>
-
-Desktop persistent files live in the operating system's user-config directory:
-
-- macOS: `~/Library/Application Support/TDrive/`
-- Linux: `~/.config/TDrive/`
-- Windows: `%AppData%\TDrive\`
-
-Important files include:
-
-- `imp_config.json`: Telegram API ID and hash
-- `session.json`: Telegram login session
-- `config.json`: personal-drive channel configuration
-- `tdrive.db`: local projection, sync log, and encryption metadata
-- `photo-backup.db`: backup sources, settings, and queue
-- `cli.json`: CLI drive and working-directory state
-- `daemon.log`: CLI daemon log
-- `backend.lock`: prevents concurrent GUI and daemon ownership
-
-The Unix daemon socket is runtime-only under `$XDG_RUNTIME_DIR` or `/tmp/tdrive-<uid>`. Windows uses a per-user named pipe restricted to the current Windows SID.
-
-Mobile builds use app-private storage. Configuration and session files contain sensitive account data; do not attach them to public bug reports.
-
-</details>
-
-## Project background
-
-TDrive began as my first Go project and a way to learn Go, Wails, and Telegram APIs. I used AI to help with frontend styling, planning, and some implementation areas where the Telegram documentation was difficult, while focusing my learning on the Go and Telegram side.
-
-## Releases and support
-
-- [Latest release](https://github.com/jeetrex17/TDrive/releases/latest)
-- [All release notes](https://github.com/jeetrex17/TDrive/releases)
-- [Telegram community](https://t.me/Tdrive_community): questions, feedback, and discussion
-- [Report a problem](https://github.com/jeetrex17/TDrive/issues)
-
-For bug reports, include the TDrive version, operating system, expected behavior, and steps to reproduce. Redact API hashes, passwords, session data, private filenames, and invite links from logs and screenshots.
-
-## Star history
-
-<a href="https://www.star-history.com/?repos=jeetrex17%2FTDrive&type=date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=jeetrex17/TDrive&type=date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=jeetrex17/TDrive&type=date" />
-    <img alt="TDrive GitHub star history" src="https://api.star-history.com/chart?repos=jeetrex17/TDrive&type=date" />
-  </picture>
-</a>
+Web styles use semantic CSS variables for surfaces, foregrounds, borders, selection, and focus states. Shadcn Lint enforces semantic utility colors and rejects arbitrary utility values in the HTML. Browser tests verify desktop and narrow-screen layouts. See [build instructions](build/README.md) for release packaging.
 
 ## License
 
-TDrive is licensed under the [MIT License](LICENSE).
+See [LICENSE](LICENSE).

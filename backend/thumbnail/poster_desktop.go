@@ -13,15 +13,7 @@ import (
 	"strconv"
 )
 
-// generateVideoPoster draws one frame with the mpv that already ships for
-// playback.
-//
-// mpv rather than a platform framework, on all three desktops, for two reasons.
-// It is one implementation instead of three, and its codec coverage is the
-// widest available here -- AVFoundation would not open the .mkv files that
-// prompted this, and Media Foundation would not open several others. The binary
-// is already bundled and already validated at package time, so this adds a
-// caller, not a dependency.
+// generateVideoPoster extracts one frame using an optional system mpv.
 func generateVideoPoster(ctx context.Context, path string, maxEdge int) ([]byte, error) {
 	binary, err := findPosterMPV()
 	if err != nil {
@@ -39,8 +31,7 @@ func generateVideoPoster(ctx context.Context, path string, maxEdge int) ([]byte,
 	ctx, cancel := context.WithTimeout(ctx, posterTimeout)
 	defer cancel()
 
-	// Only options that predate the oldest mpv this app ships against. The
-	// Linux AppImage falls back to the distribution's mpv, which has been seen
+	// Options also work with older distribution mpv installations, seen
 	// as old as 0.34, and mpv exits rather than ignoring an option it does not
 	// know -- so a newer flag here would not degrade, it would produce nothing.
 	command := exec.CommandContext(ctx, binary,
@@ -102,9 +93,7 @@ func readSinglePosterFrame(dir string) ([]byte, error) {
 	return nil, fmt.Errorf("%w: no frame decoded", ErrPosterUnsupported)
 }
 
-// findPosterMPV locates the mpv that ships with the app, falling back to one on
-// PATH. The bundled copy is preferred on every platform because it is the build
-// whose codec set was validated at package time.
+// findPosterMPV locates an optional sidecar or a system mpv on PATH.
 func findPosterMPV() (string, error) {
 	name := "mpv"
 	if runtime.GOOS == "windows" {
@@ -137,11 +126,6 @@ func posterMPVCandidates(name string) []string {
 		// Windows, and any layout that puts the sidecar beside the binary.
 		filepath.Join(dir, name),
 		filepath.Join(dir, "media", name),
-	}
-	if runtime.GOOS == "darwin" {
-		// <App>.app/Contents/MacOS/TDrive -> Contents/Resources/media/mpv,
-		// which is where scripts/package-mpv-darwin.sh puts it.
-		candidates = append(candidates, filepath.Join(dir, "..", "Resources", "media", name))
 	}
 	if runtime.GOOS == "linux" {
 		candidates = append(candidates,

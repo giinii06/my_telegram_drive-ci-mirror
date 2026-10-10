@@ -8,7 +8,7 @@
 //
 // Any command that needs the backend starts it on demand: probe the socket with
 // a policy-free ping, and if that fails consult the process lock. A lock held by the
-// GUI is a hard error — one TDrive backend per user — while a lock held by a
+// legacy backend is a hard error — one TDrive backend per user — while a lock held by a
 // daemon means one is still booting and is waited on. Only otherwise does the
 // CLI re-exec itself detached as a daemon. Readiness is a successful ping,
 // never the mere presence of the lock file.

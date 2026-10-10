@@ -420,6 +420,7 @@ func (s *webServer) handleUI(response http.ResponseWriter, request *http.Request
 		return
 	}
 	response.Header().Set("Content-Type", "text/html; charset=utf-8")
+	response.Header().Set("Cache-Control", "no-cache")
 	_, _ = io.WriteString(response, s.ui)
 }
 

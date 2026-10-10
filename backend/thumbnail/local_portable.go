@@ -1,4 +1,4 @@
-//go:build (!darwin && !ios && !android) || !cgo
+//go:build !darwin || ios || !cgo
 
 package thumbnail
 

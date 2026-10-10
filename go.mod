@@ -7,7 +7,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/google/uuid v1.6.0
 	github.com/gotd/td v0.145.1
-	github.com/wailsapp/wails/v3 v3.0.0-beta.22
 	golang.org/x/crypto v0.54.0
 	golang.org/x/image v0.45.0
 	golang.org/x/net v0.57.0
@@ -19,7 +18,6 @@ require (
 )
 
 require (
-	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coder/websocket v1.8.14 // indirect
@@ -31,8 +29,6 @@ require (
 	github.com/go-faster/jx v1.2.0 // indirect
 	github.com/go-faster/xor v1.0.0 // indirect
 	github.com/go-faster/yaml v0.4.6 // indirect
-	github.com/go-ole/go-ole v1.3.0 // indirect
-	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/gotd/ige v0.2.2 // indirect
 	github.com/gotd/neo v0.1.5 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect

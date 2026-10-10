@@ -1,4 +1,4 @@
-//go:build !windows && !(darwin && !ios) && !(linux && !android) && !(android && cgo) && !(ios && cgo)
+//go:build !windows && !(darwin && !ios) && !(linux && !android)
 
 package thumbnail
 

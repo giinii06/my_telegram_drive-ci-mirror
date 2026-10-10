@@ -86,7 +86,7 @@ func startDaemonBackground(verbose bool) error {
 	}
 
 	if err := waitForDaemon(daemonStartTimeout); err != nil {
-		return fmt.Errorf("%w. If TDrive GUI is open, close it first. Log: %s", err, logPath)
+		return fmt.Errorf("%w. Check the backend process lock and daemon log: %s", err, logPath)
 	}
 	if verbose {
 		fmt.Printf("TDrive daemon started\nlog: %s\n", logPath)
@@ -101,7 +101,7 @@ func waitForExistingBackend() (bool, error) {
 	}
 	switch info.Role {
 	case "gui":
-		return true, fmt.Errorf("TDrive GUI is running (pid %d). Close it before using the CLI daemon", info.PID)
+		return true, fmt.Errorf("A legacy TDrive backend is running (pid %d). Stop it before starting the daemon", info.PID)
 	case "daemon":
 		if err := waitForDaemon(daemonStartTimeout); err != nil {
 			return true, fmt.Errorf("TDrive daemon is starting but not ready: %w", err)

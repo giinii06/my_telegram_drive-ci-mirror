@@ -582,3 +582,17 @@ func TestResolveMountDAVEndpointAbsoluteSymlink(t *testing.T) {
 		t.Fatalf("endpoint = %q %q", hostPort, prefix)
 	}
 }
+
+// Exercise the actual embedded workspace rather than a placeholder UI.
+func TestWebServesEmbeddedWorkspace(t *testing.T) {
+	s := newWebTestServer(&fakeWebClient{}, nil)
+	s.ui = webUIHTML
+	w := httptest.NewRecorder()
+	s.routes().ServeHTTP(w, httptest.NewRequest(http.MethodGet, webauthed("/"), nil))
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `data-ui-version="shadcn-workspace-v1"`) {
+		t.Fatalf("embedded workspace was not served: status %d", w.Code)
+	}
+	if w.Header().Get("Cache-Control") != "no-cache" {
+		t.Fatal("workspace must revalidate after a rebuild")
+	}
+}

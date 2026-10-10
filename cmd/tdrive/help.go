@@ -154,7 +154,7 @@ Commands:
   restart [--background]  Restart the daemon
 
 Most normal CLI commands auto-start the daemon when needed.
-The GUI and CLI daemon cannot run at the same time.
+Web and CLI commands share one local daemon.
 `,
 	"daemon start": `
 tdrive daemon start [--background|-b]
@@ -382,8 +382,7 @@ Commands:
 tdrive vault create [--hint TEXT] [--password-stdin]
 
 Set the initial encryption vault password. This works exactly once: if a
-password is already set, use "vault unlock" (or change it in the desktop
-app) instead. Creating the password also unlocks the vault, so encrypted
+password is already set, use "vault unlock" instead. Creating the password also unlocks the vault, so encrypted
 uploads work immediately.
 
 Options:
@@ -435,8 +434,7 @@ Explorer, or the current GVfs/GIO desktop session on Linux.
 Shared or encrypted drives fall back to read-only mode. Mount status always
 reports the mode actually attached by the operating system.
 
-Close the TDrive GUI before starting this CLI-owned mount. Keep the daemon
-running until "tdrive mount stop" has completed.
+Keep the daemon running until "tdrive mount stop" has completed.
 `,
 	"web": `
 tdrive web [--port N] [--listen ADDR] [--token TOKEN] [--no-auth]

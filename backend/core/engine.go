@@ -1,7 +1,6 @@
 // Package core is TDrive's headless composition root. It builds one Engine that
 // wires every backend service, the Telegram adapter, the sync engine and live
-// sync, so the Wails GUI and the CLI daemon share one assembly instead of
-// maintaining two.
+// sync for the shared web and CLI daemon.
 //
 // Beyond wiring it owns three things: the control-message write path, remote
 // path resolution, and a process-local broker that lets mounted filesystems
@@ -73,7 +72,7 @@ import (
 )
 
 // EventSink is the narrow event boundary between the headless backend and a
-// frontend. Wails turns these into runtime events; the daemon will stream them
+// clients. The daemon streams them
 // over its local socket; tests can pass nil.
 type EventSink interface {
 	Emit(name string, args ...any)
@@ -118,7 +117,7 @@ type Config struct {
 	EncryptionPolicyRefresh func(context.Context, int64) error
 }
 
-// Engine owns the reusable, headless TDrive backend. The Wails app and daemon
+// Engine owns the reusable, headless TDrive backend. Web and CLI clients
 // should both build one of these instead of duplicating service wiring.
 type Engine struct {
 	ctx context.Context
