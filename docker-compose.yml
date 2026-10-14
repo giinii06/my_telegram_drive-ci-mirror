@@ -1,0 +1,19 @@
+services:
+  tdrive:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tdrive:latest
+    restart: unless-stopped
+    ports:
+      - "${TDRIVE_PORT:-8080}:8080"
+    volumes:
+      - tdrive-data:/data
+    environment:
+      - HOME=/data
+      - TDRIVE_NO_OS_MOUNT=1
+      - TDRIVE_CONTAINER=1
+      - PORT=8080
+
+volumes:
+  tdrive-data:

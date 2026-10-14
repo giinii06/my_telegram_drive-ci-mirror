@@ -235,6 +235,9 @@ func resolveMountDAVEndpoint() (hostPort string, capabilityPrefix string, err er
 	}
 	target, err := os.Readlink(filepath.Join(home, "TDrive"))
 	if err != nil {
+		if hostPort, prefix, derr := resolveMountDAVEndpointFromDaemon(); derr == nil {
+			return hostPort, prefix, nil
+		}
 		return "", "", fmt.Errorf("web: ~/TDrive symlink not found (is the mount running?): %w", err)
 	}
 	rest, ok := strings.CutPrefix(target, "dav:")
@@ -1186,4 +1189,40 @@ func escapeWebDAVPath(remotePath string) string {
 		parts[index] = url.PathEscape(part)
 	}
 	return "/" + strings.Join(parts, "/")
+}
+
+
+func resolveMountDAVEndpointFromDaemon() (string, string, error) {
+	client, err := newDaemonClient()
+	if err != nil {
+		return "", "", err
+	}
+	out, err := client.MountStatus()
+	if err != nil {
+		return "", "", err
+	}
+	if strings.TrimSpace(out.Location) == "" {
+		return "", "", fmt.Errorf("web: mount location unavailable")
+	}
+	u, err := url.Parse(strings.TrimSpace(out.Location))
+	if err != nil {
+		return "", "", err
+	}
+	host := strings.TrimSpace(u.Host)
+	if host == "" {
+		return "", "", fmt.Errorf("web: cannot parse mount location %q", out.Location)
+	}
+	hostPort := host
+	if u.Port() == "" && u.Scheme != "" {
+		// Keep the host as-is when no explicit port was present.
+	} 
+	prefix := u.EscapedPath()
+	if prefix == "" {
+		prefix = "/"
+	}
+	decoded, err := url.PathUnescape(prefix)
+	if err != nil {
+		return "", "", err
+	}
+	return hostPort, decoded, nil
 }

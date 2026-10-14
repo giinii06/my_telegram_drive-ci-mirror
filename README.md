@@ -22,11 +22,11 @@ Open the URL printed by `tdrive web`. By default the server listens on the Tails
 
 Browse and search files, switch between list and icon views, upload files or folders, create folders, rename, copy, move, and delete entries. Preview images, text and PDFs, stream video and audio, and download files. Navigation supports breadcrumbs, history, keyboard shortcuts, and multi-selection.
 
-The UI lives in `cmd/tdrive/webui/index.html` and is embedded directly into the CLI binary. After a UI change, rebuild the CLI and restart the web service. No desktop runtime or separate production frontend build is required.
+The UI lives in `cmd/tdrive/webui/index.html` and is embedded directly into the CLI binary. After a UI change, rebuild the CLI and restart the web service (in Docker: rebuild the image instead, see above). No desktop runtime or separate production frontend build is required.
 
-For the supplied user service, install the CLI to `~/.local/bin/tdrive`, copy `scripts/tdrive-web.service` to `~/.config/systemd/user/`, and run `systemctl --user daemon-reload` followed by `systemctl --user enable --now tdrive-web.service`. The supplied service uses `--no-auth` on the Tailscale address; omit that option to use token authentication.
+For bare-metal installs without Docker, the supplied user service installs the CLI to `~/.local/bin/tdrive`, copy `scripts/tdrive-web.service` to `~/.config/systemd/user/`, and run `systemctl --user daemon-reload` followed by `systemctl --user enable --now tdrive-web.service`. The supplied service uses `--no-auth` on the Tailscale address; omit that option to use token authentication.
 
-### Run the web service on Linux
+### Run the web service on Linux without Docker
 
 ```sh
 mkdir -p ~/.local/bin ~/.config/systemd/user
@@ -160,6 +160,54 @@ Configuration and local state use the operating system's user configuration dire
 `tdrive mount` starts a private localhost WebDAV endpoint and attaches the selected drive to the operating system. Use `tdrive mount status` and `tdrive mount stop` to inspect or detach it. macOS and Linux mount helpers and Windows support remain available through the CLI. Shared and encrypted drives mount read-only; eligible personal plaintext drives support writes.
 
 Media conversion and video-poster extraction use optional system tools such as FFmpeg and mpv when available.
+
+## Run with Docker (recommended)
+
+Requires Docker Engine with Compose v2.
+
+```sh
+docker compose up -d --build
+docker compose ps
+docker compose logs -f tdrive
+```
+
+All state lives in the `tdrive_tdrive-data` volume (`/data` in the container: config in `/data/.config/TDrive`, cache in `/data/.cache/TDrive`). The entrypoint starts the daemon, unlocks the vault when `/data/.config/TDrive/vault.pass` exists, waits until a drive is selected, then serves the web workspace on port 8080 with `--no-auth`. Only expose that port on networks you trust, or put it behind Tailscale or a reverse proxy.
+
+First run (setup, login, select a drive):
+
+```sh
+docker compose exec tdrive tdrive setup --api-id YOUR_ID --api-hash-stdin
+docker compose exec tdrive tdrive login +15551234567
+docker compose exec tdrive tdrive drive use <name-or-id>
+```
+
+The web server starts automatically once a drive is selected. Everyday commands:
+
+```sh
+docker compose exec tdrive tdrive daemon status
+docker compose exec tdrive tdrive drives
+docker compose exec tdrive tdrive vault status
+docker compose exec tdrive tdrive mount status
+docker compose exec tdrive tdrive ls /
+docker compose logs -f tdrive
+docker compose down        # stop; state stays in the volume
+```
+
+After changing Go code or `cmd/tdrive/webui/index.html`, rebuild the image (the web UI is embedded in the binary, so UI changes need a rebuild too):
+
+```sh
+docker compose up -d --build
+```
+
+Note: the builder stage copies the whole repo, so any file change invalidates the Go build cache and a rebuild takes several minutes.
+
+Container behavior notes: `docker-compose.yml` sets `TDRIVE_NO_OS_MOUNT=1` and `TDRIVE_CONTAINER=1`. With them, the mount controller skips the OS desktop attach and keeps only the loopback WebDAV endpoint the web server reads through, and `tdrive web` falls back to the daemon's mount status when the `~/TDrive` symlink is absent (see `headlessContainerMode` in `backend/mountcontroller/controller.go` and `resolveMountDAVEndpointFromDaemon` in `cmd/tdrive/web.go`).
+
+Back up the volume (image already local, no pull needed):
+
+```sh
+docker run --rm --entrypoint sh -v tdrive_tdrive-data:/data -v "$PWD":/backup tdrive:latest -c 'tar -czf /backup/tdrive-data-backup.tar.gz -C /data .'
+```
 
 ## Development checks
 

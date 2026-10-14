@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -287,23 +288,29 @@ func (controller *Controller) runStart(ctx context.Context, current *operation, 
 	controller.status = statusFor(active, PhaseAttaching, true, false, "")
 	controller.mu.Unlock()
 
-	attachment, err := controller.connector.Attach(ctx, mountos.Config{
-		Endpoint:     endpointStatus.Endpoint,
-		Label:        active.label,
-		WindowsDrive: active.windowsDrive,
-		Mode:         mountOSMode(active.mode),
-	})
-	if err != nil {
-		cleanupErr := controller.stopEndpointForRollback(ctx)
-		writerErr := closeWriterForRollback(ctx, active.writer)
-		active.content.Close()
-		closeSessionKey(active)
-		return controller.failStart(
-			current,
-			active,
-			mountFailureMessage("attach", active.mode),
-			errors.Join(err, cleanupErr, writerErr),
-		)
+	var attachment mountos.Attachment
+	if !headlessContainerMode() {
+		attached, err := controller.connector.Attach(ctx, mountos.Config{
+			Endpoint:     endpointStatus.Endpoint,
+			Label:        active.label,
+			WindowsDrive: active.windowsDrive,
+			Mode:         mountOSMode(active.mode),
+		})
+		if err != nil {
+			cleanupErr := controller.stopEndpointForRollback(ctx)
+			writerErr := closeWriterForRollback(ctx, active.writer)
+			active.content.Close()
+			closeSessionKey(active)
+			return controller.failStart(
+				current,
+				active,
+				mountFailureMessage("attach", active.mode),
+				errors.Join(err, cleanupErr, writerErr),
+			)
+		}
+		attachment = attached
+	} else {
+		attachment = mountos.NewAttachment("container", endpointStatus.Endpoint)
 	}
 	controller.setAttachment(active, attachment)
 	if !controller.endpoint.Health().Running {
@@ -414,7 +421,8 @@ func (controller *Controller) runStop(ctx context.Context, current *operation, a
 		controller.mu.Unlock()
 	}
 
-	if err := controller.connector.Detach(ctx, active.attachment); err != nil {
+	if active.attachment.Kind() != "container" {
+		if err := controller.connector.Detach(ctx, active.attachment); err != nil {
 		controller.mu.Lock()
 		running := controller.status.Running
 		controller.mu.Unlock()
@@ -423,6 +431,7 @@ func (controller *Controller) runStop(ctx context.Context, current *operation, a
 			message = "TDrive could not disconnect the stale mount; retry disconnecting"
 		}
 		return controller.failStop(current, active, message, err, true)
+		}
 	}
 
 	controller.mu.Lock()
@@ -637,7 +646,11 @@ func (controller *Controller) recoverFailedEndpointAfterAttach(
 ) (Status, error) {
 	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cleanupTimeout)
 	defer cancel()
-	if detachErr := controller.connector.Detach(cleanupCtx, active.attachment); detachErr != nil {
+	var detachErr error
+	if active.attachment.Kind() != "container" {
+		detachErr = controller.connector.Detach(cleanupCtx, active.attachment)
+	}
+	if detachErr != nil {
 		const message = "TDrive attached, but its local mount server stopped; retry ejecting the stale mount"
 		publicErr := &operationError{message: message, kind: classifyOperationError(detachErr, ErrStopFailed)}
 		controller.mu.Lock()
@@ -951,3 +964,16 @@ func startFailureMessage(fallback string, cause error, active *session) string {
 }
 
 var _ mountcontent.PeerResolver = (*core.Engine)(nil)
+
+
+func headlessContainerMode() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("TDRIVE_NO_OS_MOUNT"))) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("TDRIVE_CONTAINER"))) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
+}
