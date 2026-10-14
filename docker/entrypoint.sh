@@ -7,13 +7,6 @@ export TDRIVE_CONTAINER=1
 
 mkdir -p "$HOME/.config" "$HOME/.cache"
 
-if command -v service >/dev/null 2>&1; then
-    service dbus start >/dev/null 2>&1 || true
-fi
-if ! pgrep -x dbus-daemon >/dev/null 2>&1 && command -v dbus-daemon >/dev/null 2>&1; then
-    dbus-daemon --system >/dev/null 2>&1 || true
-fi
-
 tdrive daemon start --background >/dev/null 2>&1 || true
 
 for _ in $(seq 1 50); do

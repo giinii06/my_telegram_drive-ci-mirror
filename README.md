@@ -171,11 +171,11 @@ docker compose ps
 docker compose logs -f tdrive
 ```
 
-All state lives in the `tdrive_tdrive-data` volume (`/data` in the container: config in `/data/.config/TDrive`, cache in `/data/.cache/TDrive`). The entrypoint starts the daemon, unlocks the vault when `/data/.config/TDrive/vault.pass` exists, waits until a drive is selected, then serves the web workspace on port 8080 with `--no-auth`.
+All state lives in the `tdrive_tdrive-data` volume (`/data` in the container: config in `/data/.config/TDrive`, cache in `/data/.cache/TDrive`). The entrypoint starts the daemon, unlocks the vault when `/data/.config/TDrive/vault.pass` exists, waits until a drive is selected, then serves the web workspace on port 8080 with `--no-auth`, reachable over the tailnet only.
 
 ### Tailscale access
 
-Compose also runs a `tailscale/tailscale` sidecar as node `tdrive`, and the `tdrive` service shares its network stack (`network_mode: service:tailscale`). Tailnet peers reach the web UI at `http://<tdrive-ip>:8080` (WireGuard-encrypted, same trust model as `--no-auth` on the tailnet); the host keeps localhost-only access via `127.0.0.1:8080`. Port publishing lives on the tailscale service; Tailscale state persists in the `tdrive-ts-state` volume.
+Compose also runs a `tailscale/tailscale` sidecar as node `tdrive`, and the `tdrive` service shares its network stack (`network_mode: service:tailscale`). Tailnet peers reach the web UI at `http://<tdrive-ip>:8080` (WireGuard-encrypted, same trust model as `--no-auth` on the tailnet). No ports are published to the host. Tailscale state persists in the `tdrive-ts-state` volume.
 
 One-time setup:
 

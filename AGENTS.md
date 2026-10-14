@@ -7,7 +7,7 @@ The live instance runs in Docker Compose (`docker-compose.yml`, service `tdrive`
 - `docker compose up -d [--build]` / `ps` / `logs -f tdrive` / `down`
 - Run the CLI inside the container: `docker compose exec tdrive tdrive <args>` (daemon status, drives, vault, mount, ls, ...)
 - State lives in volume `tdrive_tdrive-data` mounted at `/data` (`HOME=/data`): config in `/data/.config/TDrive`, cache in `/data/.cache/TDrive`.
-- Web serves on `0.0.0.0:8080` with `--no-auth`: tailnet peers via the sidecar, host via `127.0.0.1:8080` publishing on the tailscale service.
+- Web serves on `0.0.0.0:8080` with `--no-auth`, reachable over the tailnet only (no ports published).
 - Networking: `tailscale` sidecar (node `tdrive`, official `tailscale/tailscale:stable` image, state in `tdrive-ts-state` volume); `tdrive` uses `network_mode: service:tailscale`. Auth key lives in `.env` (`TS_AUTHKEY`, gitignored, `tskey-auth-` key). Recreating the tailscale container orphans tdrive's netns → follow with `docker compose up -d --force-recreate tdrive`.
 - Entrypoint (`docker/entrypoint.sh`): dbus → `daemon start --background` → wait for readiness → vault auto-unlock from `/data/.config/TDrive/vault.pass` when present → wait for a selected drive (`tdrive drives` shows `*`) → `tdrive web`.
 - Container flags (set in `docker-compose.yml` env): `TDRIVE_NO_OS_MOUNT=1`, `TDRIVE_CONTAINER=1`.

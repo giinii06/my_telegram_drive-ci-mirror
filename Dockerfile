@@ -10,7 +10,7 @@ FROM debian:bookworm-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        ca-certificates tini dbus gvfs-backends \
+        ca-certificates tini \
     && rm -rf /var/lib/apt/lists/*
 
 ENV HOME=/data
