@@ -1,12 +1,35 @@
 services:
+  tailscale:
+    image: tailscale/tailscale:stable
+    hostname: tdrive
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_HOSTNAME=tdrive
+    volumes:
+      - tdrive-ts-state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    ports:
+      # Localhost-only on the host; tailnet peers reach the web UI at <tdrive-ip>:8080.
+      - "127.0.0.1:${TDRIVE_PORT:-8080}:8080"
+    restart: unless-stopped
+
   tdrive:
     build:
       context: .
       dockerfile: Dockerfile
     image: tdrive:latest
+    # Share the tailscale sidecar's network stack: tdrive's 0.0.0.0:8080
+    # is reachable over the tailnet (WireGuard-encrypted) and via the
+    # localhost publishing above. Ports must be declared on the tailscale
+    # service, not here.
+    network_mode: service:tailscale
+    depends_on:
+      - tailscale
     restart: unless-stopped
-    ports:
-      - "${TDRIVE_PORT:-8080}:8080"
     volumes:
       - tdrive-data:/data
     environment:
@@ -17,3 +40,4 @@ services:
 
 volumes:
   tdrive-data:
+  tdrive-ts-state:

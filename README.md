@@ -171,7 +171,23 @@ docker compose ps
 docker compose logs -f tdrive
 ```
 
-All state lives in the `tdrive_tdrive-data` volume (`/data` in the container: config in `/data/.config/TDrive`, cache in `/data/.cache/TDrive`). The entrypoint starts the daemon, unlocks the vault when `/data/.config/TDrive/vault.pass` exists, waits until a drive is selected, then serves the web workspace on port 8080 with `--no-auth`. Only expose that port on networks you trust, or put it behind Tailscale or a reverse proxy.
+All state lives in the `tdrive_tdrive-data` volume (`/data` in the container: config in `/data/.config/TDrive`, cache in `/data/.cache/TDrive`). The entrypoint starts the daemon, unlocks the vault when `/data/.config/TDrive/vault.pass` exists, waits until a drive is selected, then serves the web workspace on port 8080 with `--no-auth`.
+
+### Tailscale access
+
+Compose also runs a `tailscale/tailscale` sidecar as node `tdrive`, and the `tdrive` service shares its network stack (`network_mode: service:tailscale`). Tailnet peers reach the web UI at `http://<tdrive-ip>:8080` (WireGuard-encrypted, same trust model as `--no-auth` on the tailnet); the host keeps localhost-only access via `127.0.0.1:8080`. Port publishing lives on the tailscale service; Tailscale state persists in the `tdrive-ts-state` volume.
+
+One-time setup:
+
+```sh
+cp .env.example .env
+# put a tskey-auth- key from https://login.tailscale.com/admin/settings/keys into .env (never commit it)
+docker compose up -d
+docker compose exec tailscale tailscale status
+docker compose exec tailscale tailscale ip -4
+```
+
+Caveat: recreating the tailscale container orphans `tdrive`'s network namespace, so follow it with `docker compose up -d --force-recreate tdrive`.
 
 First run (setup, login, select a drive):
 
