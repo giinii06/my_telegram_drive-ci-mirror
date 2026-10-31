@@ -43,10 +43,6 @@ import (
 )
 
 func main() {
-	if os.Getenv("TDRIVE_CONTAINER") != "1" {
-		err := &CLIError{Code: "unsupported", Message: "TDrive runs in Docker only. Start it with docker compose up -d --build; run commands with docker compose exec tdrive tdrive <command>."}
-		os.Exit(writeCommandError(os.Stderr, err, wantsJSON(os.Args[1:])))
-	}
 	if err := run(os.Args[1:]); err != nil {
 		os.Exit(writeCommandError(os.Stderr, err, wantsJSON(os.Args[1:])))
 	}

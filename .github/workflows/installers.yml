@@ -1,0 +1,158 @@
+name: Installers
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Create the release once, before the builders attach to it
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "release $GITHUB_REF_NAME already exists"
+          else
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+          fi
+
+  linux-deb:
+    needs: release
+    if: always() && (needs.release.result == 'success' || needs.release.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: Build the .deb
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" != tag ]; then version="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
+          bash packaging/linux/build-deb.sh --version "$version"
+          dpkg-deb -I dist/tdrive_*.deb
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tdrive-deb
+          path: dist/*.deb
+          if-no-files-found: error
+      - name: Attach to the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/*.deb --clobber
+
+  macos-dmg:
+    needs: release
+    if: always() && (needs.release.result == 'success' || needs.release.result == 'skipped')
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: Build the .dmg
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" != tag ]; then version="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
+          bash packaging/macos/build-dmg.sh --version "$version"
+          hdiutil attach -nobrowse -readonly dist/*.dmg
+          test -x "/Volumes/TDrive/tdrive"
+          test -x "/Volumes/TDrive/Install TDrive.command"
+          "/Volumes/TDrive/tdrive" version
+          hdiutil detach "/Volumes/TDrive"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tdrive-dmg
+          path: dist/*.dmg
+          if-no-files-found: error
+      - name: Attach to the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/*.dmg --clobber
+
+  windows-exe:
+    needs: release
+    if: always() && (needs.release.result == 'success' || needs.release.result == 'skipped')
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $ref = "${{ github.ref_name }}"
+          if ($ref.StartsWith("v")) { $ref = $ref.Substring(1) }
+          if ("${{ github.ref_type }}" -ne "tag") { $ref = "0.0.0-dev.${{ github.run_number }}" }
+          ./packaging/windows/build-exe.ps1 -Version $ref
+      - name: Check the installer header
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem dist/TDrive-Setup-*.exe | Select-Object -First 1
+          if (-not $exe) { throw "no installer was produced" }
+          $bytes = [System.IO.File]::ReadAllBytes($exe.FullName)[0..1]
+          if ($bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "installer is not a PE file" }
+          Write-Host "$($exe.Name) $($exe.Length) bytes"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tdrive-exe
+          path: dist/*.exe
+          if-no-files-found: error
+      - name: Attach to the release
+        if: github.ref_type == 'tag'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/*.exe --clobber
+
+  android-apk:
+    needs: release
+    if: always() && (needs.release.result == 'success' || needs.release.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: Install Gradle 8.7 and the Android platform
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gradle.zip" https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q "$RUNNER_TEMP/gradle.zip" -d "$RUNNER_TEMP"
+          echo "GRADLE_BIN=$RUNNER_TEMP/gradle-8.7/bin/gradle" >> "$GITHUB_ENV"
+          if [ -n "${JAVA_HOME_17_X64:-}" ]; then echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"; fi
+          sdkmanager="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$sdkmanager" ] || sdkmanager=$(command -v sdkmanager)
+          yes | "$sdkmanager" --licenses >/dev/null 2>&1 || true
+          "$sdkmanager" --install "platforms;android-34" "build-tools;34.0.0" >/dev/null
+          java -version
+      - name: Build the APK
+        env:
+          TDRIVE_ANDROID_ABIS: arm64-v8a
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" != tag ]; then version="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
+          TDRIVE_VERSION="$version" TDRIVE_VERSION_NAME="$version" TDRIVE_VERSION_CODE="$GITHUB_RUN_NUMBER" \
+            bash packaging/android/build-apk.sh
+          unzip -l dist/*.apk | grep -E 'lib/arm64-v8a/libtdrive.so|AndroidManifest.xml'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tdrive-apk
+          path: dist/*.apk
+          if-no-files-found: error
+      - name: Attach to the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/*.apk --clobber

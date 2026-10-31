@@ -1,0 +1,12 @@
+# TDrive web server settings, read by tdrive.service.
+# Change a value, then run: sudo systemctl restart tdrive
+
+# Interface the web UI listens on. 0.0.0.0 publishes it on every interface;
+# use the host's Tailscale address to keep it tailnet-only.
+TDRIVE_LISTEN=0.0.0.0
+TDRIVE_PORT=8080
+
+# Native installs keep the OS mount off and serve files through the daemon's
+# private WebDAV endpoint. Set to 0 to mount the drive with GVfs instead; that
+# needs a graphical desktop session and the GIO/GVfs WebDAV backend.
+TDRIVE_NO_OS_MOUNT=1

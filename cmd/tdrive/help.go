@@ -411,18 +411,23 @@ drives support read/write mode.
 Keep the daemon running until "tdrive mount stop" has completed.
 `,
 	"web": `
-tdrive web [--port N] [--listen ADDR] [--token TOKEN] [--no-auth]
+tdrive web [--port N] [--listen ADDR] [--token TOKEN] [--no-auth] [--open]
 
 Serve the active drive as a web page on the local network: browse folders,
 stream video/audio with seeks, preview images, PDFs and text, download files,
 upload files, and create/rename/delete entries.
+
+--open starts the default browser on the URL, including the access token. The
+macOS, Windows, and Android installers use it; --listen 127.0.0.1 keeps a
+desktop install reachable only from that machine. Without --listen the address
+is the host's Tailscale IPv4, which requires tailscale on PATH.
 
 Docker Compose starts this server automatically after a drive is selected.
 The entrypoint listens on 0.0.0.0:8080 inside the Tailscale network namespace
 and uses --no-auth. No host ports are published. Tailnet users who can reach
 the service have full read/write access; restrict access to trusted users.
 
-The web server reads through the container's private WebDAV endpoint.
+The web server reads through the daemon's private WebDAV endpoint.
 Restart the service with docker compose restart tdrive rather than starting
 a second web server on the same port.
 

@@ -1,0 +1,28 @@
+[Unit]
+Description=TDrive web server
+Documentation=https://github.com/giinii06/my_telegram_drive
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tdrive
+Group=tdrive
+WorkingDirectory=/var/lib/tdrive
+Environment=HOME=/var/lib/tdrive
+Environment=TDRIVE_NO_OS_MOUNT=1
+Environment=TDRIVE_LISTEN=0.0.0.0
+Environment=TDRIVE_PORT=8080
+# /etc/default/tdrive is read last so operators can override the values above.
+EnvironmentFile=-/etc/default/tdrive
+ExecStart=/usr/bin/tdrive web --listen ${TDRIVE_LISTEN} --port ${TDRIVE_PORT}
+# The CLI starts the daemon on demand, so stopping the web server must stop it too.
+ExecStopPost=/usr/bin/tdrive daemon stop
+Restart=on-failure
+RestartSec=3
+StateDirectory=tdrive
+StateDirectoryMode=0700
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

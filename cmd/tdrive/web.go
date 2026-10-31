@@ -16,6 +16,7 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -59,6 +60,7 @@ type webOptions struct {
 	listen string
 	token  string
 	noAuth bool
+	open   bool
 }
 
 type webServer struct {
@@ -171,7 +173,13 @@ func runWeb(args []string) error {
 	if err != nil {
 		return fmt.Errorf("web: listen %s: %w", listenAddr, err)
 	}
-	fmt.Printf("TDrive web: %s\n", server.publicURL(listenAddr, token))
+	publicURL := server.publicURL(listenAddr, token)
+	fmt.Printf("TDrive web: %s\n", publicURL)
+	if options.open {
+		if err := openBrowser(publicURL); err != nil {
+			fmt.Fprintf(os.Stderr, "web: open browser: %v\n", err)
+		}
+	}
 	if token == "" {
 		fmt.Fprintln(os.Stderr, "WARNING: auth disabled (--no-auth). Anyone able to reach this address can browse, download, upload, and delete.")
 	} else {
@@ -194,7 +202,7 @@ func runWeb(args []string) error {
 }
 
 func parseWebArgs(args []string) (webOptions, error) {
-	const usage = "usage: tdrive web [--port N] [--listen ADDR] [--token TOKEN] [--no-auth]"
+	const usage = "usage: tdrive web [--port N] [--listen ADDR] [--token TOKEN] [--no-auth] [--open]"
 	options := webOptions{port: 8080}
 	for index := 0; index < len(args); index++ {
 		switch args[index] {
@@ -222,6 +230,8 @@ func parseWebArgs(args []string) (webOptions, error) {
 			options.token = args[index]
 		case "--no-auth":
 			options.noAuth = true
+		case "--open":
+			options.open = true
 		default:
 			return webOptions{}, fmt.Errorf("unknown web option %q\n\n%s", args[index], usage)
 		}
@@ -291,6 +301,20 @@ func resolveMountDAVEndpoint() (hostPort string, capabilityPrefix string, err er
 		return "", "", fmt.Errorf("web: cannot decode mount prefix: %w", err)
 	}
 	return net.JoinHostPort(host, port), decoded, nil
+}
+
+// openBrowser starts the platform's default browser, so installed builds can
+// hand the user straight to the UI. A failure is not fatal: the URL is already
+// printed.
+func openBrowser(url string) error {
+	switch runtime.GOOS {
+	case "darwin":
+		return exec.Command("open", url).Start()
+	case "windows":
+		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	default:
+		return exec.Command("xdg-open", url).Start()
+	}
 }
 
 func resolveWebToken(flag string) (string, error) {

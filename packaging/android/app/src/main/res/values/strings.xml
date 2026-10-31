@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TDrive</string>
+    <string name="notification_channel">TDrive 서버</string>
+    <string name="notification_running">TDrive 서버가 실행 중입니다</string>
+    <string name="starting">TDrive 서버를 시작하는 중…</string>
+    <string name="retry">다시 시도</string>
+    <string name="timeout">서버가 제때 응답하지 않습니다. 로그를 확인하세요.</string>
+    <string name="download_failed">내려받기를 열 수 있는 앱이 없습니다.</string>
+</resources>

@@ -523,11 +523,11 @@ func TestWebTokenRotate(t *testing.T) {
 }
 
 func TestParseWebArgs(t *testing.T) {
-	options, err := parseWebArgs([]string{"--port", "9090", "--listen", "10.0.0.1"})
+	options, err := parseWebArgs([]string{"--port", "9090", "--listen", "10.0.0.1", "--open"})
 	if err != nil {
 		t.Fatalf("parseWebArgs: %v", err)
 	}
-	if options.port != 9090 || options.listen != "10.0.0.1" {
+	if options.port != 9090 || options.listen != "10.0.0.1" || !options.open {
 		t.Fatalf("options = %+v", options)
 	}
 	if _, err := parseWebArgs([]string{"--port", "abc"}); err == nil {
