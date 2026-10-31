@@ -3,13 +3,14 @@ setlocal
 rem Native install: skip FUSE/WinFsp mounts and let the daemon serve its private
 rem WebDAV endpoint, which is the path the web UI already streams through.
 set "TDRIVE_NO_OS_MOUNT=1"
-if not defined TDRIVE_PORT set "TDRIVE_PORT=8080"
 
-echo Starting the TDrive web server. Closing this window stops the server.
-echo Address: http://127.0.0.1:%TDRIVE_PORT%/
-echo.
-"%~dp0tdrive.exe" web --listen 127.0.0.1 --port %TDRIVE_PORT% --open
+rem The installer writes port.txt and listen.txt next to this script. Manual
+rem edits take effect on the next start.
+set "TDRIVE_PORT=8080"
+if exist "%~dp0port.txt" set /p TDRIVE_PORT=<"%~dp0port.txt"
+set "TDRIVE_LISTEN=127.0.0.1"
+if exist "%~dp0listen.txt" set /p TDRIVE_LISTEN=<"%~dp0listen.txt"
 
-echo.
-echo The TDrive web server stopped. Run TDrive again to restart it.
-pause >nul
+rem The logon task starts this script with no argument, so the browser only
+rem opens when the user launches TDrive from the Start menu (--open).
+"%~dp0tdrive.exe" web --listen %TDRIVE_LISTEN% --port %TDRIVE_PORT% %1

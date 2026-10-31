@@ -46,13 +46,29 @@ Docker 없이 호스트에서 바로 실행하는 설치 파일은 [릴리즈](h
 | Linux (amd64) | `tdrive_<버전>_amd64.deb` | `sudo apt install ./tdrive_<버전>_amd64.deb` |
 | macOS (Apple Silicon·Intel) | `TDrive-<버전>-universal.dmg` | dmg를 열고 `Install TDrive.command` 실행 |
 | Windows 11 | `TDrive-Setup-<버전>.exe` | 설치 후 시작 메뉴의 TDrive |
+| Windows 11 자동 백업 | `TDrive-Backup-Setup-<버전>.exe` | 설치 후 서버 주소·백업 폴더 지정 |
 | Android | `TDrive-<버전>.apk` | APK 설치 후 앱 실행 |
 
 - 모든 네이티브 설치는 `TDRIVE_NO_OS_MOUNT=1`로 동작합니다. Finder·탐색기·GVfs에 드라이브를 마운트하지 않고 데몬의 내부 WebDAV 엔드포인트로 파일을 스트리밍합니다.
 - Telegram 로그인은 각 설치본이 여는 웹 UI에서 진행합니다.
-- macOS·Windows는 `127.0.0.1:8080`에만 열립니다. 접속 토큰은 `~/.config/TDrive/web.token`(`%USERPROFILE%\.config\TDrive\web.token`)에 있습니다.
+- macOS는 `127.0.0.1:8080`에만 열립니다. Windows는 설치 중 접속 범위를 고릅니다: 이 PC만(`127.0.0.1`) 또는 다른 기기 허용(`0.0.0.0`, 토큰 필요). 선택 값은 설치 폴더의 `listen.txt`·`port.txt`에서 바꿀 수 있습니다. 접속 토큰은 `~/.config/TDrive/web.token`(`%USERPROFILE%\.config\TDrive\web.token`)에 있습니다.
+- Windows 설치본은 로그인할 때 백그라운드로 자동 실행됩니다. 시작 메뉴의 **TDrive 서버 시작/중지**로 직접 제어합니다.
 - deb는 systemd 서비스로 상시 실행됩니다. 포트와 바인딩 주소는 `/etc/default/tdrive`에서 바꾸고, 접속 URL은 `sudo journalctl -u tdrive | grep 'TDrive web:'`에서 확인합니다.
 - Android 앱은 포그라운드 서비스로 기기에서 서버를 직접 실행하고, 같은 기기의 WebView로 접속합니다. 마운트와 mpv 포스터는 지원하지 않습니다.
+
+### Windows 11 자동 백업
+
+`TDrive-Backup-Setup-<버전>.exe`는 이 PC의 폴더를 Tailscale로 연결된 TDrive 서버에 하나씩 옮기는 에이전트를 설치합니다.
+
+1. 서버 역할을 할 PC에 `TDrive-Setup-<버전>.exe`를 설치하고, 접속 범위에서 **다른 기기에서도 접속 허용**을 고릅니다. 두 번째 PC에서 서버의 Tailscale 주소(`tailscale ip -4`)에 접속하려면 이 항목이 필요합니다.
+2. 백업할 PC에 `TDrive-Backup-Setup-<버전>.exe`를 실행합니다. 서버 주소는 `my-server`, `my-server.tailnet-xxxx.ts.net`, `100.101.102.103`처럼 포트를 빼고 넣어도 되며 생략 시 8080을 씁니다. 토큰은 서버의 `%USERPROFILE%\.config\TDrive\web.token` 값입니다.
+3. 백업 폴더를 고릅니다. 기본값은 `%USERPROFILE%\TDriveBackup`입니다.
+
+- 로그인할 때 백그라운드로 자동 시작됩니다. 시작 메뉴의 **TDrive Backup 시작·중지·상태·로그**로 제어합니다.
+- 파일은 오래된 것부터 하나씩 처리됩니다: 업로드 → 서버가 Telegram에 저장 → 서버의 임시 파일 삭제 → 서버 목록에서 같은 크기로 확인 → 원본 삭제 → 다음 파일. 확인 전에는 원본을 지우지 않으므로 실패한 파일은 그대로 남고 다음 주기에 다시 시도합니다.
+- **Telegram에 저장된 사본은 지우지 않습니다.** 원본을 지운 뒤에도 서버의 `/Backup` 폴더에서 계속 받을 수 있습니다.
+- 서버 주소·토큰·폴더·주기는 `%LOCALAPPDATA%\TDriveBackup\backup.json`에서 바꾸고, 시작 메뉴의 **TDrive Backup 중지 → 시작**으로 반영합니다.
+- 서버가 꺼져 있으면 로그만 남기고 주기적으로 다시 시도합니다. 한 번만 실행하려면 `tdrive-backup.cmd once`를 씁니다.
 
 빌드 방법과 세부 동작은 [packaging/README.md](packaging/README.md)를 참고하세요.
 
