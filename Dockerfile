@@ -4,7 +4,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/tdrive ./cmd/tdrive
+RUN CGO_ENABLED=0 GOGC=25 go build -p 1 -trimpath -ldflags="-s -w" -o /out/tdrive ./cmd/tdrive
 
 FROM debian:bookworm-slim
 
@@ -13,7 +13,9 @@ RUN apt-get update \
         ca-certificates tini \
     && rm -rf /var/lib/apt/lists/*
 
-ENV HOME=/data
+ENV HOME=/data \
+    TDRIVE_CONTAINER=1 \
+    TDRIVE_NO_OS_MOUNT=1
 RUN mkdir -p /data /app
 COPY --from=builder /out/tdrive /usr/local/bin/tdrive
 COPY docker/entrypoint.sh /usr/local/bin/tdrive-entrypoint

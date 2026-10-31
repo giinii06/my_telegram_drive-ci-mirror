@@ -1008,9 +1008,6 @@ function uploadQueue(items) {
   items.forEach(function(item) { chain = chain.then(function() { return uploadOneFile(item); }); });
   chain.then(function() { toast("업로드 완료"); load(state.cwd); });
 }
-// Pure grouping for folder uploads: split webkitRelativePaths ("top/sub/f")
-// into unique remote dirs (shallow first) plus per-file targets. Tested in
-// node (see scripts/web-ui-folder.test.js).
 function groupFolderUploads(fileList, base) {
   base = base === "/" ? "" : base;
   var seen = {}, items = [];

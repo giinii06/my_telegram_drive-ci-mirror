@@ -1,4 +1,4 @@
-name: Web and CLI checks
+name: Docker and application checks
 on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
@@ -10,16 +10,32 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: go.mod
-      - run: go test ./cmd/tdrive ./cmd/tdrived ./backend/...
-      - run: go vet ./cmd/tdrive ./cmd/tdrived ./backend/...
+      - run: go test ./cmd/tdrive ./backend/...
+      - run: go vet ./cmd/tdrive ./backend/...
       - run: go build -trimpath -o build/bin/tdrive ./cmd/tdrive
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: cmd/tdrive/webui/package-lock.json
-      - run: npm ci --prefix cmd/tdrive/webui
-      - run: npm --prefix cmd/tdrive/webui run lint
-      - run: bash scripts/test-web-ui.sh
-      - run: npx --prefix cmd/tdrive/webui playwright install --with-deps chromium
-      - run: npm --prefix cmd/tdrive/webui run test:browser
+          bun-version: '1.4.3'
+      - name: Reject direct host execution
+        run: |
+          if env -u TDRIVE_CONTAINER build/bin/tdrive version; then
+            echo "Host execution unexpectedly succeeded" >&2
+            exit 1
+          fi
+          if env -u TDRIVE_CONTAINER build/bin/tdrive version --json 2>host-error.json; then
+            echo "Host JSON execution unexpectedly succeeded" >&2
+            exit 1
+          fi
+          bun -e 'const e = JSON.parse(require("fs").readFileSync("host-error.json", "utf8")); if (e.ok !== false || e.error.code !== "unsupported") process.exit(1)'
+          rm host-error.json
+      - run: bun install --cwd cmd/tdrive/webui --frozen-lockfile
+      - run: bun run --cwd cmd/tdrive/webui lint
+      - run: bun run --cwd cmd/tdrive/webui test:unit
+      - run: bun run --cwd cmd/tdrive/webui browser:install --with-deps
+      - run: bun run --cwd cmd/tdrive/webui test:browser
+      - name: Build Docker image
+        run: docker build -t tdrive:ci .
+      - name: Check container CLI without credentials
+        run: |
+          docker run --rm --entrypoint tdrive tdrive:ci version
+          docker run --rm --entrypoint tdrive tdrive:ci commands --json

@@ -43,6 +43,10 @@ import (
 )
 
 func main() {
+	if os.Getenv("TDRIVE_CONTAINER") != "1" {
+		err := &CLIError{Code: "unsupported", Message: "TDrive runs in Docker only. Start it with docker compose up -d --build; run commands with docker compose exec tdrive tdrive <command>."}
+		os.Exit(writeCommandError(os.Stderr, err, wantsJSON(os.Args[1:])))
+	}
 	if err := run(os.Args[1:]); err != nil {
 		os.Exit(writeCommandError(os.Stderr, err, wantsJSON(os.Args[1:])))
 	}
@@ -90,10 +94,6 @@ func run(args []string) error {
 		return nil
 	case "daemon":
 		return runDaemon(args[1:])
-	case "install-cli":
-		return runInstallCLI(args[1:])
-	case "uninstall-cli":
-		return runUninstallCLI(args[1:])
 	case "setup":
 		return runSetup(args[1:])
 	case "login":
@@ -909,7 +909,9 @@ func humanSize(n int64) string {
 }
 
 func printUsage() {
-	fmt.Print(`TDrive CLI
+	fmt.Print(`TDrive container CLI
+
+Run commands with: docker compose exec tdrive tdrive <command>
 
 Usage:
   tdrive version            Print CLI version and daemon protocol
@@ -918,8 +920,6 @@ Usage:
   tdrive daemon start -b    Run the daemon in the background
   tdrive daemon status      Show daemon status
   tdrive daemon stop        Ask the daemon to stop
-  tdrive install-cli        Install tdrive into ~/.local/bin
-  tdrive uninstall-cli      Remove ~/.local/bin/tdrive
   tdrive setup [--api-id ID --api-hash HASH|--api-hash-stdin]
   tdrive login <phone>
   tdrive logout [--soft|--full]

@@ -1,24 +1,18 @@
 version: '3'
 tasks:
   build:
-    desc: Build the CLI with the embedded web UI
+    desc: Build the Docker image
     cmds:
-      - mkdir -p build/bin
-      - go build -trimpath -o build/bin/tdrive ./cmd/tdrive
+      - docker compose build tdrive
   run:
-    desc: Run the web workspace
+    desc: Start the Docker Compose services
     cmds:
-      - go run ./cmd/tdrive web --port 8080
+      - docker compose up -d --build
   test:
     cmds:
-      - go test ./cmd/tdrive ./cmd/tdrived ./backend/...
-      - bash scripts/test-web-ui.sh
+      - go test ./cmd/tdrive ./backend/...
+      - bun run --cwd cmd/tdrive/webui test
   lint:
     cmds:
-      - go vet ./cmd/tdrive ./cmd/tdrived ./backend/...
-      - npm --prefix cmd/tdrive/webui run lint
-  package:
-    requires:
-      vars: [VERSION]
-    cmds:
-      - bash scripts/package-cli-release.sh '{{.VERSION}}'
+      - go vet ./cmd/tdrive ./backend/...
+      - bun run --cwd cmd/tdrive/webui lint

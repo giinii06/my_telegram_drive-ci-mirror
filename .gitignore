@@ -21,3 +21,4 @@ cmd/tdrive/webui/test-results/
 cmd/tdrive/webui/playwright-report/
 /simpler better app desgin.png
 /assets/app desgin mockup .png
+tdrive-data-backup*.tar.gz

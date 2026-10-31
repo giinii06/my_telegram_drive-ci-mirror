@@ -4,8 +4,10 @@
   "type": "module",
   "scripts": {
     "lint": "eslint index.html",
-    "test": "bash ../../../scripts/test-web-ui.sh",
-    "test:browser": "playwright test"
+    "test": "bun run test:unit && bun run test:browser",
+    "test:browser": "playwright test",
+    "browser:install": "playwright install chromium",
+    "test:unit": "bun checks/folder.cjs"
   },
   "devDependencies": {
     "@shadcn/lint": "0.2.1",
@@ -13,5 +15,6 @@
     "svelte-eslint-parser": "1.6.0",
     "svelte": "5.55.1",
     "@playwright/test": "1.63.0"
-  }
+  },
+  "packageManager": "bun@1.4.3"
 }

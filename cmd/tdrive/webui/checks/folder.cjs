@@ -1,15 +1,13 @@
-// Unit tests for the pure folder-upload grouping in the web UI.
-// No DOM needed: groupFolderUploads is extracted from the page script.
-const fs = require("fs");
-const assert = require("assert");
+const fs = require("node:fs");
+const assert = require("node:assert");
 
-const pagePath = process.env.WEB_UI_HTML || "/tmp/tdrive-web-ui-page.html";
+const pagePath = process.env.WEB_UI_HTML || require("node:path").join(__dirname, "../index.html");
 const html = fs.readFileSync(pagePath, "utf8");
 const js = html.split("<script>")[1].split("</script>")[0];
 const start = js.indexOf("function groupFolderUploads");
 const end = js.indexOf("async function uploadFolderFiles");
 if (start < 0 || end < 0) throw new Error("groupFolderUploads not found");
-eval(js.slice(start, end));
+const groupFolderUploads = new Function(js.slice(start, end) + "; return groupFolderUploads;")();
 
 const files = [
   { name: "a.txt", webkitRelativePath: "top/a.txt" },

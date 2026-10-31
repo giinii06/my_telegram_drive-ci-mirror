@@ -96,10 +96,6 @@ func canonicalHelpKey(topic []string) string {
 		return "drive deny"
 	case "mount":
 		return "mount start"
-	case "install":
-		return "install-cli"
-	case "uninstall":
-		return "uninstall-cli"
 	default:
 		return key
 	}
@@ -110,7 +106,7 @@ var helpTopics = map[string]string{
 tdrive version [--json]
 
 Print the CLI version, Git commit, and daemon protocol version without starting
-the daemon. Release packages embed their version and commit at build time.
+the daemon.
 `,
 	"commands": `
 tdrive commands --json
@@ -181,24 +177,6 @@ Ask the running daemon to stop.
 tdrive daemon restart [--background|-b]
 
 Stop the daemon if it is running, then start it again.
-`,
-	"install-cli": `
-tdrive install-cli [--target PATH] [--update-shell] [--force]
-
-Install the current tdrive binary into a stable PATH location.
-
-Options:
-  --target PATH    Install to PATH instead of ~/.local/bin/tdrive
-  --update-shell   Add the target directory to your shell config
-  --force          Replace an existing non-regular target
-`,
-	"uninstall-cli": `
-tdrive uninstall-cli [--target PATH]
-
-Remove the installed CLI binary and the shell PATH block added by install-cli.
-
-Options:
-  --target PATH  Remove PATH instead of ~/.local/bin/tdrive
 `,
 	"setup": `
 tdrive setup [--api-id ID] [--api-hash HASH|--api-hash-stdin]
@@ -412,14 +390,13 @@ tdrive vault lock
 Forget the in-memory vault key from the daemon.
 `,
 	"mount start": `
-tdrive mount [start] [--drive <name|id>] [--windows-drive T:] [--read-only] [--password-stdin]
+tdrive mount [start] [--drive <name|id>] [--read-only] [--password-stdin]
 
-Attach one TDrive as a desktop drive. Eligible personal plaintext drives use
-read/write mode when the installed backend supports safe writes.
+Start the container's private WebDAV endpoint used by the web workspace.
+The container does not attach a drive to the host operating system.
 
 Options:
   --drive <name|id>       Pin this drive; defaults to the current active drive
-  --windows-drive T:      Windows Explorer drive letter, default T:
   --read-only             Always mount without write access
   --password-stdin        Read an encrypted-drive password from stdin if locked
 
@@ -428,11 +405,8 @@ With --non-interactive, provide --password-stdin instead. Mount start does not
 support JSON mode.
 
 Selecting --drive does not change the active drive used by other CLI commands.
-TDrive attaches the drive automatically: Finder on macOS, T: in Windows
-Explorer, or the current GVfs/GIO desktop session on Linux.
-
-Shared or encrypted drives fall back to read-only mode. Mount status always
-reports the mode actually attached by the operating system.
+Shared or encrypted drives use read-only mode. Eligible personal plaintext
+drives support read/write mode.
 
 Keep the daemon running until "tdrive mount stop" has completed.
 `,
@@ -443,17 +417,14 @@ Serve the active drive as a web page on the local network: browse folders,
 stream video/audio with seeks, preview images, PDFs and text, download files,
 upload files, and create/rename/delete entries.
 
-The server binds the Tailscale IPv4 address by default and fails when
-Tailscale IPv4 is unavailable (use --listen to override, e.g.
---listen 127.0.0.1 for local-only), ensures the WebDAV mount
-is running, and guards every route with a token: open the printed URL, which
-carries ?token=..., and the token is stored for reuse in
-~/.config/TDrive/web.token (or set TDRIVE_WEB_TOKEN).
+Docker Compose starts this server automatically after a drive is selected.
+The entrypoint listens on 0.0.0.0:8080 inside the Tailscale network namespace
+and uses --no-auth. No host ports are published. Tailnet users who can reach
+the service have full read/write access; restrict access to trusted users.
 
-Pass --no-auth to drop the token gate entirely. The server still binds only
-the address given by --listen, so on the default Tailscale address only
-devices in your tailnet can reach it -- but anyone there gets full
-read/write access, so use it only on a tailnet you fully trust.
+The web server reads through the container's private WebDAV endpoint.
+Restart the service with docker compose restart tdrive rather than starting
+a second web server on the same port.
 
 Uploads stream from the browser to a server-side temp file and then into the
 drive; downloads and media playback proxy byte ranges through the local
@@ -462,12 +433,12 @@ WebDAV mount, so seeking works without fetching the whole file first.
 	"mount status": `
 tdrive mount status
 
-Show the pinned drive and its safe OS location.
+Show the pinned drive and internal WebDAV endpoint status.
 `,
 	"mount stop": `
 tdrive mount stop
 
-Finish in-flight commits, disconnect the OS drive, then stop the private server.
+Finish in-flight commits, then stop the private WebDAV server.
 `,
 	"put": `
 tdrive put [--plaintext] [--extract] <local> [remote-path]
