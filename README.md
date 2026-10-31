@@ -4,18 +4,45 @@ Telegram에 파일을 저장하고 웹에서 관리하는 드라이브입니다.
 
 코드 수정과 테스트는 [개발자 가이드](README.dev.md)를 참고하세요.
 
-## 처음 실행하기
+## Ubuntu Server에 처음 설치하기
 
-Docker Compose v2, `/dev/net/tun`을 지원하는 환경, Telegram 계정, Tailscale이 필요합니다. 명령은 저장소 최상위에서 실행하세요.
+서버에 Git, Docker Compose v2, nano가 필요합니다. 아래 명령은 Ubuntu Server에 접속한 터미널에서 실행하세요.
 
-1. [Telegram API ID·hash](https://my.telegram.org/apps)와 [Tailscale 인증 키](https://login.tailscale.com/admin/settings/keys)를 준비하세요.
-2. `.env`가 없으면 `cp .env.example .env`로 만들고 `TS_AUTHKEY`를 입력하세요.
+### 1. 저장소 받기
+
+```sh
+git clone https://github.com/giinii06/my_telegram_drive.git
+cd my_telegram_drive
+```
+
+비공개 저장소이므로 접근 권한이 있는 GitHub 계정이 필요합니다. 인증을 요청하면 사용자 이름을 입력하고, 비밀번호 대신 이 저장소에 접근할 수 있는 GitHub 개인 액세스 토큰을 입력하세요.
+
+### 2. .env 설정하기
+
+[Tailscale 인증 키](https://login.tailscale.com/admin/settings/keys)를 발급받은 뒤 설정 파일을 만드세요.
+
+```sh
+cp .env.example .env
+nano .env
+```
+
+`TS_AUTHKEY`에 발급받은 키를 넣으세요. 나머지 값은 그대로 두면 됩니다.
+
+```dotenv
+TS_AUTHKEY=tskey-auth-발급받은키
+```
+
+nano에서 `Ctrl+O` → `Enter`로 저장하고 `Ctrl+X`로 닫으세요. 이후 명령도 `my_telegram_drive` 폴더에서 실행합니다.
+
+### 3. 컨테이너 실행하기
 
 ```sh
 docker compose up -d --build
 ```
 
-3. Telegram에 로그인하고 사용할 드라이브를 선택하세요.
+### 4. Telegram 로그인하기
+
+[Telegram API ID·hash](https://my.telegram.org/apps)를 발급받고 다음 명령의 안내에 따라 입력하세요.
 
 ```sh
 docker compose exec tdrive tdrive setup
@@ -23,19 +50,19 @@ docker compose exec tdrive tdrive login
 docker compose exec tdrive tdrive drives
 ```
 
-`drives` 출력에 `*`가 없으면 선택하세요.
+`drives` 출력에 `*`가 없으면 사용할 드라이브를 선택하세요.
 
 ```sh
 docker compose exec tdrive tdrive drive use '드라이브 이름 또는 ID'
 ```
 
-4. 아래 IP를 확인하고, Tailscale에 연결된 기기에서 `http://<IP>:8080`을 여세요.
+### 5. 웹 화면 열기
 
 ```sh
 docker compose exec tailscale tailscale ip -4
 ```
 
-드라이브를 선택하면 웹 서버가 자동으로 시작합니다. 웹에서 업로드·다운로드·검색·폴더 관리·미리 보기를 사용할 수 있습니다.
+Tailscale에 연결된 기기에서 `http://<출력된-IP>:8080`을 여세요. 드라이브를 선택하면 웹 서버가 자동으로 시작합니다. 웹에서 업로드·다운로드·검색·폴더 관리·미리 보기를 사용할 수 있습니다.
 
 ## 이후 실행과 관리
 
