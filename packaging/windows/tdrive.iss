@@ -36,7 +36,6 @@ OutputBaseFilename=TDrive-Setup-{#MyAppVersion}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-ChangesEnvironment=yes
 UninstallDisplayName={#MyAppName}
 AllowNoIcons=yes
 

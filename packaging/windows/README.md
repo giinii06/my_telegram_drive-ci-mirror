@@ -34,7 +34,7 @@ powershell -ExecutionPolicy Bypass -File packaging\windows\build-backup-exe.ps1 
 ## 서버 설치
 
 1. `TDrive-Setup-<버전>.exe`를 실행합니다.
-2. 설치 위치는 `%LOCALAPPDATA%\TDrive`입니다. 설치 프로그램이 이 폴더를 사용자 PATH에 추가합니다.
+2. 설치 위치는 `%LOCALAPPDATA%\TDrive`입니다. CLI를 직접 쓸 때는 `"%LOCALAPPDATA%\TDrive\tdrive.exe"`처럼 전체 경로를 지정합니다.
 3. 포트 페이지에서 웹 포트를 정합니다. 기본값은 8080이고, 설치 폴더의 `port.txt`에서 나중에 바꿀 수 있습니다.
 4. 접속 범위를 고릅니다.
    - **이 PC에서만 접속 (127.0.0.1)**: 브라우저가 같은 PC에서만 붙습니다.
@@ -97,7 +97,7 @@ powershell -ExecutionPolicy Bypass -File packaging\windows\build-backup-exe.ps1 
 
 설정 → 앱 → 설치된 앱에서 해당 항목을 제거합니다.
 
-- 서버: 실행 파일, 시작 메뉴 바로 가기, 로그온 작업, PATH 항목이 지워집니다. 로그와 `%USERPROFILE%\.config\TDrive`의 상태(로그인 세션, 접속 토큰)는 직접 지웁니다.
+- 서버: 실행 파일, 시작 메뉴 바로 가기, 로그온 작업이 지워집니다. 로그와 `%USERPROFILE%\.config\TDrive`의 상태(로그인 세션, 접속 토큰)는 직접 지웁니다.
 - 백업: 설치 폴더(`backup.json`, 로그, 저널)와 로그인 자동 실행 항목이 지워집니다. Telegram 사본은 그대로 남습니다.
 
 ## 검증 체크리스트 (Windows에서 실행)
@@ -129,7 +129,6 @@ Get-Content "$env:LOCALAPPDATA\TDriveBackup\backup.json"
 # 6. 제거 후 정리 확인
 & "$env:LOCALAPPDATA\TDrive\unins000.exe" /VERYSILENT
 schtasks /Query /TN TDrive
-(Get-ItemProperty HKCU:\Environment).Path -split ';' | Select-String 'TDrive'
 ```
 
 `/VERYSILENT` 설치에서는 사용자 입력 페이지가 기본값으로 채워집니다(포트 8080, 접속 범위 `0.0.0.0`, 백업 폴더 `%USERPROFILE%\TDriveBackup`, 서버 주소 빈 값). 서버 주소가 빈 백업 설치는 실행 즉시 설정 오류를 로그에 남기므로, 조용한 설치 뒤에는 `backup.json`을 실제 값으로 채우고 다시 시작하세요.

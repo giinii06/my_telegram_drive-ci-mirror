@@ -111,7 +111,7 @@ begin
     '업로드와 Telegram 저장이 확인된 파일만 원본이 삭제됩니다. Telegram 사본은 지워지지 않습니다.' + #13#10 +
     '찾아보기로 기존 폴더를 고르거나, 없으면 새 폴더를 만듭니다.',
     False, '백업 폴더');
-  FolderPage.Add('백업 폴더', False);
+  FolderPage.Add('백업 폴더');
   FolderPage.Values[0] := ExpandConstant('{%USERPROFILE}\TDriveBackup');
 
   WizardForm.WelcomeLabel2.Caption :=
