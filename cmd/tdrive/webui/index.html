@@ -167,6 +167,8 @@ a { color:var(--acc); }
 #preview pre { max-width:92vw; max-height:74vh; overflow:auto; background:var(--media-bg); padding:12px; width:80vw; }
 #pvbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center; }
 #pvcap { font-size:13px; max-width:40vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#hoverpreview { position:fixed; z-index:64; width:320px; height:220px; display:flex; align-items:center; justify-content:center; background:var(--media-bg); border-radius:12px; box-shadow:var(--shadow); overflow:hidden; pointer-events:none; }
+#hoverpreview img, #hoverpreview video { max-width:100%; max-height:100%; display:block; }
 #drop { position:fixed; inset:12px; border:3px solid var(--acc); border-radius:20px; display:none; align-items:center; justify-content:center; font-size:22px; background:var(--search-bg); z-index:80; }
 #drop.on { display:flex; }
 #uploads { position:fixed; right:24px; bottom:16px; width:min(380px,90vw); background:var(--panel); border-radius:12px 12px 0 0; padding:16px; display:none; z-index:55; max-height:50vh; overflow:auto; box-shadow:var(--shadow); }
@@ -917,6 +919,7 @@ function selectedEntries() {
 
 /* ---------- file area ---------- */
 function renderFiles() {
+  hideHoverPreview();
   var box = $("files"); box.textContent = "";
   box.className = state.view === "icons" ? "icons" : "";
   box.id = "files";
@@ -959,6 +962,8 @@ function row(e, idx, list) {
   r.appendChild(ic); r.appendChild(nm); r.appendChild(c4); r.appendChild(c2); r.appendChild(c3);
   r.onclick = function(ev) { clickSelect(ev, e, idx, list); renderFiles(); renderStatus(); renderDetails(); };
   r.ondblclick = function() { openEntry(e); };
+  r.onmouseenter = function() { scheduleHoverPreview(r, e); };
+  r.onmouseleave = hideHoverPreview;
   r.oncontextmenu = function(ev) { ev.preventDefault(); if (!isSel(e.path)) { state.sel = [e.path]; renderFiles(); } renderStatus(); renderDetails(); showCtx(ev.clientX, ev.clientY, "items"); };
   return r;
 }
@@ -976,6 +981,8 @@ function tile(e, idx, list) {
   t.appendChild(heading); t.appendChild(ic);
   t.onclick = function(ev) { clickSelect(ev, e, idx, list); renderFiles(); renderStatus(); renderDetails(); };
   t.ondblclick = function() { openEntry(e); };
+  t.onmouseenter = function() { scheduleHoverPreview(t, e); };
+  t.onmouseleave = hideHoverPreview;
   t.oncontextmenu = function(ev) { ev.preventDefault(); if (!isSel(e.path)) { state.sel = [e.path]; renderFiles(); } renderStatus(); renderDetails(); showCtx(ev.clientX, ev.clientY, "items"); };
   return t;
 }
@@ -1125,6 +1132,54 @@ function captureVideoFrame(e, done) {
   v.addEventListener("error", function() { finish(null); });
   v.src = fileURL(e, false);
 }
+/* Hover preview: a floating card that plays a GIF or video once the pointer
+   rests on its tile. Videos play muted so a grid sweep never makes noise. */
+var HOVER_PREVIEW_EXT = ["gif"].concat(THUMB_VIDEO_EXT);
+var hoverTimer = null, hoverCard = null;
+function hoverPreviewable(e) { return e.type === "file" && HOVER_PREVIEW_EXT.indexOf(extOf(e.name)) >= 0; }
+function scheduleHoverPreview(anchor, e) {
+  if (!hoverPreviewable(e)) return;
+  hideHoverPreview();
+  hoverTimer = setTimeout(function() { hoverTimer = null; showHoverPreview(anchor, e); }, 450);
+}
+function hideHoverPreview() {
+  if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+  if (!hoverCard) return;
+  var media = hoverCard.firstChild;
+  if (media && media.tagName === "VIDEO") {
+    try { media.pause(); media.removeAttribute("src"); media.load(); } catch (_) {}
+  }
+  hoverCard.remove();
+  hoverCard = null;
+}
+function showHoverPreview(anchor, e) {
+  if (!document.body.contains(anchor)) return;
+  var card = document.createElement("div");
+  card.id = "hoverpreview";
+  card.setAttribute("aria-hidden", "true");
+  var media;
+  if (extOf(e.name) === "gif") {
+    media = document.createElement("img");
+    media.alt = "";
+    media.src = fileURL(e, false);
+  } else {
+    media = document.createElement("video");
+    media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true;
+    media.preload = "metadata"; media.poster = thumbURL(e, false);
+    media.src = fileURL(e, false);
+  }
+  card.appendChild(media);
+  document.body.appendChild(card);
+  hoverCard = card;
+  var rect = anchor.getBoundingClientRect();
+  var width = card.offsetWidth, height = card.offsetHeight;
+  var left = Math.min(Math.max(8, rect.left), window.innerWidth - width - 8);
+  var top = rect.top - height - 12;
+  if (top < 8) top = Math.min(rect.bottom + 12, window.innerHeight - height - 8);
+  card.style.left = Math.round(left) + "px";
+  card.style.top = Math.round(Math.max(8, top)) + "px";
+  if (media.tagName === "VIDEO") media.play().catch(function() {});
+}
 function proxyHLSURL(e, f) {
   return withToken("/proxy-hls?path=" + encodeURIComponent(e.path) + "&f=" + f);
 }
@@ -1157,6 +1212,7 @@ function attachHls(el, pl) {
   } catch (_) {}
 }
 function preview(e) {
+  hideHoverPreview();
   pvList = (state.viewList || []).filter(previewable);
   pvIdx = -1;
   for (var i = 0; i < pvList.length; i++) if (pvList[i].path === e.path) pvIdx = i;
@@ -1742,6 +1798,8 @@ function wire() {
   $("preview").onclick = function(ev) { if (ev.target.id === "preview") $("closePv").onclick(); };
   $("fileInput").onchange = function(ev) { uploadFiles(ev.target.files); ev.target.value = ""; };
   $("dirInput").onchange = function(ev) { uploadFolderFiles(ev.target.files); ev.target.value = ""; };
+  $("files").onscroll = hideHoverPreview;
+  window.addEventListener("resize", hideHoverPreview);
   $("files").oncontextmenu = function(ev) { if (ev.target.id === "files" || ev.target.className === "icons") { ev.preventDefault(); showCtx(ev.clientX, ev.clientY, "bg"); } };
   document.addEventListener("click", function(ev) {
     if (!ev.target.closest || (!ev.target.closest("#ctxmenu") && !ev.target.closest(".menuwrap"))) { hideCtx(); closeMenus(); }
