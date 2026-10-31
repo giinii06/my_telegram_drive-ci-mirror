@@ -17,11 +17,14 @@ curl -fsSL https://raw.githubusercontent.com/giinii06/my_telegram_drive/main/ins
 `~/.local/bin`에 `tdrive` 명령이 등록됩니다. PATH에 없으면 설치 마지막에 안내가 출력됩니다.
 
 ```sh
+tdrive onboard   # .env 값 다시 입력
 tdrive status
 tdrive drives
 tdrive help
 ```
 
+- `tdrive onboard`로 `.env` 값을 다시 입력할 수 있습니다: Tailscale 키, `TDRIVE_PORT`, `TDRIVE_IMAGE`, 그리고 추가 `KEY=VALUE`. Enter만 누르면 기존 값이 유지되고, Tailscale 키가 바뀌면 관련 컨테이너를 다시 만들어 적용합니다.
+- `tdrive` 명령은 어느 디렉터리에서든 동작합니다. `docker compose`를 직접 실행할 때는 설치 경로(`~/.tdrive`)로 이동하세요.
 - Docker가 없으면 `curl -fsSL https://raw.githubusercontent.com/giinii06/my_telegram_drive/main/install.sh | TDRIVE_INSTALL_DOCKER=1 bash`로 설치를 시도할 수 있습니다.
 - 비대화형 환경에서도 설치는 끝나고, 온보딩은 웹에서 진행합니다.
 - 온보딩은 Telegram 로그인 전에만 열리며, Tailscale로 연결된 기기에서 접속해야 합니다.

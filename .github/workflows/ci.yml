@@ -9,6 +9,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - run: bash -n install.sh
       - run: TDRIVE_DRY_RUN=1 bash install.sh
+      - run: TDRIVE_DRY_RUN=1 TDRIVE_HOME="$PWD" bash install.sh onboard
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: go.mod

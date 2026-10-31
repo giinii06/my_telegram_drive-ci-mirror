@@ -27,8 +27,54 @@ read_secret_tty() {
   printf -v "$var" '%s' "$value"
 }
 
+prompt_value() {
+  local label="$1" current="$2" var="$3" value=""
+  printf '%s [%s]: ' "$label" "$current" >/dev/tty
+  IFS= read -r value </dev/tty || die "입력을 읽지 못했습니다."
+  if [ -n "$value" ]; then printf -v "$var" '%s' "$value"; fi
+  return 0
+}
+
+prompt_secret() {
+  local label="$1" current="$2" var="$3" value=""
+  printf '%s [%s]: ' "$label" "$current" >/dev/tty
+  IFS= read -rs value </dev/tty || die "입력을 읽지 못했습니다."
+  printf '\n' >/dev/tty
+  if [ -n "$value" ]; then printf -v "$var" '%s' "$value"; fi
+  return 0
+}
+
+mask_secret() {
+  local value="$1"
+  if [ -z "$value" ]; then
+    printf '(없음)'
+  elif [ "${#value}" -le 12 ]; then
+    printf '********'
+  else
+    printf '%s…%s' "${value:0:6}" "${value: -4}"
+  fi
+}
+
 compose() {
   docker compose --env-file "$TDRIVE_DIR/.env" -f "$TDRIVE_DIR/docker-compose.yml" "$@"
+}
+
+env_get() {
+  local key="$1" file="$TDRIVE_DIR/.env"
+  [ -f "$file" ] || return 0
+  sed -n "s/^${key}=//p" "$file" | tail -n 1
+}
+
+env_set() {
+  local key="$1" value="$2" file="$TDRIVE_DIR/.env" tmp
+  mkdir -p "$TDRIVE_DIR"
+  tmp="$(mktemp "$TDRIVE_DIR/.env.XXXXXX")"
+  if [ -f "$file" ]; then
+    grep -v "^${key}=" "$file" >"$tmp" || true
+  fi
+  printf '%s=%s\n' "$key" "$value" >>"$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$file"
 }
 
 require_linux() {
@@ -73,9 +119,7 @@ sync_repo() {
 
 write_env() {
   local key=""
-  if [ -f "$TDRIVE_DIR/.env" ]; then
-    key="$(sed -n 's/^TS_AUTHKEY=//p' "$TDRIVE_DIR/.env" | tail -n 1)"
-  fi
+  key="$(env_get TS_AUTHKEY)"
   if [ -z "$key" ]; then
     key="${TS_AUTHKEY:-}"
   fi
@@ -89,10 +133,12 @@ write_env() {
     *) warn "Tailscale auth key는 보통 tskey-로 시작합니다." ;;
   esac
   umask 077
-  {
-    printf 'TS_AUTHKEY=%s\n' "$key"
-    printf 'COMPOSE_PROJECT_NAME=tdrive\n'
-  } > "$TDRIVE_DIR/.env"
+  env_set TS_AUTHKEY "$key"
+  env_set COMPOSE_PROJECT_NAME tdrive
+  # Older installs pinned the GHCR image here; drop it so compose builds locally.
+  case "$(env_get TDRIVE_IMAGE)" in
+    ""|ghcr.io/*) env_set TDRIVE_IMAGE tdrive:latest ;;
+  esac
 }
 
 start_stack() {
@@ -110,6 +156,87 @@ wait_ready() {
     sleep 1
   done
   die "컨테이너가 준비되지 않았습니다. 로그 확인: docker compose -f \"$TDRIVE_DIR/docker-compose.yml\" logs tdrive"
+}
+
+cmd_onboard() {
+  if [ "$DRY_RUN" = "1" ]; then
+    printf 'onboard 대상: %s\n' "$TDRIVE_DIR/.env"
+    printf '  키: TS_AUTHKEY, TDRIVE_PORT, TDRIVE_IMAGE, 추가 KEY=VALUE\n'
+    printf '  이후: docker compose up -d --build\n'
+    return 0
+  fi
+  [ -f "$TDRIVE_DIR/docker-compose.yml" ] || die "$TDRIVE_DIR/docker-compose.yml 가 없습니다. 설치를 먼저 실행하세요."
+  has_tty || die "onboard는 터미널에서 실행해야 합니다."
+  require_linux
+  require_tun
+  require_docker
+
+  local key port image before_key extra name value
+  before_key="$(env_get TS_AUTHKEY)"
+  key="$before_key"
+  port="$(env_get TDRIVE_PORT)"
+  [ -n "$port" ] || port="8080"
+  image="$(env_get TDRIVE_IMAGE)"
+  [ -n "$image" ] || image="tdrive:latest"
+
+  info ".env 값 입력 ($TDRIVE_DIR/.env) — Enter만 누르면 기존 값 유지"
+  prompt_secret "Tailscale auth key (tskey-...)" "$(mask_secret "$key")" key
+  prompt_value "웹 포트 (TDRIVE_PORT)" "$port" port
+  prompt_value "이미지 태그 (TDRIVE_IMAGE)" "$image" image
+
+  [ -n "$key" ] || die "Tailscale auth key가 비어 있습니다."
+  case "$key" in
+    tskey-*) ;;
+    *) warn "Tailscale auth key는 보통 tskey-로 시작합니다." ;;
+  esac
+  case "$port" in
+    ''|*[!0-9]*) die "TDRIVE_PORT는 숫자여야 합니다: $port" ;;
+  esac
+  if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+    die "TDRIVE_PORT 범위는 1-65535입니다: $port"
+  fi
+  [ -n "$image" ] || die "TDRIVE_IMAGE가 비어 있습니다."
+  case "$image" in
+    *[[:space:]]*) die "TDRIVE_IMAGE에 공백이 있습니다: $image" ;;
+  esac
+
+  umask 077
+  env_set TS_AUTHKEY "$key"
+  env_set TDRIVE_PORT "$port"
+  env_set TDRIVE_IMAGE "$image"
+
+  info "추가 값: KEY=VALUE 형식으로 입력하고, 비우면 종료합니다"
+  while :; do
+    printf '추가 KEY=VALUE: ' >/dev/tty
+    IFS= read -r extra </dev/tty || break
+    [ -n "$extra" ] || break
+    case "$extra" in
+      *=*) ;;
+      *) warn "KEY=VALUE 형식이 아닙니다: $extra"; continue ;;
+    esac
+    name="${extra%%=*}"
+    value="${extra#*=}"
+    case "$name" in
+      ''|*[!A-Za-z0-9_]*) warn "올바르지 않은 키입니다: $name"; continue ;;
+    esac
+    env_set "$name" "$value"
+    info "$name 저장"
+  done
+
+  info ".env 저장 완료"
+  info "스택 재시작 (이미지 로컬 빌드)"
+  compose up -d --build
+  if [ "$key" != "$before_key" ]; then
+    info "Tailscale 키가 바뀌어 tdrive 컨테이너를 다시 만듭니다"
+    compose up -d --force-recreate tdrive
+  fi
+  wait_ready
+
+  printf '\nonboard 완료\n\n'
+  printf '  tdrive onboard   # 값 다시 수정\n'
+  printf '  tdrive status\n\n'
+  printf '웹: '
+  web_url
 }
 
 install_wrapper() {
@@ -133,6 +260,16 @@ compose() {
   docker compose --env-file "$home/.env" -f "$file" "$@"
 }
 
+if [ "${1:-}" = "onboard" ]; then
+  if [ ! -f "$home/install.sh" ]; then
+    echo "tdrive: $home/install.sh not found; re-run the installer" >&2
+    exit 1
+  fi
+  TDRIVE_HOME="$home"
+  export TDRIVE_HOME
+  exec bash "$home/install.sh" onboard
+fi
+
 running="$(compose ps -q tdrive 2>/dev/null || true)"
 if [ -z "$running" ]; then
   compose up -d >/dev/null
@@ -147,30 +284,52 @@ WRAPPER
   chmod +x "$BIN_DIR/tdrive"
 }
 
-report() {
-  case ":$PATH:" in
-    *":$BIN_DIR:"*) ;;
-    *) warn "$BIN_DIR 가 PATH에 없습니다. 셸 설정에 추가하세요: export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
-  esac
-  local ip="" i
+web_url() {
+  local ip="" i port
+  port="$(env_get TDRIVE_PORT)"
+  [ -n "$port" ] || port="8080"
   for i in $(seq 1 30); do
     ip="$(compose exec -T tailscale tailscale ip -4 2>/dev/null | head -n 1 || true)"
     [ -n "$ip" ] && break
     sleep 1
   done
+  if [ -n "$ip" ]; then
+    printf 'http://%s:%s (Tailscale에 연결된 기기에서, 로그인 없음)\n' "$ip" "$port"
+  else
+    printf 'Tailscale 연결 후 http://<tailscale-ip>:%s\n' "$port"
+  fi
+}
+
+report() {
+  case ":$PATH:" in
+    *":$BIN_DIR:"*) ;;
+    *) warn "$BIN_DIR 가 PATH에 없습니다. 셸 설정에 추가하세요: export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
+  esac
   printf '\n설치 완료\n\n'
+  printf '  tdrive onboard   # .env 값 다시 입력\n'
   printf '  tdrive status\n'
   printf '  tdrive drives\n'
   printf '  tdrive help\n\n'
   printf '브라우저에서 Telegram API ID/hash, 전화번호, 로그인 코드, 2FA를 입력하세요.\n'
-  if [ -n "$ip" ]; then
-    printf '웹: http://%s:8080 (Tailscale에 연결된 기기에서, 로그인 없음)\n' "$ip"
-  else
-    printf '웹: Tailscale 연결 후 http://<tailscale-ip>:8080\n'
-  fi
+  printf '웹: '
+  web_url
 }
 
 main() {
+  case "${1:-}" in
+    onboard)
+      cmd_onboard
+      return 0
+      ;;
+    "") ;;
+    -h|--help|help)
+      printf 'usage: install.sh [onboard]\n  onboard: .env 값을 다시 입력하고 스택을 재시작합니다.\n'
+      return 0
+      ;;
+    *)
+      die "알 수 없는 명령: $1 (usage: install.sh [onboard])"
+      ;;
+  esac
   if [ "$DRY_RUN" = "1" ]; then
     info "dry run: 변경 없이 계획만 표시합니다"
     printf '  설치 경로: %s\n  저장소: %s (%s)\n  래퍼: %s/tdrive\n' "$TDRIVE_DIR" "$REPO_URL" "$REF" "$BIN_DIR"
