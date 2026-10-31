@@ -12,7 +12,7 @@ Docker가 설치된 **Linux 서버**에서 실행합니다. Tailscale 인증 키
 curl -fsSL https://raw.githubusercontent.com/giinii06/my_telegram_drive/main/install.sh | bash
 ```
 
-설치 스크립트가 저장소를 `~/.tdrive`에 복제하고 `.env`를 만든 뒤 이미지를 내려받고(없으면 로컬 빌드), 웹 주소를 출력합니다. Tailscale auth key만 터미널에서 입력하고, 나머지 Telegram 설정은 브라우저에서 진행합니다: API ID·hash, 전화번호, 로그인 코드, 2FA, 드라이브 선택.
+설치 스크립트가 저장소를 `~/.tdrive`에 복제하고 `.env`를 만든 뒤 이미지를 로컬에서 빌드하고, 웹 주소를 출력합니다. Tailscale auth key만 터미널에서 입력하고, 나머지 Telegram 설정은 브라우저에서 진행합니다: API ID·hash, 전화번호, 로그인 코드, 2FA, 드라이브 선택.
 
 `~/.local/bin`에 `tdrive` 명령이 등록됩니다. PATH에 없으면 설치 마지막에 안내가 출력됩니다.
 
@@ -29,8 +29,8 @@ tdrive help
 - 설치 경로는 `TDRIVE_HOME`, 명령 위치는 `TDRIVE_BIN_DIR`로 바꿀 수 있습니다.
 - 현재 compose는 `/dev/net/tun`이 필요한 Tailscale 사이드카를 쓰므로 Linux에서만 동작합니다.
 - 웹은 Tailscale에 연결된 기기에서 `http://<tailscale-ip>:8080`으로 접근하며 별도 로그인이 없습니다.
-- 이미지는 `ghcr.io/giinii06/my_telegram_drive:latest`(linux/amd64)를 사용합니다. GHCR 패키지는 첫 퍼블리시 때 비공개가 기본이므로, 저장소의 Packages 설정에서 public으로 바꾸면 익명 pull이 빨라집니다. 비공개이거나 pull에 실패하면 로컬 빌드로 넘어갑니다.
-- arm64 서버는 배포 이미지가 없어 자동으로 로컬 빌드합니다. 다른 태그를 쓰려면 `TDRIVE_IMAGE`를 지정하세요.
+- 이미지는 레지스트리에서 내려받지 않고 항상 이 저장소에서 로컬로 빌드합니다. 첫 설치의 빌드는 서버 성능에 따라 몇 분 걸리며, 이후에는 Docker 캐시를 재사용합니다.
+- GHCR 이미지나 패키지 공개 설정은 필요하지 않습니다.
 
 수동 설치와 이후 관리 명령은 아래에 정리되어 있습니다.
 

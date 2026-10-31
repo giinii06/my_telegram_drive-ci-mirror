@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # TDrive bootstrap: Docker Compose only. This script never installs a host
-# TDrive binary; the CLI always runs inside the container.
+# TDrive binary; the CLI always runs inside the container. The image is always
+# built locally: no registry pull, so GHCR visibility or auth never matters.
 set -euo pipefail
 
 REPO_URL="${TDRIVE_REPO:-https://github.com/giinii06/my_telegram_drive.git}"
@@ -8,16 +9,6 @@ REF="${TDRIVE_REF:-main}"
 TDRIVE_DIR="${TDRIVE_HOME:-$HOME/.tdrive}"
 BIN_DIR="${TDRIVE_BIN_DIR:-$HOME/.local/bin}"
 DRY_RUN="${TDRIVE_DRY_RUN:-0}"
-IMAGE="${TDRIVE_IMAGE:-ghcr.io/giinii06/my_telegram_drive:latest}"
-USE_PREBUILT=0
-if [ -n "${TDRIVE_IMAGE:-}" ]; then
-  USE_PREBUILT=1
-else
-  case "$(uname -m)" in
-    x86_64|amd64) USE_PREBUILT=1 ;;
-  esac
-fi
-
 info() { printf '==> %s\n' "$*"; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
 die() {
@@ -100,22 +91,12 @@ write_env() {
   umask 077
   {
     printf 'TS_AUTHKEY=%s\n' "$key"
-    printf 'TDRIVE_IMAGE=%s\n' "$IMAGE"
     printf 'COMPOSE_PROJECT_NAME=tdrive\n'
   } > "$TDRIVE_DIR/.env"
 }
 
 start_stack() {
-  if [ "$USE_PREBUILT" = "1" ]; then
-    if compose pull tdrive; then
-      info "이미지 다운로드 완료: $IMAGE"
-      compose up -d
-      return 0
-    fi
-    warn "이미지를 내려받지 못했습니다. 로컬에서 빌드합니다 (몇 분 걸릴 수 있습니다)."
-  else
-    info "이 아키텍처($(uname -m))에는 배포 이미지가 없어 로컬에서 빌드합니다 (몇 분 걸릴 수 있습니다)."
-  fi
+  info "이미지를 로컬에서 빌드합니다 (레지스트리에서 내려받지 않습니다, 몇 분 걸릴 수 있습니다)"
   compose up -d --build
 }
 
@@ -192,13 +173,8 @@ report() {
 main() {
   if [ "$DRY_RUN" = "1" ]; then
     info "dry run: 변경 없이 계획만 표시합니다"
-    if [ "$USE_PREBUILT" = "1" ]; then
-      mode="pull 우선"
-    else
-      mode="로컬 빌드"
-    fi
     printf '  설치 경로: %s\n  저장소: %s (%s)\n  래퍼: %s/tdrive\n' "$TDRIVE_DIR" "$REPO_URL" "$REF" "$BIN_DIR"
-    printf '  이미지: %s (%s)\n' "$IMAGE" "$mode"
+    printf '  이미지: tdrive:latest (로컬 빌드, pull 없음, %s)\n' "$(uname -m)"
     printf '  단계: clone/update -> .env -> image -> web onboarding -> wrapper\n'
     return 0
   fi

@@ -22,6 +22,8 @@ services:
       context: .
       dockerfile: Dockerfile
     image: ${TDRIVE_IMAGE:-tdrive:latest}
+    # Always build from this checkout; never contact a registry for this image.
+    pull_policy: never
     # Share the tailscale sidecar's network stack: tdrive's 0.0.0.0:8080
     # is reachable over the tailnet (WireGuard-encrypted) and via the
     # localhost publishing above. Ports must be declared on the tailscale
