@@ -108,14 +108,14 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: tdrive-exe
-          path: dist/*.exe
+          path: dist/TDrive-Setup-*.exe
           if-no-files-found: error
       - name: Attach to the release
         if: github.ref_type == 'tag'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "$GITHUB_REF_NAME" dist/*.exe --clobber
+        run: gh release upload "$GITHUB_REF_NAME" dist/TDrive-Setup-*.exe --clobber
 
   android-apk:
     needs: release
