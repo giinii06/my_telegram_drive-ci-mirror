@@ -4,6 +4,36 @@ Telegram에 파일을 저장하고 웹에서 관리하는 드라이브입니다.
 
 코드 수정과 테스트는 [개발자 가이드](README.dev.md)를 참고하세요.
 
+## 한 줄 설치
+
+Docker가 설치된 **Linux 서버**에서 실행합니다. Tailscale 인증 키는 [관리 화면](https://login.tailscale.com/admin/settings/keys)에서 발급합니다.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/giinii06/my_telegram_drive/main/install.sh | bash
+```
+
+설치 스크립트가 저장소를 `~/.tdrive`에 복제하고 `.env`를 만든 뒤 이미지를 내려받고(없으면 로컬 빌드), 웹 주소를 출력합니다. Tailscale auth key만 터미널에서 입력하고, 나머지 Telegram 설정은 브라우저에서 진행합니다: API ID·hash, 전화번호, 로그인 코드, 2FA, 드라이브 선택.
+
+`~/.local/bin`에 `tdrive` 명령이 등록됩니다. PATH에 없으면 설치 마지막에 안내가 출력됩니다.
+
+```sh
+tdrive status
+tdrive drives
+tdrive help
+```
+
+- Docker가 없으면 `curl -fsSL https://raw.githubusercontent.com/giinii06/my_telegram_drive/main/install.sh | TDRIVE_INSTALL_DOCKER=1 bash`로 설치를 시도할 수 있습니다.
+- 비대화형 환경에서도 설치는 끝나고, 온보딩은 웹에서 진행합니다.
+- 온보딩은 Telegram 로그인 전에만 열리며, Tailscale로 연결된 기기에서 접속해야 합니다.
+- 로그인을 10분 안에 완료하지 않거나 취소하면 브라우저에서 다시 시도할 수 있습니다.
+- 설치 경로는 `TDRIVE_HOME`, 명령 위치는 `TDRIVE_BIN_DIR`로 바꿀 수 있습니다.
+- 현재 compose는 `/dev/net/tun`이 필요한 Tailscale 사이드카를 쓰므로 Linux에서만 동작합니다.
+- 웹은 Tailscale에 연결된 기기에서 `http://<tailscale-ip>:8080`으로 접근하며 별도 로그인이 없습니다.
+- 이미지는 `ghcr.io/giinii06/my_telegram_drive:latest`(linux/amd64)를 사용합니다. GHCR 패키지는 첫 퍼블리시 때 비공개가 기본이므로, 저장소의 Packages 설정에서 public으로 바꾸면 익명 pull이 빨라집니다. 비공개이거나 pull에 실패하면 로컬 빌드로 넘어갑니다.
+- arm64 서버는 배포 이미지가 없어 자동으로 로컬 빌드합니다. 다른 태그를 쓰려면 `TDRIVE_IMAGE`를 지정하세요.
+
+수동 설치와 이후 관리 명령은 아래에 정리되어 있습니다.
+
 ## Ubuntu Server에 처음 설치하기
 
 서버에 Git, Docker Compose v2, nano가 필요합니다. 아래 명령은 Ubuntu Server에 접속한 터미널에서 실행하세요.
@@ -15,7 +45,7 @@ git clone https://github.com/giinii06/my_telegram_drive.git
 cd my_telegram_drive
 ```
 
-비공개 저장소이므로 접근 권한이 있는 GitHub 계정이 필요합니다. 인증을 요청하면 사용자 이름을 입력하고, 비밀번호 대신 이 저장소에 접근할 수 있는 GitHub 개인 액세스 토큰을 입력하세요.
+공개 저장소이므로 누구나 복제할 수 있습니다.
 
 ### 2. .env 설정하기
 
@@ -42,7 +72,7 @@ docker compose up -d --build
 
 ### 4. Telegram 로그인하기
 
-[Telegram API ID·hash](https://my.telegram.org/apps)를 발급받고 다음 명령의 안내에 따라 입력하세요.
+[Telegram API ID·hash](https://my.telegram.org/apps)를 발급받으세요. 컨테이너 실행 후 아래 5번의 웹 주소를 열면 브라우저에서 API ID·hash와 로그인을 입력할 수 있습니다. CLI로 설정하려면 다음 명령을 실행하세요.
 
 ```sh
 docker compose exec tdrive tdrive setup
@@ -62,7 +92,7 @@ docker compose exec tdrive tdrive drive use '드라이브 이름 또는 ID'
 docker compose exec tailscale tailscale ip -4
 ```
 
-Tailscale에 연결된 기기에서 `http://<출력된-IP>:8080`을 여세요. 드라이브를 선택하면 웹 서버가 자동으로 시작합니다. 웹에서 업로드·다운로드·검색·폴더 관리·미리 보기를 사용할 수 있습니다.
+Tailscale에 연결된 기기에서 `http://<출력된-IP>:8080`을 여세요. 웹 서버는 컨테이너와 함께 시작되며, 로그인 전에는 온보딩 화면이 표시됩니다. 웹에서 업로드·다운로드·검색·폴더 관리·미리 보기를 사용할 수 있습니다.
 
 ## 이후 실행과 관리
 

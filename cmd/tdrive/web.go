@@ -30,6 +30,14 @@ import (
 type webDaemonClient interface {
 	MountStart(selector string, windowsDrive string, mode string) (daemon.MountResponse, error)
 	MountStatus() (daemon.MountResponse, error)
+	AuthStatus() (daemon.AuthStatusResponse, error)
+	AuthSetup(apiID int, apiHash string) (daemon.AuthStatusResponse, error)
+	LoginContext(ctx context.Context, phone string, onEvent daemon.EventHandler) (daemon.AuthLoginResponse, error)
+	SubmitLoginCode(code string) error
+	SubmitLoginPassword(password string) error
+	PreparePersonalDrive() (daemon.PersonalDriveSetup, error)
+	SelectPersonalDrive(channelID string) (daemon.PersonalDriveSetup, error)
+	CreatePersonalDrive() (daemon.PersonalDriveSetup, error)
 	ListInDrive(driveID int64, path string) (daemon.ListResponse, error)
 	FindInDrive(driveID int64, query string, limit int) (daemon.FindResponse, error)
 	MkdirInDrive(driveID int64, path string, parents bool) (daemon.EntryResponse, error)
@@ -65,6 +73,10 @@ type webServer struct {
 	// the token-rotate handler pattern.
 	proxyMu      sync.RWMutex
 	proxyEnabled bool
+
+	authMu       sync.Mutex
+	authFlow     *webAuthFlow
+	loginTimeout time.Duration
 
 	uploadMu   sync.Mutex
 	uploadJobs map[string]*webUploadJob
@@ -117,8 +129,12 @@ func runWeb(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := ensureWebMount(client); err != nil {
-		return err
+	if status, statusErr := client.Status(); statusErr != nil {
+		fmt.Fprintf(os.Stderr, "web: status: %v\n", statusErr)
+	} else if status.ActiveChannelID == 0 {
+		fmt.Fprintln(os.Stderr, "web: no active drive; browser onboarding will start the mount")
+	} else if err := ensureWebMount(client); err != nil {
+		fmt.Fprintf(os.Stderr, "web: mount not ready: %v\n", err)
 	}
 	token := ""
 	if !options.noAuth {
@@ -365,6 +381,14 @@ func (s *webServer) routes() http.Handler {
 	mux.HandleFunc("/api/mv", s.handleMove)
 	mux.HandleFunc("/api/cp", s.handleCopy)
 	mux.HandleFunc("/api/status", s.handleStatus)
+	mux.HandleFunc("/api/onboarding/status", s.handleOnboardingStatus)
+	mux.HandleFunc("/api/onboarding/setup", s.handleOnboardingSetup)
+	mux.HandleFunc("/api/onboarding/login", s.handleOnboardingLogin)
+	mux.HandleFunc("/api/onboarding/code", s.handleOnboardingCode)
+	mux.HandleFunc("/api/onboarding/password", s.handleOnboardingPassword)
+	mux.HandleFunc("/api/onboarding/cancel", s.handleOnboardingCancel)
+	mux.HandleFunc("/api/onboarding/drives", s.handleOnboardingDrives)
+	mux.HandleFunc("/api/onboarding/drive", s.handleOnboardingDrive)
 	mux.HandleFunc("/api/settings/token", s.handleTokenRotate)
 	mux.HandleFunc("/api/settings/proxy", s.handleProxySettings)
 	mux.HandleFunc("/api/proxy/transcode", s.handleProxyTranscode)
@@ -1191,7 +1215,6 @@ func escapeWebDAVPath(remotePath string) string {
 	return "/" + strings.Join(parts, "/")
 }
 
-
 func resolveMountDAVEndpointFromDaemon() (string, string, error) {
 	client, err := newDaemonClient()
 	if err != nil {
@@ -1215,7 +1238,7 @@ func resolveMountDAVEndpointFromDaemon() (string, string, error) {
 	hostPort := host
 	if u.Port() == "" && u.Scheme != "" {
 		// Keep the host as-is when no explicit port was present.
-	} 
+	}
 	prefix := u.EscapedPath()
 	if prefix == "" {
 		prefix = "/"

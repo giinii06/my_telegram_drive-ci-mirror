@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -94,8 +95,14 @@ func (c *Client) AuthStatus() (AuthStatusResponse, error) {
 }
 
 func (c *Client) Login(phone string, onEvent EventHandler) (AuthLoginResponse, error) {
+	return c.LoginContext(context.Background(), phone, onEvent)
+}
+
+// LoginContext closes the daemon socket when ctx is canceled so the server can
+// release an in-flight login instead of leaving it waiting for a code forever.
+func (c *Client) LoginContext(ctx context.Context, phone string, onEvent EventHandler) (AuthLoginResponse, error) {
 	var out AuthLoginResponse
-	if err := c.stream(CommandAuthLogin, AuthLoginRequest{Phone: phone}, &out, onEvent); err != nil {
+	if err := c.streamContext(ctx, CommandAuthLogin, AuthLoginRequest{Phone: phone}, &out, onEvent); err != nil {
 		return AuthLoginResponse{}, err
 	}
 	return out, nil
@@ -485,6 +492,13 @@ func (c *Client) call(command string, payload any, out any) error {
 }
 
 func (c *Client) stream(command string, payload any, out any, onEvent EventHandler) error {
+	return c.streamContext(context.Background(), command, payload, out, onEvent)
+}
+
+func (c *Client) streamContext(ctx context.Context, command string, payload any, out any, onEvent EventHandler) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	req, err := NewRequest(command, payload)
 	if err != nil {
 		return err
@@ -495,6 +509,18 @@ func (c *Client) stream(command string, payload any, out any, onEvent EventHandl
 		return err
 	}
 	defer func() { _ = conn.Close() }()
+
+	if done := ctx.Done(); done != nil {
+		finished := make(chan struct{})
+		defer close(finished)
+		go func() {
+			select {
+			case <-done:
+				_ = conn.Close()
+			case <-finished:
+			}
+		}()
+	}
 
 	enc := json.NewEncoder(conn)
 	dec := json.NewDecoder(bufio.NewReader(conn))

@@ -34,6 +34,30 @@ type fakeWebClient struct {
 	drivesOut     daemon.DriveListResponse
 	mountOut      daemon.MountResponse
 	mountErr      error
+
+	authStatusOut daemon.AuthStatusResponse
+	authStatusErr error
+	authSetupID   int
+	authSetupHash string
+	authSetupErr  error
+	loginStarted  chan string
+	loginOut      daemon.AuthLoginResponse
+	loginErr      error
+	submitCode    string
+	submitCodeErr error
+	submitPass    string
+	submitPassErr error
+	prepareOut    daemon.PersonalDriveSetup
+	prepareErr    error
+	selectOut     daemon.PersonalDriveSetup
+	selectErr     error
+	selectedID    string
+	createOut     daemon.PersonalDriveSetup
+	createErr     error
+	createCalled  bool
+
+	loginCtxStarted chan struct{}
+	loginCtxBlock   bool
 }
 
 func (f *fakeWebClient) MountStart(string, string, string) (daemon.MountResponse, error) {
@@ -589,7 +613,7 @@ func TestWebServesEmbeddedWorkspace(t *testing.T) {
 	s.ui = webUIHTML
 	w := httptest.NewRecorder()
 	s.routes().ServeHTTP(w, httptest.NewRequest(http.MethodGet, webauthed("/"), nil))
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `data-ui-version="shadcn-workspace-v1"`) {
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `data-ui-version="drive-material-v1"`) {
 		t.Fatalf("embedded workspace was not served: status %d", w.Code)
 	}
 	if w.Header().Get("Cache-Control") != "no-cache" {

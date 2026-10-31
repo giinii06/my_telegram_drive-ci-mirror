@@ -21,12 +21,7 @@ if [ -f "$HOME/.config/TDrive/vault.pass" ]; then
     tdrive unlock --password-stdin < "$HOME/.config/TDrive/vault.pass" >/dev/null 2>&1 || true
 fi
 
-# Wait until a drive has been selected.
-while ! tdrive drives 2>/dev/null | grep -q '^[*]'; do
-    echo "tdrive-entrypoint: waiting for a selected drive (run: docker compose exec tdrive tdrive drive use <name|id>)" >&2
-    sleep 5
-done
-
+# Serve the UI before a drive is selected so browser onboarding can run.
 PORT="${PORT:-8080}"
 tdrive web --listen 0.0.0.0 --port "$PORT" --no-auth &
 WEB_PID=$!
