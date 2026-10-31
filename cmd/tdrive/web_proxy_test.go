@@ -211,6 +211,39 @@ func TestWebFileDownloadRequestsOriginalUpstream(t *testing.T) {
 	}
 }
 
+func TestWebFileProxyJoinsMountPrefixWithoutDoubleSlash(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		prefix string
+		want   string
+	}{
+		{name: "trailing slash from daemon location", prefix: "/cap/", want: "/cap/a.txt"},
+		{name: "prefix without slash", prefix: "/cap", want: "/cap/a.txt"},
+		{name: "root prefix", prefix: "/", want: "/a.txt"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var gotPath string
+			upstream := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+				gotPath = request.URL.Path
+				_, _ = response.Write([]byte("bytes"))
+			}))
+			defer upstream.Close()
+			hostPort := strings.TrimPrefix(upstream.URL, "http://")
+			resolve := func() (string, string, error) { return hostPort, test.prefix, nil }
+			handler := newWebTestServer(&fakeWebClient{}, resolve).routes()
+
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, webauthed("/file?path=/a.txt"), nil))
+			if recorder.Code != http.StatusOK {
+				t.Fatalf("status = %d, body %s", recorder.Code, recorder.Body.String())
+			}
+			if gotPath != test.want {
+				t.Fatalf("upstream path = %q, want %q", gotPath, test.want)
+			}
+		})
+	}
+}
+
 func TestProxyHLSPlaylistRewritesSegmentURLs(t *testing.T) {
 	playlist := "#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-TARGETDURATION:6\n" +
 		"#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n" +

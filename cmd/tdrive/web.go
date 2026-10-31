@@ -1099,7 +1099,7 @@ func (s *webServer) handleFile(response http.ResponseWriter, request *http.Reque
 		writeWebError(response, http.StatusBadGateway, err.Error())
 		return
 	}
-	upstream := "http://" + hostPort + prefix + escapeWebDAVPath(remotePath)
+	upstream := mountDAVFileURL(hostPort, prefix, remotePath)
 	if request.URL.Query().Get("download") == "1" {
 		// Downloads always serve the pristine original: the mount
 		// substitutes the transcoded proxy only for streaming, and this
@@ -1181,7 +1181,7 @@ func (s *webServer) waitForMountCatchUp(ctx context.Context, remotePath string) 
 		if err != nil {
 			return false
 		}
-		head, err := http.NewRequestWithContext(ctx, http.MethodHead, "http://"+hostPort+prefix+escapeWebDAVPath(remotePath), nil)
+		head, err := http.NewRequestWithContext(ctx, http.MethodHead, mountDAVFileURL(hostPort, prefix, remotePath), nil)
 		if err != nil {
 			return false
 		}
@@ -1200,6 +1200,15 @@ func (s *webServer) waitForMountCatchUp(ctx context.Context, remotePath string) 
 		}
 	}
 	return false
+}
+
+// mountDAVFileURL joins the mount endpoint with an escaped drive path. Mount
+// locations come from two sources: a gvfs symlink and the daemon's MountStatus.
+// The daemon reports the capability path with a trailing slash, so concatenating
+// blindly yields "/cap//file", which the mount's DAV handler rejects as an
+// invalid name (400). Trimming the trailing slash keeps the request path clean.
+func mountDAVFileURL(hostPort, prefix, remotePath string) string {
+	return "http://" + hostPort + strings.TrimRight(prefix, "/") + escapeWebDAVPath(remotePath)
 }
 
 // escapeWebDAVPath escapes each segment so spaces and non-ASCII names survive
