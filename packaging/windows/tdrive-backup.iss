@@ -127,6 +127,10 @@ end;
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
+  // A silent install has nobody to answer the wizard, so it keeps the
+  // defaults and writes them to backup.json instead of blocking on a box.
+  if WizardSilent then
+    exit;
   if CurPageID = HostPage.ID then
   begin
     if Trim(HostPage.Values[0]) = '' then
