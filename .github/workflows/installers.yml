@@ -109,7 +109,11 @@ jobs:
         shell: pwsh
         run: |
           $exe = Get-ChildItem dist/TDrive-Setup-*.exe | Select-Object -First 1
-          Start-Process $exe.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/TASKS=autostart" -Wait
+          # The installer leaves the background server running, so -Wait would
+          # block on that descendant; wait for the installer process only.
+          $installer = Start-Process $exe.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/TASKS=autostart" -PassThru
+          $installer.WaitForExit()
+          if ($installer.ExitCode -ne 0) { throw "installer exited $($installer.ExitCode)" }
           $app = Join-Path $env:LOCALAPPDATA "TDrive"
           foreach ($name in @("tdrive.exe", "tdrive-web.cmd", "tdrive-hidden.vbs", "port.txt", "listen.txt")) {
             if (-not (Test-Path (Join-Path $app $name))) { throw "missing $name in $app" }
@@ -165,7 +169,9 @@ jobs:
         shell: pwsh
         run: |
           $exe = Get-ChildItem dist/TDrive-Backup-Setup-*.exe | Select-Object -First 1
-          Start-Process $exe.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/TASKS=autostart" -Wait
+          $installer = Start-Process $exe.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/TASKS=autostart" -PassThru
+          $installer.WaitForExit()
+          if ($installer.ExitCode -ne 0) { throw "installer exited $($installer.ExitCode)" }
           $app = Join-Path $env:LOCALAPPDATA "TDriveBackup"
           $folder = Join-Path $env:USERPROFILE "TDriveBackup"
           $config = Get-Content (Join-Path $app "backup.json") -Raw | ConvertFrom-Json
