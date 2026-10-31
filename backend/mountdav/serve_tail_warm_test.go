@@ -112,6 +112,69 @@ func TestServeFileWarmsMediaTail(t *testing.T) {
 	}
 }
 
+// A conditional request writes no body, so nothing should be fetched for it:
+// the tail warm must not run on a 304.
+func TestServeFileConditionalRequestSkipsMediaTailWarm(t *testing.T) {
+	const size = 20 * 1024 * 1024
+	application, content := testTailWarmFS(t, "movie.mp4", size)
+	stat, err := application.fs.Stat(context.Background(), "/movie.mp4")
+	if err != nil {
+		t.Fatalf("stat: %v", err)
+	}
+	info, ok := stat.(fileInfo)
+	if !ok {
+		t.Fatalf("stat type = %T, want fileInfo", stat)
+	}
+	etag, err := info.ETag(context.Background())
+	if err != nil {
+		t.Fatalf("etag: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodGet, "/movie.mp4", nil)
+	request.Header.Set("If-None-Match", etag)
+	recorder := httptest.NewRecorder()
+	application.serveFile(recorder, request)
+	if recorder.Code != http.StatusNotModified {
+		t.Fatalf("conditional GET status = %d, want 304", recorder.Code)
+	}
+	time.Sleep(200 * time.Millisecond)
+	if maxRead, _ := content.snapshot(); maxRead >= int64(size)-mediaTailWarmBytes {
+		t.Fatalf("304 response triggered a tail read (max offset %d)", maxRead)
+	}
+}
+
+// The tail fetch shares the mount's background getFile budget with the head
+// read that produces the first frame, so it must start only once the body is
+// being written, and only once.
+func TestFirstWriteWarmerDefersWarmUntilBody(t *testing.T) {
+	warmed := make(chan struct{}, 2)
+	writer := &firstWriteWarmer{
+		ResponseWriter: httptest.NewRecorder(),
+		warm:           func() { warmed <- struct{}{} },
+	}
+	writer.WriteHeader(http.StatusOK)
+	select {
+	case <-warmed:
+		t.Fatal("warm ran before the response body was written")
+	case <-time.After(50 * time.Millisecond):
+	}
+	if _, err := writer.Write([]byte("first")); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	select {
+	case <-warmed:
+	case <-time.After(time.Second):
+		t.Fatal("warm did not run after the first body write")
+	}
+	if _, err := writer.Write([]byte("second")); err != nil {
+		t.Fatalf("second write: %v", err)
+	}
+	select {
+	case <-warmed:
+		t.Fatal("warm ran more than once")
+	default:
+	}
+}
+
 // TestServeFileSkipsTailWarmForDocuments ensures the extra background fetch
 // only runs for media containers, not for every large download.
 func TestServeFileSkipsTailWarmForDocuments(t *testing.T) {

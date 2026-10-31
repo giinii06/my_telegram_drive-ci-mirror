@@ -494,10 +494,13 @@ func (r *RangeReader) span(ctx context.Context, ref tgclient.DocumentRef, absolu
 }
 
 // wantsOpeningPrefix reports whether this read is the latency-critical first
-// touch of a file. Background readers are excluded: they are speculative, so a
-// short read would only cost them an extra request.
+// touch of a file. Only real reads reach here; speculative prefetches call
+// fetch directly. Background readers therefore get the short prefix too: the
+// mount's reader is background-priority, yet it is what serves web video
+// playback, where waiting for a whole block is exactly the startup delay this
+// prefix avoids.
 func (r *RangeReader) wantsOpeningPrefix(ref tgclient.DocumentRef, absolute, blockStart int64) bool {
-	if r.background || blockStart != 0 || absolute >= openingChunkBytes {
+	if blockStart != 0 || absolute >= openingChunkBytes {
 		return false
 	}
 	if ref.Size <= openingChunkBytes {

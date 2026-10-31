@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"TDrive/backend/mountfs"
 
@@ -165,8 +166,35 @@ func (application *readApplication) serveFile(response http.ResponseWriter, requ
 		serveFileError(response, err)
 		return
 	}
-	application.warmMediaTail(serveCtx, clean, entry, info)
+	if warm := application.mediaTailWarm(serveCtx, clean, entry, info); warm != nil {
+		response = &firstWriteWarmer{ResponseWriter: response, warm: warm}
+	}
 	http.ServeContent(response, request, info.Name(), info.ModTime(), file)
+}
+
+// firstWriteWarmer runs its warm function once the response body has started.
+// A media tail fetch started before the head read competes with it for the
+// mount's shared background getFile budget, so the player's first block can
+// queue behind speculative tail traffic and the first frame is late. Triggering
+// the warm on the first body write keeps the overlap (head streaming against
+// tail fetching) without putting the tail in front of the player.
+type firstWriteWarmer struct {
+	http.ResponseWriter
+	once sync.Once
+	warm func()
+}
+
+func (writer *firstWriteWarmer) Write(buffer []byte) (int, error) {
+	n, err := writer.ResponseWriter.Write(buffer)
+	writer.once.Do(func() {
+		// Flush first so the bytes are on the wire before the extra fetch
+		// starts taking Telegram slots and bandwidth.
+		if flusher, ok := writer.ResponseWriter.(http.Flusher); ok {
+			flusher.Flush()
+		}
+		writer.warm()
+	})
+	return n, err
 }
 
 // mediaTailWarmExtensions covers containers whose index (moov and friends)
@@ -185,31 +213,35 @@ var mediaTailWarmExtensions = map[string]bool{
 // costs background Telegram range reads.
 const mediaTailWarmBytes = 16 * 1024 * 1024
 
-// warmMediaTail prefetches the tail of a media file in the background while
-// ServeContent streams the head the player asked for. Video players almost
-// always jump to the tail next (moov atom), and without this that jump pays
-// full cold Telegram round-trips before the first frame can show.
-func (application *readApplication) warmMediaTail(ctx context.Context, clean string, entry mountfs.Entry, info fileInfo) {
+// mediaTailWarm returns a function that prefetches the tail of a media file
+// while ServeContent streams the head the player asked for, or nil when the
+// file is not a candidate. Video players almost always jump to the tail next
+// (moov atom), and without this that jump pays full cold Telegram round-trips
+// before the first frame can show. The caller must not run it until the
+// response body has started; see firstWriteWarmer.
+func (application *readApplication) mediaTailWarm(ctx context.Context, clean string, entry mountfs.Entry, info fileInfo) func() {
 	size := info.Size()
 	if size <= mediaTailWarmBytes || entry.Kind != mountfs.KindFile {
-		return
+		return nil
 	}
 	ext := strings.ToLower(filepath.Ext(info.entry.Name))
 	if !mediaTailWarmExtensions[ext] {
-		return
+		return nil
 	}
 	warmCtx := context.WithoutCancel(ctx)
-	go func() {
-		warm, err := application.fs.openEntry(warmCtx, clean, entry)
-		if err != nil {
-			return
-		}
-		defer warm.Close()
-		if _, err := warm.Seek(size-mediaTailWarmBytes, io.SeekStart); err != nil {
-			return
-		}
-		_, _ = io.CopyN(io.Discard, warm, mediaTailWarmBytes)
-	}()
+	return func() {
+		go func() {
+			warm, err := application.fs.openEntry(warmCtx, clean, entry)
+			if err != nil {
+				return
+			}
+			defer warm.Close()
+			if _, err := warm.Seek(size-mediaTailWarmBytes, io.SeekStart); err != nil {
+				return
+			}
+			_, _ = io.CopyN(io.Discard, warm, mediaTailWarmBytes)
+		}()
+	}
 }
 
 func setFileHeaders(ctx context.Context, header http.Header, info fileInfo) error {

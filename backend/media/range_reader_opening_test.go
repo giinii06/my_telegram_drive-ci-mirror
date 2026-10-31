@@ -50,6 +50,28 @@ func TestRangeReaderServesOpeningPrefixBeforeFullBlock(t *testing.T) {
 	}
 }
 
+// The mount's reader is background-priority, but it serves real reads (web
+// video playback), so a first touch must still get the short prefix instead of
+// waiting for a whole block.
+func TestRangeReaderBackgroundReaderServesOpeningPrefix(t *testing.T) {
+	data := testBytes(tgclient.RangeReadMaxBytes * 2)
+	fake := newStrictRangeFake(data)
+	reader := NewRangeReader(RangeReaderConfig{Client: fake, Background: true})
+	defer reader.Close()
+
+	buf := make([]byte, 64)
+	if _, err := reader.ReadStoredAt(context.Background(), fake.ref(), buf, 128); err != nil {
+		t.Fatalf("ReadStoredAt: %v", err)
+	}
+	if !bytes.Equal(buf, data[128:192]) {
+		t.Fatal("opening read returned the wrong bytes")
+	}
+	calls := fake.calls()
+	if len(calls) == 0 || calls[0].offset != 0 || int64(calls[0].length) != openingChunkBytes {
+		t.Fatalf("first call = %+v, want the %d-byte opening prefix", calls, openingChunkBytes)
+	}
+}
+
 // The opening prefix must stay strictly inside the first 1 MiB block.
 // Window, seek, and tail tests read at openingChunkBytes to mean "past the
 // opening window but still in block 0", and a prefix equal to a whole block
