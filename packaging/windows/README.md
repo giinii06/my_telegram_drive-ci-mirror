@@ -42,7 +42,7 @@ powershell -ExecutionPolicy Bypass -File packaging\windows\build-backup-exe.ps1 
 5. 시작 옵션에서 **Windows에 로그인할 때 백그라운드로 자동 실행**을 켜 둡니다(기본 체크).
 6. 설치가 끝나면 브라우저 온보딩에서 Telegram API 자격 증명과 로그인을 입력합니다. 이 값은 지금 넣거나, 나중에 같은 화면에서 다시 넣을 수 있습니다.
 
-로그인 시 자동 시작은 사용자 로그온 작업(`schtasks /SC ONLOGON`, 작업 이름 `TDrive`)으로 등록되고, `wscript.exe`가 콘솔 없이 `tdrive-web.cmd`를 실행합니다.
+로그인 시 자동 시작은 사용자 단위 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 항목(`TDrive`)으로 등록되고, `wscript.exe`가 콘솔 없이 `tdrive-web.cmd`를 실행합니다. 관리자 권한이 필요 없고, 시작 메뉴의 **TDrive 서버 시작·중지**가 같은 방식으로 동작합니다.
 
 - 시작 메뉴의 **TDrive**는 서버를 띄우고 토큰이 포함된 주소를 브라우저로 엽니다.
 - **TDrive 서버 시작·중지**로 직접 제어합니다.
@@ -70,7 +70,7 @@ powershell -ExecutionPolicy Bypass -File packaging\windows\build-backup-exe.ps1 
 3. **자동 백업 폴더**를 고릅니다. 기존 폴더를 찾아보기로 선택하거나, 없으면 새로 만듭니다. 기본값은 `%USERPROFILE%\TDriveBackup`입니다.
 4. 설치가 끝나면 백업이 바로 시작되고, 이후에는 로그인할 때 백그라운드로 자동 실행됩니다.
 
-동작 순서는 파일마다 같습니다: 오래된 파일부터 하나씩 업로드 → 서버가 Telegram에 저장 → 서버의 임시 파일 삭제 → 서버 목록에서 같은 바이트 수로 확인 → 원본 삭제 → 다음 파일. 확인에 실패하면 원본은 남고 다음 주기에 다시 시도합니다. **Telegram에 저장된 사본은 지우지 않습니다.**
+동작 순서는 파일마다 같습니다: 오래된 파일부터 하나씩 업로드 → 서버가 Telegram에 저장 → 서버의 임시 파일 삭제 → 서버 목록에서 같은 바이트 수로 확인 → 원본 삭제 → 다음 파일. 확인에 실패하면 원본은 남고 다음 주기에 다시 시도합니다. **Telegram에 저장된 사본은 지우지 않습니다.** 백업은 서버의 금고 암호화를 쓰지 않고 평문으로 저장되므로, 서버를 다시 켠 뒤 금고 암호 없이도 바로 복원할 수 있습니다.
 
 - 설정 파일: `%LOCALAPPDATA%\TDriveBackup\backup.json`
 
@@ -111,24 +111,28 @@ powershell -ExecutionPolicy Bypass -File packaging\windows\build-backup-exe.ps1 
 Test-Path dist\TDrive-Setup-0.0.1.exe
 Test-Path dist\TDrive-Backup-Setup-0.0.1.exe
 
-# 3. 조용한 설치 + 설치 내용 확인
+# 3. 조용한 설치 + 자동 시작 등록 확인
 Start-Process dist\TDrive-Setup-0.0.1.exe -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/TASKS=autostart" -Wait
 Test-Path "$env:LOCALAPPDATA\TDrive\tdrive.exe"
-schtasks /Query /TN TDrive
+(Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run").TDrive
 
-# 4. 서버 기동과 UI 응답
-Start-Process "C:\Windows\System32\wscript.exe" "$env:LOCALAPPDATA\TDrive\tdrive-hidden.vbs"
-Invoke-WebRequest http://127.0.0.1:8080/ -UseBasicParsing | Select-Object StatusCode
+# 4. 백그라운드 기동 확인: 토큰 파일이 생기면 웹 서버가 떠 있는 것
+for ($i = 0; $i -lt 60 -and -not (Test-Path "$env:USERPROFILE\.config\TDrive\web.token"); $i++) { Start-Sleep 1 }
 Get-Content "$env:USERPROFILE\.config\TDrive\web.token"
+Get-Content "$env:LOCALAPPDATA\TDrive\tdrive.log" -Tail 20
 
-# 5. 백업 설치와 실행 (서버 주소·폴더는 실제 값으로)
-Start-Process dist\TDrive-Backup-Setup-0.0.1.exe -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait
+# 5. 백업 설치와 설정 확인 (설치 직후에는 서버 주소가 비어 있음)
+Start-Process dist\TDrive-Backup-Setup-0.0.1.exe -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/TASKS=autostart" -Wait
 Get-Content "$env:LOCALAPPDATA\TDriveBackup\backup.json"
+(Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run").TDriveBackup
+
+# 설정은 설치 후 CLI로도 넣을 수 있음 (backup.json을 직접 고쳐도 됨)
+& "$env:LOCALAPPDATA\TDriveBackup\tdrive-backup.exe" setup --host 127.0.0.1:8080 --folder "$env:USERPROFILE\TDriveBackup" --config "$env:LOCALAPPDATA\TDriveBackup\backup.json"
 & "$env:LOCALAPPDATA\TDriveBackup\tdrive-backup.cmd" status
 
 # 6. 제거 후 정리 확인
 & "$env:LOCALAPPDATA\TDrive\unins000.exe" /VERYSILENT
-schtasks /Query /TN TDrive
+(Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run").TDrive
 ```
 
 `/VERYSILENT` 설치에서는 사용자 입력 페이지가 기본값으로 채워집니다(포트 8080, 접속 범위 `0.0.0.0`, 백업 폴더 `%USERPROFILE%\TDriveBackup`, 서버 주소 빈 값). 서버 주소가 빈 백업 설치는 실행 즉시 설정 오류를 로그에 남기므로, 조용한 설치 뒤에는 `backup.json`을 실제 값으로 채우고 다시 시작하세요.

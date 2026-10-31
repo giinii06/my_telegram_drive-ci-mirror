@@ -30,6 +30,7 @@ type fakeHost struct {
 	pending      int
 	stageError   string
 	hideFromList bool
+	encryptModes []string
 }
 
 func newFakeHost(token string) *fakeHost {
@@ -60,6 +61,7 @@ func (f *fakeHost) ServeHTTP(response http.ResponseWriter, request *http.Request
 			return
 		}
 		dir := request.URL.Query().Get("path")
+		f.encryptModes = append(f.encryptModes, request.URL.Query().Get("encrypt"))
 		var name string
 		var size int64
 		for {
@@ -214,6 +216,43 @@ func TestPassArchivesOldestFileFirstAndRemovesIt(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(folder, "newer.txt")); !os.IsNotExist(err) {
 		t.Fatalf("newer.txt still exists: %v", err)
+	}
+	// Plaintext is what makes the byte-count verification meaningful: an
+	// encrypted upload stores ciphertext whose size differs from the file.
+	if len(host.encryptModes) != 2 {
+		t.Fatalf("encrypt modes = %v", host.encryptModes)
+	}
+	for _, mode := range host.encryptModes {
+		if mode != "0" {
+			t.Fatalf("upload used encrypt=%q, want 0", mode)
+		}
+	}
+}
+
+func TestPreexistingRemoteFileFinishesWithoutUpload(t *testing.T) {
+	folder := t.TempDir()
+	mod := time.Now().Add(-time.Hour)
+	writeFile(t, filepath.Join(folder, "a.txt"), "aaaa", mod)
+
+	host := newFakeHost("secret")
+	host.files["/Backup/a.txt"] = 4
+	server := httptest.NewServer(host)
+	defer server.Close()
+	cfg := testConfig(t, server.URL, folder)
+	agent := testAgent(t, cfg, host)
+
+	agent.pass(context.Background())
+	if processed, err := agent.pass(context.Background()); err != nil || !processed {
+		t.Fatalf("pass = %v, %v; want the file finished", processed, err)
+	}
+	if len(host.uploads) != 0 {
+		t.Fatalf("re-uploaded a file the host already had: %v", host.uploads)
+	}
+	if _, err := os.Stat(filepath.Join(folder, "a.txt")); !os.IsNotExist(err) {
+		t.Fatalf("already-archived file was left behind: %v", err)
+	}
+	if _, done := agent.journal.done("a.txt", 4, mod.UnixNano()); !done {
+		t.Fatal("journal did not record the pre-existing copy")
 	}
 }
 

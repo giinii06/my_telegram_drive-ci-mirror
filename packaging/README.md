@@ -15,8 +15,8 @@
 - 네이티브 설치는 Docker 전용 제한 없이 `tdrive`를 직접 실행한다.
 - 모든 설치본은 `TDRIVE_NO_OS_MOUNT=1`을 설정한다. OS 마운트(FUSE·GVfs·WinFsp)는 쓰지 않고 데몬의 내부 WebDAV 엔드포인트로 파일을 스트리밍하므로, 커널 확장이나 데스크톱 서비스 설치가 필요 없다.
 - macOS 설치본은 `tdrive web --listen 127.0.0.1`로 루프백에만 열고, `--open`이 기본 브라우저에 토큰이 포함된 URL을 연다. 토큰은 `~/.config/TDrive/web.token`에 있다.
-- Windows 서버 설치본은 설치 중 접속 범위를 고른다. `listen.txt`에 `127.0.0.1` 또는 `0.0.0.0`을 쓰고, 포트는 `port.txt`에서 읽는다. 두 파일 모두 설치 폴더에 있다.
-- Windows 백업 설치본(`cmd/tdrive-backup`)은 서버의 웹 API만 사용한다. 데몬 소켓이나 새 서버 API가 필요 없다.
+- Windows 서버 설치본은 설치 중 접속 범위를 고른다. `listen.txt`에 `127.0.0.1` 또는 `0.0.0.0`을 쓰고, 포트는 `port.txt`에서 읽는다. 두 파일 모두 설치 폴더에 있다. 두 Windows 설치본 모두 사용자 단위 `HKCU\...\Run` 항목으로 로그인 시 콘솔 없이 시작한다.
+- Windows 백업 설치본(`cmd/tdrive-backup`)은 서버의 웹 API만 사용한다. 데몬 소켓이나 새 서버 API가 필요 없다. 업로드는 평문(`encrypt=0`)이라 서버 목록의 바이트 수를 원본과 그대로 비교할 수 있고, 금고가 잠겨 있어도 백업이 멈추지 않는다.
 - `--version`을 넘기지 않으면 스크립트가 `git describe --tags --always --dirty`에서 버전을 읽는다.
 
 ## 릴리즈 자동화

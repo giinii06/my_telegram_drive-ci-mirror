@@ -195,9 +195,13 @@ func (c *apiClient) UploadFile(ctx context.Context, localPath, remoteDir string,
 		writer.Close()
 	}()
 
+	// Store the archive as-is. An encrypted upload keeps ciphertext on the
+	// host, whose byte count differs from the local file, so the size check
+	// that frees the original could never pass; it would also need the vault
+	// unlocked after every reboot of an unattended host.
 	query := url.Values{}
 	query.Set("path", remoteDir)
-	query.Set("encrypt", "1")
+	query.Set("encrypt", "0")
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url("/api/upload", query), reader)
 	if err != nil {
 		return err

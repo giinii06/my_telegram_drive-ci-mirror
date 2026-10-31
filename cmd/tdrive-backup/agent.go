@@ -113,16 +113,27 @@ func (a *agent) archive(ctx context.Context, file candidate) error {
 	if err := a.client.EnsureDir(ctx, remoteDir); err != nil {
 		return fmt.Errorf("remote folder %s: %w", remoteDir, err)
 	}
-	a.logf("uploading %s (%s)", file.rel, formatBytes(file.size))
-	if err := a.client.UploadFile(ctx, file.path, remoteDir, a.uploadTimeout); err != nil {
-		return err
-	}
+	// A crash between the upload and the journal write leaves the file on the
+	// host with no local record. Finding it first finishes that job instead of
+	// storing a second Telegram copy.
 	listed, err := a.client.RemoteHas(ctx, remoteDir, name, file.size)
 	if err != nil {
-		return fmt.Errorf("verify %s: %w", file.rel, err)
+		return fmt.Errorf("check %s: %w", file.rel, err)
 	}
-	if !listed {
-		return fmt.Errorf("host did not list %s with %d bytes; keeping the local file", path.Join(remoteDir, name), file.size)
+	if listed {
+		a.logf("%s is already on the host", file.rel)
+	} else {
+		a.logf("uploading %s (%s)", file.rel, formatBytes(file.size))
+		if err := a.client.UploadFile(ctx, file.path, remoteDir, a.uploadTimeout); err != nil {
+			return err
+		}
+		listed, err = a.client.RemoteHas(ctx, remoteDir, name, file.size)
+		if err != nil {
+			return fmt.Errorf("verify %s: %w", file.rel, err)
+		}
+		if !listed {
+			return fmt.Errorf("host did not list %s with %d bytes; keeping the local file", path.Join(remoteDir, name), file.size)
+		}
 	}
 	entry := uploadedFile{
 		Size:    file.size,

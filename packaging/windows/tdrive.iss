@@ -54,6 +54,12 @@ Source: "{#SourcePath}\tdrive-hidden.vbs"; DestDir: "{app}"; Flags: ignoreversio
 Source: "{#SourcePath}\tdrive-service.cmd"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourcePath}\tdrive-open.cmd"; DestDir: "{app}"; Flags: ignoreversion
 
+[Registry]
+; A per-user Run entry starts the server at logon with no console window.
+; HKCU (not a scheduled task) keeps the install inside the current account
+; without elevation, which is what PrivilegesRequired=lowest promises.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "TDrive"; ValueData: """{sys}\wscript.exe"" ""{app}\tdrive-hidden.vbs"""; Flags: uninsdeletevalue; Tasks: autostart
+
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\tdrive-open.cmd"; WorkingDir: "{app}"; Comment: "TDrive 웹 UI를 엽니다"
 Name: "{autoprograms}\{#MyAppName} 서버 시작"; Filename: "{app}\tdrive-service.cmd"; Parameters: "start"; WorkingDir: "{app}"
@@ -61,11 +67,12 @@ Name: "{autoprograms}\{#MyAppName} 서버 중지"; Filename: "{app}\tdrive-servi
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\tdrive-open.cmd"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\tdrive-service.cmd"; Parameters: "install"; Tasks: autostart; Flags: runhidden waituntilterminated; StatusMsg: "TDrive를 백그라운드로 시작하는 중..."
+Filename: "{sys}\wscript.exe"; Parameters: """{app}\tdrive-hidden.vbs"""; Tasks: autostart; Flags: runhidden nowait; StatusMsg: "TDrive를 백그라운드로 시작하는 중..."
 Filename: "{app}\tdrive-open.cmd"; Description: "TDrive 열기"; Flags: postinstall nowait skipifsilent shellexec
 
 [UninstallRun]
-Filename: "{app}\tdrive-service.cmd"; Parameters: "remove"; Flags: runhidden waituntilterminated; RunOnceId: "TDriveService"
+Filename: "{app}\tdrive.exe"; Parameters: "daemon stop"; Flags: runhidden waituntilterminated; RunOnceId: "TDriveDaemonStop"
+Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM tdrive.exe"; Flags: runhidden waituntilterminated; RunOnceId: "TDriveProcessStop"
 
 [Code]
 const

@@ -105,6 +105,24 @@ jobs:
           $bytes = [System.IO.File]::ReadAllBytes($exe.FullName)[0..1]
           if ($bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "installer is not a PE file" }
           Write-Host "$($exe.Name) $($exe.Length) bytes"
+      - name: Install quietly and check the logon autostart
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem dist/TDrive-Setup-*.exe | Select-Object -First 1
+          Start-Process $exe.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/TASKS=autostart" -Wait
+          $app = Join-Path $env:LOCALAPPDATA "TDrive"
+          foreach ($name in @("tdrive.exe", "tdrive-web.cmd", "tdrive-hidden.vbs", "port.txt", "listen.txt")) {
+            if (-not (Test-Path (Join-Path $app $name))) { throw "missing $name in $app" }
+          }
+          $run = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name TDrive -ErrorAction Stop).TDrive
+          if ($run -notmatch "tdrive-hidden.vbs") { throw "unexpected autostart command: $run" }
+          $token = Join-Path $env:USERPROFILE ".config\TDrive\web.token"
+          for ($i = 0; $i -lt 60 -and -not (Test-Path $token); $i++) { Start-Sleep -Seconds 1 }
+          if (-not (Test-Path $token)) {
+            Get-Content (Join-Path $app "tdrive.log") -ErrorAction SilentlyContinue
+            throw "the background server did not create its token"
+          }
+          & (Join-Path $app "tdrive.exe") version
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: tdrive-exe
@@ -143,6 +161,21 @@ jobs:
           $bytes = [System.IO.File]::ReadAllBytes($exe.FullName)[0..1]
           if ($bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "backup installer is not a PE file" }
           Write-Host "$($exe.Name) $($exe.Length) bytes"
+      - name: Install quietly and check the backup config
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem dist/TDrive-Backup-Setup-*.exe | Select-Object -First 1
+          Start-Process $exe.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/TASKS=autostart" -Wait
+          $app = Join-Path $env:LOCALAPPDATA "TDriveBackup"
+          $folder = Join-Path $env:USERPROFILE "TDriveBackup"
+          $config = Get-Content (Join-Path $app "backup.json") -Raw | ConvertFrom-Json
+          if ($config.folder -ne $folder) { throw "backup folder = $($config.folder), want $folder" }
+          if ($config.keep_original) { throw "keep_original must default to false" }
+          $run = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name TDriveBackup -ErrorAction Stop).TDriveBackup
+          if ($run -notmatch "tdrive-backup-hidden.vbs") { throw "unexpected autostart command: $run" }
+          & (Join-Path $app "tdrive-backup.exe") version
+          & (Join-Path $app "tdrive-backup.exe") setup --host 127.0.0.1:8080 --folder $folder --config (Join-Path $app "backup.json")
+          & (Join-Path $app "tdrive-backup.cmd") status
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: tdrive-backup-exe
