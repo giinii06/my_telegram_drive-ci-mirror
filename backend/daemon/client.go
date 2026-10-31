@@ -434,6 +434,29 @@ func (c *Client) ProxyHLSInDrive(driveID int64, remotePath string, file string) 
 	return out, nil
 }
 
+func (c *Client) FileThumbnailInDrive(driveID int64, remotePath string) (FileThumbnailResponse, error) {
+	var out FileThumbnailResponse
+	if err := c.call(CommandFileThumbnail, FileThumbnailRequest{
+		Path:    remotePath,
+		DriveID: driveID,
+	}, &out); err != nil {
+		return FileThumbnailResponse{}, err
+	}
+	return out, nil
+}
+
+func (c *Client) StoreFileThumbnailInDrive(driveID int64, remotePath string, dataBase64 string) (FileThumbnailStoreResponse, error) {
+	var out FileThumbnailStoreResponse
+	if err := c.call(CommandFileThumbnailStore, FileThumbnailStoreRequest{
+		Path:       remotePath,
+		DriveID:    driveID,
+		DataBase64: dataBase64,
+	}, &out); err != nil {
+		return FileThumbnailStoreResponse{}, err
+	}
+	return out, nil
+}
+
 func (c *Client) MountStart(selector string, windowsDrive string, mode string) (MountResponse, error) {
 	var out MountResponse
 	if err := c.call(CommandMountStart, MountStartRequest{Selector: selector, WindowsDrive: windowsDrive, Mode: mode}, &out); err != nil {

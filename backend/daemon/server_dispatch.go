@@ -599,6 +599,34 @@ func (s *Server) handleRequest(ctx context.Context, req Request) Frame {
 			return ErrorResponse(req.ID, err)
 		}
 		return frame
+	case CommandFileThumbnail:
+		var in FileThumbnailRequest
+		if err := decodePayload(req.Payload, &in); err != nil {
+			return ErrorResponse(req.ID, err)
+		}
+		out, err := s.fileThumbnail(ctx, in.Path, in.DriveID)
+		if err != nil {
+			return ErrorResponse(req.ID, err)
+		}
+		frame, err := Response(req.ID, out)
+		if err != nil {
+			return ErrorResponse(req.ID, err)
+		}
+		return frame
+	case CommandFileThumbnailStore:
+		var in FileThumbnailStoreRequest
+		if err := decodePayload(req.Payload, &in); err != nil {
+			return ErrorResponse(req.ID, err)
+		}
+		out, err := s.storeFileThumbnail(ctx, in.Path, in.DriveID, in.DataBase64)
+		if err != nil {
+			return ErrorResponse(req.ID, err)
+		}
+		frame, err := Response(req.ID, out)
+		if err != nil {
+			return ErrorResponse(req.ID, err)
+		}
+		return frame
 	case CommandMountStart:
 		var in MountStartRequest
 		if err := decodePayload(req.Payload, &in); err != nil {

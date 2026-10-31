@@ -64,6 +64,8 @@ const (
 	CommandProxyTranscode     = "proxy.transcode"
 	CommandProxyStatus        = "proxy.status"
 	CommandProxyHLS           = "proxy.hls"
+	CommandFileThumbnail      = "file.thumbnail"
+	CommandFileThumbnailStore = "file.thumbnail.store"
 	CommandMountStart         = "mount.start"
 	CommandMountStatus        = "mount.status"
 	CommandMountStop          = "mount.stop"
@@ -427,6 +429,27 @@ type ProxyHLSResponse struct {
 	ContentType string `json:"content_type"`
 	Size        int64  `json:"size"`
 	DataBase64  string `json:"data_base64"`
+}
+
+type FileThumbnailRequest struct {
+	Path    string `json:"path"`
+	DriveID int64  `json:"drive_id,omitzero"`
+}
+
+type FileThumbnailResponse struct {
+	Drive       Drive  `json:"drive"`
+	ContentType string `json:"content_type"`
+	DataBase64  string `json:"data_base64"`
+}
+
+type FileThumbnailStoreRequest struct {
+	Path       string `json:"path"`
+	DriveID    int64  `json:"drive_id,omitzero"`
+	DataBase64 string `json:"data_base64"`
+}
+
+type FileThumbnailStoreResponse struct {
+	Drive Drive `json:"drive"`
 }
 
 type MountStartRequest struct {

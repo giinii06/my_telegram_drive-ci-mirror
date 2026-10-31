@@ -228,6 +228,75 @@ func (s *Service) sendPendingRendition(ctx context.Context, channelID int64, job
 	return nil
 }
 
+// StoreThumbnail publishes one caller-supplied poster JPEG as a video's
+// thumbnail rendition. The embedded browser decodes the frame because a server
+// without a video decoder cannot, and this service owns the storage contract:
+// an encrypted source gets a TDE1-encrypted sidecar in Telegram, exactly like
+// its body, so every device fetches it through Rendition/Thumbnail. Existing
+// renditions win: a stale tab can never replace a published thumbnail.
+func (s *Service) StoreThumbnail(ctx context.Context, channelID, msgID int64, jpeg []byte) error {
+	if ctx == nil || channelID == 0 || msgID <= 0 || len(jpeg) == 0 {
+		return fmt.Errorf("invalid thumbnail source")
+	}
+	if err := s.ready(); err != nil {
+		return err
+	}
+	if s.Peers == nil || s.ActorID == nil || !supportsIdempotentSends(s.TG) {
+		return fmt.Errorf("thumbnail upload dependencies unavailable")
+	}
+	source, found, err := projection.FileByID(s.DB, channelID, msgID)
+	if err != nil {
+		return err
+	}
+	if !found || source.Tombstoned {
+		return errPreviewNotFound
+	}
+	if !isVideoDocument(source.Name) {
+		return errPreviewNotSupported
+	}
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(jpeg))
+	if err != nil || format != "jpeg" || cfg.Width <= 0 || cfg.Height <= 0 ||
+		cfg.Width > 512 || cfg.Height > 512 || len(jpeg) > renditionThumbLimit {
+		return errPreviewNotSupported
+	}
+	if _, err := projection.CurrentFileRendition(ctx, s.DB, channelID, msgID, projection.RenditionThumbnail); err == nil {
+		return nil
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	if err := s.requireOwnerForShared(ctx, channelID, int(msgID), "store thumbnail"); err != nil {
+		return err
+	}
+	key, err := s.requireEncryptionKey(source.Encrypted)
+	defer clearOwnedKey(key)
+	if err != nil {
+		return err
+	}
+	ref, err := renditionDescriptor(source, projection.RenditionThumbnail, jpeg)
+	if err != nil {
+		return err
+	}
+	payload := jpeg
+	if source.Encrypted {
+		payload, err = encryptRendition(jpeg, key, ref)
+		if err != nil {
+			return err
+		}
+	}
+	ref.Size = int64(len(payload))
+	if err := ref.Validate(); err != nil {
+		return err
+	}
+	job, err := newRenditionJob(ref, payload, s.now().Unix())
+	if err != nil {
+		return err
+	}
+	if err := projection.QueueRendition(ctx, s.DB, job); err != nil {
+		return err
+	}
+	return s.sendPendingRendition(ctx, channelID, job.JobID)
+}
+
 func renditionMatchesFile(ref projection.FileRendition, source projection.File) bool {
 	content := source.ContentMsgID
 	if source.UploadUUID != "" {

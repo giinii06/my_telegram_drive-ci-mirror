@@ -50,6 +50,8 @@ type webDaemonClient interface {
 	ProxyTranscodeInDrive(driveID int64, remotePath string) (daemon.ProxyTranscodeResponse, error)
 	ProxyStatusInDrive(driveID int64, remotePath string) (daemon.ProxyStatusResponse, error)
 	ProxyHLSInDrive(driveID int64, remotePath string, file string) (daemon.ProxyHLSResponse, error)
+	FileThumbnailInDrive(driveID int64, remotePath string) (daemon.FileThumbnailResponse, error)
+	StoreFileThumbnailInDrive(driveID int64, remotePath string, dataBase64 string) (daemon.FileThumbnailStoreResponse, error)
 }
 
 type webOptions struct {
@@ -394,6 +396,7 @@ func (s *webServer) routes() http.Handler {
 	mux.HandleFunc("/api/proxy/transcode", s.handleProxyTranscode)
 	mux.HandleFunc("/api/proxy/status", s.handleProxyStatus)
 	mux.HandleFunc("/proxy-hls", s.handleProxyHLS)
+	mux.HandleFunc("/api/thumb", s.handleThumbnail)
 	mux.HandleFunc("/api/upload", s.handleUpload)
 	mux.HandleFunc("/api/upload/status", s.handleUploadStatus)
 	mux.HandleFunc("/file", s.handleFile)

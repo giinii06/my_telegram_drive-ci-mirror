@@ -117,8 +117,11 @@ a { color:var(--acc); }
 .tile .tile-heading { display:flex; align-items:center; gap:8px; width:100%; }
 .tile .tile-heading .file-icon { width:20px; height:20px; }
 .tile .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; font-size:13px; }
-.tile .ic { height:142px; display:flex; align-items:center; justify-content:center; background:var(--bg); border-radius:8px; }
+.tile .ic { height:142px; display:flex; align-items:center; justify-content:center; background:var(--bg); border-radius:8px; position:relative; overflow:hidden; }
 .tile .ic .file-icon { width:56px; height:56px; }
+.tile .ic.has-thumb .file-icon { display:none; }
+.tile .ic .thumb { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity .15s; }
+.tile .ic.has-thumb .thumb { opacity:1; }
 .tile.folder-tile .ic { display:none; }
 .tile .cb { margin-left:auto; }
 .empty-state { height:100%; min-height:220px; display:flex; align-items:center; justify-content:center; flex-direction:column; color:var(--dim); gap:12px; text-align:center; padding:24px; }
@@ -967,6 +970,7 @@ function tile(e, idx, list) {
   var heading = document.createElement("div"); heading.className = "tile-heading";
   heading.appendChild(fileIcon(e));
   var ic = document.createElement("div"); ic.className = "ic"; ic.appendChild(fileIcon(e));
+  if (isVideoEntry(e)) attachTileThumb(ic, e);
   var nm = document.createElement("div"); nm.className = "nm"; nm.textContent = e.name; nm.title = e.name;
   heading.appendChild(nm); heading.appendChild(checkBox(e));
   t.appendChild(heading); t.appendChild(ic);
@@ -1040,6 +1044,86 @@ function previewable(e) { return e.type === "file" && PREVIEWABLE.indexOf(extOf(
 var pvList = [], pvIdx = -1;
 function fileURL(e, download) {
   return withToken("/file?path=" + encodeURIComponent(e.path) + (download ? "&download=1" : ""));
+}
+/* Video tiles use the thumbnail stored in Telegram. When none exists yet, the
+   browser decodes one frame from the decrypted stream and posts it back; the
+   server stores it in Telegram encrypted with the file's own key. Capture is
+   serialized so a grid never opens a stream per tile at once. */
+var THUMB_VIDEO_EXT = ["mp4","m4v","mov","webm","mkv","avi"];
+var thumbCaptured = {}, thumbUnavailable = {}, thumbQueue = [], thumbBusy = false;
+function isVideoEntry(e) { return e.type === "file" && THUMB_VIDEO_EXT.indexOf(extOf(e.name)) >= 0; }
+function thumbURL(e, bust) {
+  return withToken("/api/thumb?path=" + encodeURIComponent(e.path) + (bust ? "&v=" + Date.now() : ""));
+}
+function attachTileThumb(box, e) {
+  if (thumbUnavailable[e.path]) return;
+  var img = document.createElement("img");
+  img.className = "thumb"; img.alt = ""; img.loading = "lazy";
+  box.appendChild(img);
+  img.onload = function() { box.classList.add("has-thumb"); };
+  img.onerror = function() {
+    if (thumbCaptured[e.path]) return;
+    thumbCaptured[e.path] = true;
+    queueThumbCapture(e, function(dataURL) {
+      if (!dataURL) { thumbUnavailable[e.path] = true; return; }
+      api("/api/thumb?path=" + encodeURIComponent(e.path), {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({path: e.path, data_base64: dataURL.split(",")[1]})
+      }).then(function() {
+        img.onerror = function() {};
+        img.src = thumbURL(e, true);
+      }).catch(function() {});
+    });
+  };
+  img.src = thumbURL(e, false);
+}
+function queueThumbCapture(e, cb) {
+  thumbQueue.push({e: e, cb: cb});
+  pumpThumbQueue();
+}
+function pumpThumbQueue() {
+  if (thumbBusy || !thumbQueue.length) return;
+  thumbBusy = true;
+  var job = thumbQueue.shift();
+  captureVideoFrame(job.e, function(dataURL) {
+    thumbBusy = false;
+    job.cb(dataURL);
+    pumpThumbQueue();
+  });
+}
+function captureVideoFrame(e, done) {
+  var v = document.createElement("video");
+  v.preload = "auto"; v.muted = true; v.playsInline = true;
+  var settled = false, timer = setTimeout(function() { finish(null); }, 20000);
+  function finish(dataURL) {
+    if (settled) return;
+    settled = true; clearTimeout(timer);
+    try { v.removeAttribute("src"); v.load(); } catch (_) {}
+    done(dataURL || null);
+  }
+  function draw() {
+    try {
+      var w = v.videoWidth, h = v.videoHeight;
+      if (!w || !h) { finish(null); return; }
+      var scale = Math.min(1, 512 / Math.max(w, h));
+      var c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(w * scale));
+      c.height = Math.max(1, Math.round(h * scale));
+      c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+      finish(c.toDataURL("image/jpeg", 0.82));
+    } catch (_) { finish(null); }
+  }
+  v.addEventListener("loadedmetadata", function() {
+    var d = isFinite(v.duration) ? v.duration : 0;
+    var t = d > 0 ? Math.min(Math.max(d * 0.1, 0.5), 30) : 0.5;
+    try { if (d > 0 && t < d) { v.currentTime = t; return; } } catch (_) {}
+    draw();
+  });
+  v.addEventListener("seeked", draw);
+  v.addEventListener("loadeddata", draw);
+  v.addEventListener("error", function() { finish(null); });
+  v.src = fileURL(e, false);
 }
 function proxyHLSURL(e, f) {
   return withToken("/proxy-hls?path=" + encodeURIComponent(e.path) + "&f=" + f);
