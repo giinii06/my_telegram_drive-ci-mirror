@@ -53,8 +53,8 @@ jobs:
     needs: release
     if: always() && (needs.release.result == 'success' || needs.release.result == 'skipped')
     # macos-14 images brown out and retire on 2026-11-02, which cancels the job
-    # before a runner is assigned; macos-15 is the supported replacement.
-    runs-on: macos-15
+    # before a runner is assigned. macOS 27 ships as the xcode-27 image label.
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
