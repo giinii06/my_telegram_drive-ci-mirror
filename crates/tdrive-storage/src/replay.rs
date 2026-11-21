@@ -79,30 +79,38 @@ mod tests {
 
     fn database() -> Connection {
         let connection = Connection::open_in_memory().unwrap();
-        connection.execute_batch(
-            "CREATE TABLE replay_log (
+        connection
+            .execute_batch(
+                "CREATE TABLE replay_log (
                 channel_id INTEGER NOT NULL, msg_id INTEGER NOT NULL,
                 op_type TEXT NOT NULL, op_payload_json TEXT NOT NULL,
                 raw_header TEXT NOT NULL, first_seen_hash TEXT NOT NULL,
                 actor_user_id INTEGER NOT NULL, seen_at INTEGER NOT NULL,
                 PRIMARY KEY(channel_id, msg_id)
             )",
-        ).unwrap();
+            )
+            .unwrap();
         connection
     }
 
     #[test]
     fn rejects_tampered_canonical_header() {
         let connection = database();
-        connection.execute(
-            "INSERT INTO replay_log VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            params![
-                123_i64, 7_i64, "mkdir", "{}",
-                "TDX1|t=mkdir|obj=d:example|p=|n=Bad",
-                "0000000000000000000000000000000000000000000000000000000000000000",
-                10_i64, 1700000000_i64,
-            ],
-        ).unwrap();
+        connection
+            .execute(
+                "INSERT INTO replay_log VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![
+                    123_i64,
+                    7_i64,
+                    "mkdir",
+                    "{}",
+                    "TDX1|t=mkdir|obj=d:example|p=|n=Bad",
+                    "0000000000000000000000000000000000000000000000000000000000000000",
+                    10_i64,
+                    1700000000_i64,
+                ],
+            )
+            .unwrap();
         assert!(matches!(
             read_replay_page_connection(&connection, 123, 0, 10),
             Err(SnapshotError::ReplayHashMismatch)
@@ -115,16 +123,27 @@ mod tests {
         for (channel, message) in [(123_i64, 9_i64), (123, 3), (987, 4)] {
             let raw_header = format!("TDX1|t=tomb|obj=f:{message}");
             let hash = format!("{:x}", Sha256::digest(raw_header.as_bytes()));
-            connection.execute(
-                "INSERT INTO replay_log VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                params![channel, message, "tomb", "{}", raw_header, hash, 5_i64, 99_i64],
-            ).unwrap();
+            connection
+                .execute(
+                    "INSERT INTO replay_log VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                    params![
+                        channel, message, "tomb", "{}", raw_header, hash, 5_i64, 99_i64
+                    ],
+                )
+                .unwrap();
         }
         let first = read_replay_page_connection(&connection, 123, 0, 1).unwrap();
         assert_eq!(first.len(), 1);
         assert_eq!(first[0].msg_id, 3);
         let second = read_replay_page_connection(&connection, 123, 3, 10).unwrap();
-        assert_eq!(second.iter().map(|row| row.msg_id).collect::<Vec<_>>(), vec![9]);
-        assert!(read_replay_page_connection(&connection, 123, 9, 10).unwrap().is_empty());
+        assert_eq!(
+            second.iter().map(|row| row.msg_id).collect::<Vec<_>>(),
+            vec![9]
+        );
+        assert!(
+            read_replay_page_connection(&connection, 123, 9, 10)
+                .unwrap()
+                .is_empty()
+        );
     }
 }

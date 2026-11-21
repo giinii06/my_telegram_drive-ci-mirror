@@ -112,7 +112,9 @@ impl fmt::Display for SnapshotError {
             Self::IntegrityFailure => f.write_str("SQLite integrity_check did not return ok"),
             Self::ForeignKeyFailure => f.write_str("SQLite foreign_key_check returned violations"),
             Self::InvalidObjectIds => f.write_str("Go namespace identifier invariant violated"),
-            Self::InvalidReplayCursor => f.write_str("invalid channel ID, replay cursor, or page limit"),
+            Self::InvalidReplayCursor => {
+                f.write_str("invalid channel ID, replay cursor, or page limit")
+            }
             Self::ReplayHashMismatch => f.write_str("Go replay_log raw header SHA-256 mismatch"),
             Self::SnapshotTooLarge => f.write_str("detached SQLite table exceeds bounded digest limits"),
             Self::Database(e) => write!(f, "SQLite read failed: {e}"),

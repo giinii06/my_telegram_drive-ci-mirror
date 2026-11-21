@@ -40,7 +40,11 @@ fn go_replay_fixture_matches_rust_paging_hashes_and_never_modifies_db() {
     }
     let oracle = fs::read_to_string(golden_path).expect("Go replay oracle");
     assert_eq!(output, oracle, "Go and Rust replay read must match exactly");
-    assert_eq!(before, fs::read(&db_path).unwrap(), "Rust mutated Go snapshot");
+    assert_eq!(
+        before,
+        fs::read(&db_path).unwrap(),
+        "Rust mutated Go snapshot"
+    );
     assert!(matches!(
         read_replay_page_snapshot(&db_path, 123456, 0, 501),
         Err(SnapshotError::InvalidReplayCursor)
