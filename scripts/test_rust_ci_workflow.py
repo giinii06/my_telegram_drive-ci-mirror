@@ -106,6 +106,15 @@ class WorkflowContractTests(unittest.TestCase):
         )
         self.assertTrue(any("GH job-evidence" in x for x in validate_text(sample)))
 
+    def test_name_only_step_is_rejected(self):
+        sample = fixture().replace(
+            "      - run: python3 scripts/check_rust_ci_workflow.py",
+            "      - name: Orphan action step\n"
+            "      - run: python3 scripts/check_rust_ci_workflow.py",
+            1,
+        )
+        self.assertTrue(any("name-only" in error for error in validate_text(sample)))
+
     def test_no_tests_is_not_success(self):
         sample = fixture().replace(
             "      - run: cargo +1.92.0 test --workspace --locked", "")
