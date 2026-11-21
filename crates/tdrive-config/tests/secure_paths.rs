@@ -69,7 +69,11 @@ fn go_base_override_paths_and_private_permissions() {
         0o700
     );
     assert_eq!(
-        fs::metadata(paths.cache_dir()).unwrap().permissions().mode() & 0o777,
+        fs::metadata(paths.cache_dir())
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777,
         0o700
     );
 }
@@ -88,8 +92,12 @@ fn atomic_session_replace_and_missing_are_distinct() {
     ));
     assert!(!paths.secret_path(SecretFile::Session).exists());
 
-    paths.write_private(SecretFile::Session, b"old bytes").unwrap();
-    paths.write_private(SecretFile::Session, b"new bytes").unwrap();
+    paths
+        .write_private(SecretFile::Session, b"old bytes")
+        .unwrap();
+    paths
+        .write_private(SecretFile::Session, b"new bytes")
+        .unwrap();
     assert_eq!(
         paths.read_private(SecretFile::Session).unwrap(),
         Some(b"new bytes".to_vec())
@@ -180,5 +188,10 @@ fn rejects_oversized_payloads_and_relative_base() {
         paths.write_private(SecretFile::Credentials, &bytes),
         Err(ConfigError::OversizedSecret)
     ));
-    assert!(paths.read_private(SecretFile::Credentials).unwrap().is_none());
+    assert!(
+        paths
+            .read_private(SecretFile::Credentials)
+            .unwrap()
+            .is_none()
+    );
 }
