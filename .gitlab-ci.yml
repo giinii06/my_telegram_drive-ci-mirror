@@ -70,15 +70,7 @@ legacy-go-projection:
     - go version
     - go test ./backend/projection -run TestRustTDX1Fixtures -count=1
     - go test ./backend/projection
-    - go test ./backend/tgclient -run '^TestRustStableRandomIDVectors
-legacy-web-checks:
-  stage: test
-  image: oven/bun:1.4.3
-  script:
-    - bun install --cwd cmd/tdrive/webui --frozen-lockfile
-    - bun run --cwd cmd/tdrive/webui lint
-    - bun run --cwd cmd/tdrive/webui test:unit
- -count=1
+    - go test ./backend/tgclient -run '^TestRustStableRandomIDVectors$' -count=1
     - go test ./backend/tgclient
 
 legacy-web-checks:
