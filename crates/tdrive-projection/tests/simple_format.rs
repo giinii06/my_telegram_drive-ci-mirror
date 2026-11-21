@@ -4,7 +4,10 @@ use tdrive_projection::{WireError, format_simple_wire, parse_wire};
 fn canonical_headers_match_the_go_formatter() {
     let fixtures = include_str!("../../../tests/fixtures/tdx1/formatted.tsv");
     let mut cases = 0;
-    for line in fixtures.lines().filter(|line| !line.is_empty() && !line.starts_with('#')) {
+    for line in fixtures
+        .lines()
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+    {
         let (name, raw) = line.split_once('\t').expect("two fixture columns");
         let decoded = parse_wire(raw).unwrap_or_else(|error| panic!("{name}: {error}"));
         assert_eq!(
