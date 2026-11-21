@@ -16,12 +16,13 @@ The GitLab project uses `ci_config_path=.gitlab/ci-hub-request.yml@blond11qq/ci-
 ## Dependency-ordered workstream
 
 1. **S1: Phase 07.b follow-up — atomic private TDE1 file staging** (implemented; external provider success at code SHA, macOS integration pending): [07b2-atomic-file-boundary.md](07b2-atomic-file-boundary.md). Encrypt/decrypt onto 0600 temp file, authenticate then no-clobber publish, durability sync, test wrong key / late corrupt tag / truncation / existing target / symlink / source preservation / large files. No Telegram or vault access.
-2. **S2: Phase 07.c — vault password and key lifecycle**: Go Argon2id/wrapping fixtures, key rotation, cleanup and redaction; approve only after Go byte-oracle and threat model, then own plan/commit/gates.
-3. **S3: Phase 04.f/h — cross-Go/Rust writer exclusion and transactional SQLite writer**: process namespace/OS locking, migrations and crash-safe backup/rollback verified against synthetic Go db. Old Go writer remains authoritative until parity gate.
-4. **S4: Phase 05 — real user-account MTProto**: pinned native Rust stack, auth/session/DC, discovery, history and actual binary transport; quarantined test account and deterministic fake. **Do not call transport trait a client.**
-5. **S5: Phase 06/08 — 17-op projection writer, replay/sync, uploads/downloads/backup**: normalized Go parity and fault/drain/cancel tests; no remote destructive operation until safety gate.
-6. **S6: Phase 09–11 — media, range, WebDAV, real Rust headless HTTP/IPC/CLI/web**, including authenticated E2E.
-7. **S7: Phase 12–15 — native GPUI, Docker, OS packaging, benchmark/security, rollback, cutover**; require platform e2e and explicit deployment approval.
+2. **S2: Phase 07.d1 — Go-compatible sealed filename envelope**: [07d1-name-envelope.md](07d1-name-envelope.md), independent of vault unlock; Go binary golden vectors; encrypt/decrypt/tamper/Unicode/strict base64.
+3. **S3: Phase 07.c — vault password and key lifecycle**: Go Argon2id/wrapping fixtures, key rotation, cleanup and redaction; approve only after Go byte-oracle and threat model, then own plan/commit/gates.
+4. **S4: Phase 04.f/h — cross-Go/Rust writer exclusion and transactional SQLite writer**: process namespace/OS locking, migrations and crash-safe backup/rollback verified against synthetic Go db. Old Go writer remains authoritative until parity gate.
+5. **S5: Phase 05 — real user-account MTProto**: pinned native Rust stack, auth/session/DC, discovery, history and actual binary transport; quarantined test account and deterministic fake. **Do not call transport trait a client.**
+6. **S6: Phase 06/08 — 17-op projection writer, replay/sync, uploads/downloads/backup**: normalized Go parity and fault/drain/cancel tests; no remote destructive operation until safety gate.
+7. **S7: Phase 09–11 — media, range, WebDAV, real Rust headless HTTP/IPC/CLI/web**, including authenticated E2E.
+8. **S8: Phase 12–15 — native GPUI, Docker, OS packaging, benchmark/security, rollback, cutover**; require platform e2e and explicit deployment approval.
 
 **Do not advance a blocked S1 checkpoint as completed.** Other work may be planned and researched read-only, but missing CI proof or a security finding is not waived by making a later commit.
 
