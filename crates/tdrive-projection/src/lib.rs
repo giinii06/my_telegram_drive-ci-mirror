@@ -1,5 +1,6 @@
-//! Offline, read-only compatibility tools for the legacy TDX1 wire contract.
-//! Production projection writes remain on the Go implementation until all
-//! replay, schema, idempotency, and encryption contracts pass.
+//! Read-only legacy TDX1 compatibility tools. No production writes.
+mod wire;
+
+pub use wire::{OpType, Operation, WireError, parse_wire};
 
 pub const WIRE_VERSION: &str = "TDX1";
