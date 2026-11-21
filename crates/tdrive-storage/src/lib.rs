@@ -3,7 +3,9 @@
 //! This is not a migration engine. It never creates or modifies a database,
 //! replays Telegram messages, or accesses the Go daemon's lock file.
 
+mod backup;
 mod digest;
+pub use backup::{BackupReceipt, create_consistent_snapshot};
 mod listing;
 mod replay;
 pub use digest::{TableDigest, snapshot_table_digests};
@@ -89,6 +91,8 @@ pub enum SnapshotError {
     InvalidReplayCursor,
     ReplayHashMismatch,
     SnapshotTooLarge,
+    BackupOutputExists,
+    UnsafeBackupDestination,
     Database(rusqlite::Error),
     Io(std::io::Error),
 }
@@ -119,6 +123,8 @@ impl fmt::Display for SnapshotError {
             Self::SnapshotTooLarge => {
                 f.write_str("detached SQLite table exceeds bounded digest limits")
             }
+            Self::BackupOutputExists => f.write_str("snapshot or manifest already exists"),
+            Self::UnsafeBackupDestination => f.write_str("backup target directory must be private and non-symlink"),
             Self::Database(e) => write!(f, "SQLite read failed: {e}"),
             Self::Io(e) => write!(f, "snapshot access failed: {e}"),
         }

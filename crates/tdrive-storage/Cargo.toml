@@ -6,5 +6,5 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
-rusqlite = { version = "=0.43.0", features = ["bundled"] }
+rusqlite = { version = "=0.43.0", features = ["bundled", "backup"] }
 sha2 = "=0.10.9"
