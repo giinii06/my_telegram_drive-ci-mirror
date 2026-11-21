@@ -1,0 +1,40 @@
+stages:
+  - contracts
+  - test
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+legacy-contracts:
+  stage: contracts
+  image: python:3.12-slim
+  script:
+    - python3 scripts/check-legacy-contracts.py
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+rust-contracts:
+  stage: test
+  image: rust:1.92-bookworm
+  script:
+    - rustc --version
+    - cargo fmt --all --check
+    - cargo clippy --workspace --all-targets --locked -- -D warnings
+    - cargo test --workspace --locked
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+legacy-go-projection:
+  stage: test
+  image: golang:1.25-bookworm
+  variables:
+    GOMAXPROCS: "2"
+  script:
+    - go test -p 1 ./backend/projection
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'

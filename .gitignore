@@ -22,3 +22,6 @@ cmd/tdrive/webui/playwright-report/
 /simpler better app desgin.png
 /assets/app desgin mockup .png
 tdrive-data-backup*.tar.gz
+
+# Rust build products
+/target/

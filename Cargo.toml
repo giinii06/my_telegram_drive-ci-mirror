@@ -1,0 +1,18 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/tdrive-types",
+    "crates/tdrive-projection",
+    "apps/tdrive-inspect",
+]
+default-members = [
+    "crates/tdrive-types",
+    "crates/tdrive-projection",
+    "apps/tdrive-inspect",
+]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+repository = "https://gitlab.com/blond11qq/my_telegram_drive"
