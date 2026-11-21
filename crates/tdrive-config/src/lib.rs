@@ -4,6 +4,9 @@
 //! migration, or cross-platform ACL management is implied by this crate.
 //! Refuses Windows secret writes until a Windows ACL implementation exists.
 
+mod lock;
+pub use lock::{BackendLock, LockInfo};
+
 use std::env;
 use std::error::Error;
 use std::ffi::OsStr;
@@ -29,6 +32,9 @@ pub enum ConfigError {
     UnsupportedPlatform,
     OversizedSecret,
     EmptySession,
+    InvalidLockRole,
+    LockHeld,
+    LockReplaced,
     Io(std::io::Error),
 }
 
@@ -41,6 +47,9 @@ impl fmt::Display for ConfigError {
             Self::UnsupportedPlatform => f.write_str("secure Windows ACL support is not implemented"),
             Self::OversizedSecret => f.write_str("config or session exceeded the 1 MiB safety limit"),
             Self::EmptySession => f.write_str("refusing to store an empty Telegram session"),
+            Self::InvalidLockRole => f.write_str("backend lock role must be a safe ASCII identifier"),
+            Self::LockHeld => f.write_str("Go or Rust backend.lock exists; refusing concurrent writer"),
+            Self::LockReplaced => f.write_str("backend lock identity changed while held"),
             Self::Io(e) => write!(f, "private config IO failure: {e}"),
         }
     }
