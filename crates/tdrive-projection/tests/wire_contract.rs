@@ -17,7 +17,9 @@ fn go_tdx1_curated_cases() {
             let parsed = result.unwrap_or_else(|error| panic!("{name}: unexpected {error}"));
             assert_eq!(parsed.op_type, OpType::parse(kind).unwrap(), "{name}");
         } else if let Some(error) = expected.strip_prefix("err:") {
-            let actual = result.err().unwrap_or_else(|| panic!("{name}: unexpectedly accepted"));
+            let actual = result
+                .err()
+                .unwrap_or_else(|| panic!("{name}: unexpectedly accepted"));
             assert_eq!(actual.as_str(), error, "{name}");
         } else {
             panic!("{name}: invalid fixture expectation");

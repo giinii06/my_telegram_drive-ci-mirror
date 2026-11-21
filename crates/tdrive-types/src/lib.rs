@@ -72,7 +72,13 @@ mod tests {
     #[test]
     fn decimal_string_preserves_precision_past_javascript_limit() {
         let raw = 9_007_199_254_740_993_i64;
-        assert_eq!(ChannelId::new(raw).unwrap().api_string(), "9007199254740993");
-        assert_eq!(MessageId::new(i64::MAX).unwrap().api_string(), i64::MAX.to_string());
+        assert_eq!(
+            ChannelId::new(raw).unwrap().api_string(),
+            "9007199254740993"
+        );
+        assert_eq!(
+            MessageId::new(i64::MAX).unwrap().api_string(),
+            i64::MAX.to_string()
+        );
     }
 }

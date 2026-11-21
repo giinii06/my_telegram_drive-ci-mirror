@@ -477,7 +477,10 @@ mod tests {
 
     #[test]
     fn percent_decoding_supports_spaces_plus_and_korean() {
-        assert_eq!(query_unescape("hello+world%2B2026").unwrap(), "hello world+2026");
+        assert_eq!(
+            query_unescape("hello+world%2B2026").unwrap(),
+            "hello world+2026"
+        );
         assert_eq!(query_unescape("%ED%95%9C%EA%B8%80").unwrap(), "한글");
         assert!(query_unescape("%GG").is_err());
         assert!(query_unescape("%ED").is_err());
@@ -495,8 +498,8 @@ mod tests {
 
     #[test]
     fn caption_after_newline_does_not_change_header() {
-        let operation = parse_wire("TDX1|t=f|p=d:abc|n=sunset.jpg|sz=4321|ts=99\nprivate caption")
-            .unwrap();
+        let operation =
+            parse_wire("TDX1|t=f|p=d:abc|n=sunset.jpg|sz=4321|ts=99\nprivate caption").unwrap();
         assert_eq!(operation.parent, "d:abc");
         assert_eq!(operation.file_size, 4321);
         assert_eq!(operation.upload_time, 99);
