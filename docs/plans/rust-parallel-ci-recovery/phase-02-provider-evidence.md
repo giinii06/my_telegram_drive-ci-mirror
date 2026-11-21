@@ -35,3 +35,7 @@ This foundation explicitly points to the never-started **Phase 03** operator enc
 ## Latest code SHA request result
 
 For `4017cab5c270b82d227c97b3ea459d42ae1454fc`, GitLab pipeline [#3098379726](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098379726) received external GitHub Actions success callback [run 44959273388](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44959273388). Provider callback does not establish that the **repaired** `rust-migration-parallel.yml` workflow ran. Remote GitHub job-level evidence is inaccessible, so Phase02 remains not_started/blocked on external visibility and cannot clear the Phase01 `verified` transition. This does not authorize further dependent Vault implementation as a verified migration Phase.
+
+### GitHub REST verifier contract (planned)
+
+`scripts/verify_rust_gha_run.py --repo giinii06/my_telegram_drive-ci-mirror --run-id <actual-run> --sha <40hex>` must inspect **GitHub's own** runs/jobs JSON, not GitLab's generic status. The exact workflow path `.github/workflows/rust-migration-parallel.yml` and complete six job steps/checkout SHA checks must match; otherwise fail closed. Runtime access from this ChatGPT environment failed (GitHub API DNS, web cache). A local fake fixture cannot claim provider jobs.

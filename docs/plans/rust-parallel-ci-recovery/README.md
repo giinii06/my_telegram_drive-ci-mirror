@@ -37,3 +37,14 @@ Phase 01 and Phase 02 are **foundations**, and both point to Phase **03** as the
 - External provider callback on code SHA: [GitLab #3098379726](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098379726) → [GitHub run 44959273388](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44959273388), `provider_result=success`, `jobs_verified=unknown`.
 - Alchemy 2.2 offline state and outcome-gate consistency: 0 violations, next gate `VERIFY_REAL_CI_CHECKS` (Phase03 user-facing E2E explicitly not_started).
 - The next **safe** action requires observable GitHub receiver job steps and checked-out SHA; do not infer them from the callback or change private/public mirror settings without authorization.
+
+## Phase 01 extension — GH API real-run evidence verifier
+
+A live GitLab bridge [pipeline 3098379726](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098379726) only has `dispatch_github_actions`, and downstream [ci-hub-smoke pipeline 3098379749](https://gitlab.com/blond11qq/ci-hub-smoke/-/pipelines/3098379749) was **skipped**. The separate GitHub success status does not identify executed Rust/Go/Bun job results. Public GitHub run/job URLs and API are inaccessible from this chat's web/container environment, and repo is private; no evidence of mirrored source ref. We must not change runner or mirror settings as a workaround.
+
+To prevent this attribution mistake in future, Phase 01's existing source-check repair extends to:
+- explicitly name mandatory Rust, Go and Bun job steps and add `Verify checkout SHA` after `actions/checkout` in **every** job;
+- add a dependency-free, read-only GitHub REST verifier `scripts/verify_rust_gha_run.py`. Given `--repo`, `--run-id`, `--sha`, it must check real GitHub API `run.name`, `run.path`, `run.head_sha`, `run.conclusion`, `run.repository.full_name`, all six job names (including parallel independence/dependencies from source) and per-job mandatory successful steps; it rejects absent jobs, wrong SHA, wrong workflow, a provider-only callback, incomplete/duplicate/failed jobs and API failures. No GH token or GitLab session is passed by default.
+- add `scripts/test_rust_gha_run.py` with deterministic fake job summaries to demonstrate RED then GREEN locally. Do not count synthetic test passes as a real run.
+
+After code+test commits, Phase 01 remains `tested` only until the *actual GitHub REST job responses* prove `jobs_verified`. Phase 02 remains not_started/blocked pending real provider visibility. This is exactly the existing approved CI proof scope, no new user decision or deployment.

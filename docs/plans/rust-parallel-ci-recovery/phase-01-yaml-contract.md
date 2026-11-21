@@ -88,3 +88,7 @@ The original malformed YAML failed source-backed structural RED. In addition, th
 - **Actually run locally on SHA256-matched bytes:** `python3 scripts/check_rust_ci_workflow.py` PASS; `python3 scripts/test_rust_ci_workflow.py` 8/8 PASS; `python3 -m py_compile scripts/check_rust_ci_workflow.py` PASS; PyYAML `yaml.BaseLoader` parsed `jobs` with six unique IDs. `cargo fmt/clippy/test`, Go exporters and Bun tests **NOT observed**.
 - The three Phase state records (Phase01 tested, Phase02/Phase03 not_started) were validated with `Alchemy scripts/phase_state.py` and `scripts/workflow_gates.py`: both returned **zero violations** and `next_gate=VERIFY_REAL_CI_CHECKS`. These checks were executed on a local JSON reconstruction of the exact GitLab state values. They are offline consistency tests, not independent CI or E2E proof.
 - No fresh request to change GitHub receiver workflows, private mirrors/secrets or GitLab runner settings was authorized. No waiver granted; gate remains open.
+
+### Additional evidence-proof invariant (planned before implementation)
+
+The workflow currently checks `git rev-parse HEAD == GITHUB_SHA` only in `legacy-contracts`, not all jobs. To prevent false status attribution, add an explicit same-SHA step in every job and programmatically verify run/job evidence against the **requested GitLab commit**. Read-only GH API calls are permitted but any repository/project visibility, secrets, mirror or runner settings remain unchanged. Nonpublic GitHub runs without job access must return UNKNOWN/BLOCKED, never PASS.
