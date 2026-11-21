@@ -50,9 +50,13 @@ rust-contracts:
   script:
     - rustc --version
     - test -s "$TDRIVE_GO_SQLITE_FIXTURE"
+    - cargo generate-lockfile
+    - echo TDRIVE_GENERATED_CARGO_LOCK_BEGIN
+    - cat Cargo.lock
+    - echo TDRIVE_GENERATED_CARGO_LOCK_END
     - cargo fmt --all --check
-    - cargo clippy --workspace --all-targets --locked -- -D warnings
-    - cargo test --workspace --locked
+    - cargo clippy --workspace --all-targets -- -D warnings
+    - cargo test --workspace
 
 legacy-go-projection:
   stage: test
@@ -66,6 +70,16 @@ legacy-go-projection:
     - go version
     - go test ./backend/projection -run TestRustTDX1Fixtures -count=1
     - go test ./backend/projection
+    - go test ./backend/tgclient -run '^TestRustStableRandomIDVectors
+legacy-web-checks:
+  stage: test
+  image: oven/bun:1.4.3
+  script:
+    - bun install --cwd cmd/tdrive/webui --frozen-lockfile
+    - bun run --cwd cmd/tdrive/webui lint
+    - bun run --cwd cmd/tdrive/webui test:unit
+ -count=1
+    - go test ./backend/tgclient
 
 legacy-web-checks:
   stage: test
