@@ -91,6 +91,12 @@
 - [ ] 07.e vault lock generation, lease cancellation, concurrent media/mount/session access
 - [ ] 07.f encrypted uploads/media/range/revisions/restore integration plus P0 security tests
 
+### Phase 07 encryption increments (not complete)
+
+- [07.b2 atomic private TDE1 file](https://gitlab.com/blond11qq/my_telegram_drive/-/merge_requests/20): source `79b520bd26b3f604b332f697e8d2425945ff1ed3`, GitLab #3098266896, GitHub `github-actions/ci-hub-request: success` callback (run 44952585082); no live vault/Telegram integration, cross-platform smoke or per-job traces.
+- [07.d1 sealed filename v1](https://gitlab.com/blond11qq/my_telegram_drive/-/merge_requests/21): source `44129cfaf6c94a77a01fa161a1add20e47f2f034`, GitLab #3098271844, GitHub `github-actions/ci-hub-request: success` callback (run 44952988156); Go fixture differential tests added, but no vault key lifecycle or production metadata wiring.
+- **The broad 07.b, 07.c, 07.d and 07.f acceptance items above remain unchecked.** Do not claim feature completeness because only isolated cryptographic primitives and provider status are present.
+
 ### 08 — Files, upload, backup (현재 pure deletion-permit decision only)
 - [x] 08.a safe backup deletion decision typed states + Go status goldens (no delete syscall)
 - [ ] 08.b bounded upload queue, name/target normalization, multipart chunk upload

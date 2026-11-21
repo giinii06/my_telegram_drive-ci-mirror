@@ -28,8 +28,8 @@ Authoritative `backend/crypto/name.go` and `backend/crypto/name_test.go`:
 ## Evidence
 | Stage | SHA | Result |
 |---|---|---|
-| Plan | record via commit | PLANNED |
-| RED contract | pending | NOT RUN |
-| GREEN code | pending | NOT VERIFIED |
-| CI | pending | UNKNOWN |
-| Review | pending | NOT DONE |
+| Plan | `8b3cdaf382ade714fa50b467825cc35b93a921ce` | COMMITTED |
+| RED contract | `9381d3a01abd6897d12f2cd88b56fac09a5be5d8` | WRITTEN, no standalone RED job observed |
+| GREEN code | `44129cfaf6c94a77a01fa161a1add20e47f2f034` | COMMITTED |
+| CI | `44129cfa`; GitLab #3098271844; `github-actions/ci-hub-request: success`; [GitHub run 44952988156](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44952988156) | PROVIDER SUCCESS, per-job details inaccessible |
+| Review | Self-review of Go `name.go` and Rust `name.rs` | Requirements/security pass for isolated envelope; vault integration and Mac runtime remain UNVERIFIED |
