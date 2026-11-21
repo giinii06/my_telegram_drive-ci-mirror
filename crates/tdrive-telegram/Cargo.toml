@@ -1,0 +1,10 @@
+[package]
+name = "tdrive-telegram"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+sha2 = "=0.10.9"
+tdrive-types = { path = "../tdrive-types" }
