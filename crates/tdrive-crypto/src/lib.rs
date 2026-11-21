@@ -5,7 +5,11 @@
 //! atomically and must not publish failed streams. Vault integration is pending.
 
 mod auth;
+#[cfg(unix)]
+mod file_io;
 mod stream;
+#[cfg(unix)]
+pub use file_io::{FileCryptoError, decrypt_file_atomic, encrypt_file_atomic};
 pub use auth::{DecryptError, MAX_SMALL_PLAINTEXT, decrypt_small_tde1};
 pub use stream::{StreamError, decrypt_stream, encrypt_stream};
 
