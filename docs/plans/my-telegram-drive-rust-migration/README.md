@@ -43,3 +43,7 @@ Each checkpoint must contain: test intent (RED), actual candidate SHA, implement
 - GREEN candidate source `44129cfaf6c94a77a01fa161a1add20e47f2f034` adds `crates/tdrive-crypto/src/name.rs`; synthetic Go test vectors include ASCII/Korean/emoji/max-byte strings.
 - Exact source SHA [GitLab dispatch 3098271844](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098271844), separate GitLab commit status `github-actions/ci-hub-request: success` links to [GitHub run 44952988156](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44952988156). Per-job logs are inaccessible through GitLab connector; do not call individual commands independently observed.
 - Requirements self-review: Go HKDF salt+info, XChaCha nonce/AAD, strict Base64 URL raw, UTF8 length bounds and key validation align with Go. Security self-review: OS CSPRNG public API; test-only fixed nonce, no secrets in errors; encrypted size discloses length as in Go v1. Missing vault key lifecycle, metadata/key generation replay and real Telegram end-to-end remain P0 before feature release.
+
+## CI prerequisite discovered on resume
+
+The Rust migration GitHub workflow in this branch is malformed (truncated `go test` commands and repeated jobs), and earlier provider callbacks did not independently prove the Rust checks. [CI recovery plan](../rust-parallel-ci-recovery/README.md) tracks the fail-closed repair and exact-source SHA job gate. S3 vault implementation must not be represented as verified until real Rust jobs can be evidenced.

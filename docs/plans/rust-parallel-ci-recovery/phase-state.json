@@ -1,0 +1,27 @@
+{
+  "gate_version": "2.2",
+  "grill_cleared": true,
+  "poteto_entered": true,
+  "plan_committed": true,
+  "pending_user_decisions": 0,
+  "project_id": "89276294",
+  "branch": "ci/rust-parallel-workflow-repair-20261122",
+  "phases": [
+    {
+      "id": "01",
+      "kind": "foundation",
+      "consumer_phase": "07.c,05,06,08,11 user-facing encrypted Telegram flows",
+      "status": "not_started",
+      "implemented": false,
+      "history": []
+    },
+    {
+      "id": "02",
+      "kind": "foundation",
+      "consumer_phase": "07.c,05,06,08,11 user-facing encrypted Telegram flows",
+      "status": "not_started",
+      "implemented": false,
+      "history": []
+    }
+  ]
+}
