@@ -223,7 +223,10 @@ mod tests {
     #[test]
     fn complete_remote_journal_and_stable_source_are_all_required() {
         assert_eq!(
-            journaled().permit_delete(&original(), false).unwrap().protected_original(),
+            journaled()
+                .permit_delete(&original(), false)
+                .unwrap()
+                .protected_original(),
             &original()
         );
         assert!(matches!(
@@ -246,7 +249,10 @@ mod tests {
             candidate()
                 .confirm_upload(&status())
                 .unwrap()
-                .verify_remote(&RemoteFile { size: 11, ..remote() }),
+                .verify_remote(&RemoteFile {
+                    size: 11,
+                    ..remote()
+                }),
             Err(GuardError::RemoteNotVerified)
         ));
         assert!(matches!(
