@@ -90,6 +90,13 @@ fn rust_listing_matches_actual_go_list_folder_contents_and_does_not_write() {
         }
     }
     let golden = fs::read_to_string(golden_path).expect("read Go-authored listing oracle");
-    assert_eq!(output, golden, "Go and Rust read semantics must be identical");
-    assert_eq!(fs::read(&db_path).unwrap(), before, "read-only listing must not mutate DB");
+    assert_eq!(
+        output, golden,
+        "Go and Rust read semantics must be identical"
+    );
+    assert_eq!(
+        fs::read(&db_path).unwrap(),
+        before,
+        "read-only listing must not mutate DB"
+    );
 }
