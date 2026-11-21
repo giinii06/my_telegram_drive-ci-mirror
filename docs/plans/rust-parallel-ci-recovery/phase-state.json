@@ -11,7 +11,7 @@
       "id": "01",
       "kind": "foundation",
       "consumer_phase": "07.c,05,06,08,11 user-facing encrypted Telegram flows",
-      "status": "implemented",
+      "status": "tested",
       "implemented": true,
       "history": [
         {
@@ -23,12 +23,17 @@
           "frm": "in_progress",
           "to": "implemented",
           "evidence": "Candidate GitLab commit c51c6d3419ab96c018fbbd93c2589a4c8bd07e40; source-backed static six-job/fixture contract check only, actual Python/GitHub jobs not observed"
+        },
+        {
+          "frm": "implemented",
+          "to": "tested",
+          "evidence": "Local Python 3 checker PASS and 8/8 unittest on checksum-matched exact GitLab files; PyYAML BaseLoader parsed six jobs; remote commit 4017cab5c270b82d227c97b3ea459d42ae1454fc; no actual GitHub job proof"
         }
       ],
-      "candidate_sha": "c51c6d3419ab96c018fbbd93c2589a4c8bd07e40",
-      "green_verified": false,
+      "candidate_sha": "4017cab5c270b82d227c97b3ea459d42ae1454fc",
+      "green_verified": true,
       "checks_evidenced": false,
-      "ci_level": "provider_result"
+      "ci_level": "none"
     },
     {
       "id": "02",

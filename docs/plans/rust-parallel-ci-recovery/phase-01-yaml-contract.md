@@ -1,13 +1,14 @@
 # Phase 01 — reconstruct Rust parallel workflow and protect its contract
 
-**Status:** implemented
+**Status:** tested
 **Implemented:** yes
-**Tested:** no
+**Tested:** yes
 **Committed:** yes
 **Gate version:** 2.2
 **Kind:** foundation
 **Consumer user flow:** encrypted drive upload/download and full Rust backend end-to-end flows
 **Base SHA:** `e4a98f880828d57cfcf2f2f4371b66f3ee269174`
+**Candidate SHA (latest code):** `4017cab5c270b82d227c97b3ea459d42ae1454fc`
 
 ## Root cause and acceptance
 
@@ -62,3 +63,16 @@ Rebuild six intended job sections, restore both Go fixture exporter calls, requi
 - JS read-only structure check of actual candidate YAML passed; Python workflow validator/pytest or Rust/Go/Bun were not executed by a local authorized private-repo checkout. GitHub-native YAML parsing and run of this workflow specifically remain **UNVERIFIED**.
 - Code review at [reviews/phase-01.json](reviews/phase-01.json) is sequential self-review, not an independent reviewer. No claim of product end-to-end completion.
 - Phase State Machine remains `implemented` (not tested/verified/completed); no waiver is granted.
+
+## Local exact-file GREEN test evidence (Phase01 tested, NOT verified)
+
+After the initial `c51c6d3` candidate, the fixture guard accidentally checked `check-rust-ci-workflow.py` while the real workflow called `check_rust_ci_workflow.py`. The original `scripts/check_rust_ci_workflow.py` was reconstructed in a temporary nonpublic local workspace and its SHA-256 matched GitLab `ab6450a6866c8202f854d59acec41c92919c2be409e0749792205adb65cbfdb3`. Executing `python3 scripts/check_rust_ci_workflow.py` observed the expected **RED** `FAIL workflow must enforce its own contract check`. Fix `2f4b26e0fdc354b498f79048e3d7936f166a54d0` aligned that path. The test fixture had the same old hyphen path; fix `4017cab5c270b82d227c97b3ea459d42ae1454fc` aligned it.
+
+The exact three checked GitLab-file SHA-256s after fixes, independently verified against a local temporary copy:
+- workflow: `d07cd721a95e8fb32a486117f8922a30794e173797a2de55d878934a36799915` (6,037 bytes)
+- `scripts/check_rust_ci_workflow.py`: `9a4a3b567a9051c39a9cd7c18580456a95a72dbef2e158c47d0f6b7cb5322440` (6,445 bytes)
+- `scripts/test_rust_ci_workflow.py`: `780d3aa7be0195a09b42f46763a05c499353dbf761cf6d4ddb320c6f71824567` (4,637 bytes)
+
+Observed local commands: `python3 scripts/check_rust_ci_workflow.py` **PASS**, `python3 scripts/test_rust_ci_workflow.py` **8/8 PASS**, `python3 -m py_compile scripts/check_rust_ci_workflow.py` **PASS**, and `yaml.load(workflow, Loader=yaml.BaseLoader)` **PASS** with exactly six GitHub jobs. This proves local structural/parsing behavior of these exact bytes, **not GitHub Actions job execution**. Rust toolchain unavailable in this container and private GitLab source not checked out locally. [New same-code SHA provider pipeline #3098379726](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098379726) remains separate and must not be conflated with local tests.
+
+Alchemy Phase State Machine: `tested`, *not* `verified` or `completed`; real GitHub job/checkout SHA proof remains mandatory before Phase 02. No waiver.
