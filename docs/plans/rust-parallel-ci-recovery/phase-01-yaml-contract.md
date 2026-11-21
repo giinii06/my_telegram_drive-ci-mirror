@@ -1,9 +1,9 @@
 # Phase 01 — reconstruct Rust parallel workflow and protect its contract
 
-**Status:** not_started
-**Implemented:** no
+**Status:** implemented
+**Implemented:** yes
 **Tested:** no
-**Committed:** no
+**Committed:** yes
 **Gate version:** 2.2
 **Kind:** foundation
 **Consumer user flow:** encrypted drive upload/download and full Rust backend end-to-end flows
@@ -46,3 +46,10 @@ RED contract cases were committed independently as `60ffec1c`. Existing broken s
 ## Candidate remediation
 
 Rebuild six intended job sections, restore both Go fixture exporter calls, require Rust to check every produced fixture, and invoke the new guard/self-tests in `legacy-contracts`. This is only a candidate; GitHub's native workflow parser and individual job checks still need independent execution/checkout-SHA proof.
+
+## Alchemy v2.2 checkpoint (unverified implementation)
+
+- Source candidate: `c51c6d3419ab96c018fbbd93c2589a4c8bd07e40`; GitLab pipeline [#3098370541](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098370541). External provider status is **not** independent job execution proof.
+- Read-only six-job source structure and full Go oracle string presence: observed PASS on pinned GitLab raw content. **Python checker process, YAML parser and Cargo/Go/Bun jobs: not executed/observed locally.**
+- Requirements and security review: two separately recorded, sequential **self-review** lenses at [reviews/phase-01.json](reviews/phase-01.json). This is not an independent reviewer.
+- Machine state: `implemented` only. `tested`, `verified` and `completed` remain false until actual jobs and checked-out SHA are inspected.

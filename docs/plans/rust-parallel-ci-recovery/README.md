@@ -15,7 +15,7 @@ Actual GitLab project `ci_config_path` is `.gitlab/ci-hub-request.yml@blond11qq/
 
 | Phase | Kind | Acceptance | State | Detail |
 | --- | --- | --- | --- | --- |
-| 01 | foundation | Deterministic parser/contract guard rejects broken YAML; repair six-job GitHub DAG with Go fixtures, Rust lint/tests and Bun checks | not_started | [Phase 01](phase-01-yaml-contract.md) |
+| 01 | foundation | Deterministic parser/contract guard rejects broken YAML; repair six-job GitHub DAG with Go fixtures, Rust lint/tests and Bun checks | implemented (CI proof pending) | [Phase 01](phase-01-yaml-contract.md) |
 | 02 | foundation | Independent GitHub run proves exact checked-out GitLab SHA and six real job categories; only then allow Rust phase verified | not_started | [Phase 02](phase-02-provider-evidence.md) |
 
 ## User-facing integration
