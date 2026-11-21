@@ -73,7 +73,7 @@ jobs:
           test -s tests/fixtures/tde1/generated/tde1-seeded-0.bin
           test -s tests/fixtures/name/go-v1.tsv
       - name: Upload Go/Rust fixtures
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: go-rust-fixtures
           path: |

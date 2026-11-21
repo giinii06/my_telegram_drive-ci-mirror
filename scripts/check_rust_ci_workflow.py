@@ -126,6 +126,17 @@ def validate_text(content: str) -> list[str]:
         errors.append("workflow must enforce its own contract check")
     if "python3 scripts/test_rust_gha_run.py" not in sections.get("legacy-contracts", ""):
         errors.append("workflow must execute its GH job-evidence regression tests")
+    for idx, line in enumerate(lines):
+        if re.fullmatch(r"      - name: .+", line):
+            body = []
+            for following in lines[idx + 1:]:
+                if following.startswith("      - ") or (
+                    following.strip() and len(following) - len(following.lstrip()) < 6
+                ):
+                    break
+                body.append(following)
+            if not any(re.match(r"        (?:run|uses):", item) for item in body):
+                errors.append("name-only step lacks run/uses: " + line.strip())
     for line in lines:
         if "- run:" in line and line.count("'") % 2 == 1:
             errors.append("unbalanced quoted step: " + line.strip()[:120])
