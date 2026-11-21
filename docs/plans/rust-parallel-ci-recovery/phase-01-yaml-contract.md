@@ -53,3 +53,12 @@ Rebuild six intended job sections, restore both Go fixture exporter calls, requi
 - Read-only six-job source structure and full Go oracle string presence: observed PASS on pinned GitLab raw content. **Python checker process, YAML parser and Cargo/Go/Bun jobs: not executed/observed locally.**
 - Requirements and security review: two separately recorded, sequential **self-review** lenses at [reviews/phase-01.json](reviews/phase-01.json). This is not an independent reviewer.
 - Machine state: `implemented` only. `tested`, `verified` and `completed` remain false until actual jobs and checked-out SHA are inspected.
+
+## Exact-SHA external provider status at checkpoint
+
+- Candidate code SHA: `c51c6d3419ab96c018fbbd93c2589a4c8bd07e40`.
+- [GitLab pipeline #3098370541](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098370541), status `success`, GitLab-only job list empty: no GitLab Runner Rust tests were executed.
+- Matching GitLab external `github-actions/ci-hub-request: success` points to [GitHub Actions run 44958713063](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44958713063). **Only provider_result**, not `jobs_verified`; actual checked-out SHA and six job logs not accessible via connected GitLab or web/browser in this session.
+- JS read-only structure check of actual candidate YAML passed; Python workflow validator/pytest or Rust/Go/Bun were not executed by a local authorized private-repo checkout. GitHub-native YAML parsing and run of this workflow specifically remain **UNVERIFIED**.
+- Code review at [reviews/phase-01.json](reviews/phase-01.json) is sequential self-review, not an independent reviewer. No claim of product end-to-end completion.
+- Phase State Machine remains `implemented` (not tested/verified/completed); no waiver is granted.
