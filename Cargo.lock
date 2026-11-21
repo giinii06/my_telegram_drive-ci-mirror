@@ -345,6 +345,10 @@ name = "tdrive-backup-core"
 version = "0.1.0"
 
 [[package]]
+name = "tdrive-config"
+version = "0.1.0"
+
+[[package]]
 name = "tdrive-crypto"
 version = "0.1.0"
 dependencies = [

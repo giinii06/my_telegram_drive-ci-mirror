@@ -4,6 +4,7 @@ members = [
     "crates/tdrive-types",
     "crates/tdrive-projection",
     "crates/tdrive-crypto",
+    "crates/tdrive-config",
     "crates/tdrive-storage",
     "crates/tdrive-telegram",
     "crates/tdrive-backup",
