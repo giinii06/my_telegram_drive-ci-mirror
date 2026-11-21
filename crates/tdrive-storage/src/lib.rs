@@ -5,7 +5,9 @@
 
 mod backup;
 mod digest;
-pub use backup::{BackupReceipt, create_consistent_snapshot, restore_verified_clone, verify_snapshot};
+pub use backup::{
+    BackupReceipt, create_consistent_snapshot, restore_verified_clone, verify_snapshot,
+};
 mod listing;
 mod replay;
 pub use digest::{TableDigest, snapshot_table_digests};
@@ -128,7 +130,9 @@ impl fmt::Display for SnapshotError {
             Self::UnsafeBackupDestination => {
                 f.write_str("backup target directory must be private and non-symlink")
             }
-            Self::InvalidBackupManifest => f.write_str("snapshot manifest or content verification failed"),
+            Self::InvalidBackupManifest => {
+                f.write_str("snapshot manifest or content verification failed")
+            }
             Self::Database(e) => write!(f, "SQLite read failed: {e}"),
             Self::Io(e) => write!(f, "snapshot access failed: {e}"),
         }
