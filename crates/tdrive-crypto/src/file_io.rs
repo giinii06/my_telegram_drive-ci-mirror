@@ -58,13 +58,38 @@ fn valid_absolute(path: &Path) -> bool {
             .any(|part| matches!(part, Component::ParentDir | Component::CurDir))
 }
 
+// macOS maps the root-owned /var, /tmp and /etc directories through
+// root-owned system symlinks into /private. Permit only these trusted aliases.
+// All other symlinks, including user-created aliases, remain prohibited.
+fn trusted_macos_system_alias(path: &Path, metadata: &fs::Metadata) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        if path == Path::new("/var")
+            || path == Path::new("/tmp")
+            || path == Path::new("/etc")
+        {
+            return metadata.file_type().is_symlink()
+                && metadata.uid() == 0
+                && fs::metadata(path)
+                    .is_ok_and(|target| target.is_dir() && target.uid() == 0);
+        }
+    }
+    let _ = (path, metadata);
+    false
+}
+
+fn accepted_directory(path: &Path, metadata: &fs::Metadata) -> bool {
+    (metadata.is_dir() && !metadata.file_type().is_symlink())
+        || trusted_macos_system_alias(path, metadata)
+}
+
 fn check_parent_chain(parent: &Path) -> Result<(), FileCryptoError> {
     if !valid_absolute(parent) {
         return Err(FileCryptoError::UnsafeDestination);
     }
     for ancestor in parent.ancestors() {
         let metadata = fs::symlink_metadata(ancestor)?;
-        if !metadata.is_dir() || metadata.file_type().is_symlink() {
+        if !accepted_directory(ancestor, &metadata) {
             return Err(FileCryptoError::UnsafeDestination);
         }
     }
@@ -83,7 +108,7 @@ fn open_checked_source(path: &Path) -> Result<File, FileCryptoError> {
     let parent = path.parent().ok_or(FileCryptoError::UnsafeSource)?;
     for ancestor in parent.ancestors() {
         let metadata = fs::symlink_metadata(ancestor)?;
-        if !metadata.is_dir() || metadata.file_type().is_symlink() {
+        if !accepted_directory(ancestor, &metadata) {
             return Err(FileCryptoError::UnsafeSource);
         }
     }

@@ -32,3 +32,7 @@ The existing `tdrive-crypto::encrypt_stream` and `decrypt_stream` accept arbitra
 | Candidate implementation | pending | none | NOT STARTED |
 | Provider verification | pending | none | NOT VERIFIED |
 | Dual-lens review | pending | none | NOT REVIEWED |
+
+## Platform review finding and correction
+
+The first candidate rejected every symlink ancestor, including root-owned macOS `/var` and `/tmp` aliases to `/private`; that would reject normal `std::env::temp_dir()` locations on the primary target. The follow-up allows **only** root-owned `/var`, `/tmp`, `/etc` macOS system symlink aliases when their resolved target is a root-owned directory. All user-created symlink ancestors and symlinked private destination parents are still forbidden. macOS runtime execution is not evidenced by the Linux/GitHub mirror and remains a required platform gate.
