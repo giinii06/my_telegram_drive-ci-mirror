@@ -30,11 +30,41 @@ const REQUIRED_TABLES: &[&str] = &[
 ];
 
 const REQUIRED_COLUMNS: &[(&str, &[&str])] = &[
-    ("files", &["channel_id", "msg_id", "parent_id", "content_msg_id", "revision", "encrypted", "upload_uuid"]),
-    ("folders", &["channel_id", "id", "parent_id", "revision", "tombstoned"]),
-    ("replay_log", &["channel_id", "msg_id", "raw_header", "first_seen_hash"]),
-    ("dirents", &["channel_id", "object_id", "parent_id", "name_key", "revision", "tombstoned"]),
-    ("file_revisions", &["channel_id", "file_msg_id", "revision", "content_msg_id"]),
+    (
+        "files",
+        &[
+            "channel_id",
+            "msg_id",
+            "parent_id",
+            "content_msg_id",
+            "revision",
+            "encrypted",
+            "upload_uuid",
+        ],
+    ),
+    (
+        "folders",
+        &["channel_id", "id", "parent_id", "revision", "tombstoned"],
+    ),
+    (
+        "replay_log",
+        &["channel_id", "msg_id", "raw_header", "first_seen_hash"],
+    ),
+    (
+        "dirents",
+        &[
+            "channel_id",
+            "object_id",
+            "parent_id",
+            "name_key",
+            "revision",
+            "tombstoned",
+        ],
+    ),
+    (
+        "file_revisions",
+        &["channel_id", "file_msg_id", "revision", "content_msg_id"],
+    ),
 ];
 
 #[derive(Debug)]
@@ -56,10 +86,16 @@ pub enum SnapshotError {
 impl fmt::Display for SnapshotError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnsafePath => f.write_str("snapshot must be an existing regular non-symlink file"),
-            Self::ActiveWal => f.write_str("snapshot has a WAL/SHM sidecar: provide a detached SQLite backup"),
+            Self::UnsafePath => {
+                f.write_str("snapshot must be an existing regular non-symlink file")
+            }
+            Self::ActiveWal => {
+                f.write_str("snapshot has a WAL/SHM sidecar: provide a detached SQLite backup")
+            }
             Self::InvalidHeader => f.write_str("file is not a SQLite3 database"),
-            Self::UnsupportedSchema(v) => write!(f, "expected migrated Go schema v16, found version {v}"),
+            Self::UnsupportedSchema(v) => {
+                write!(f, "expected migrated Go schema v16, found version {v}")
+            }
             Self::MissingTable(t) => write!(f, "required Go table absent: {t}"),
             Self::MissingColumn(t, c) => write!(f, "required Go column absent: {t}.{c}"),
             Self::InvalidIndex => f.write_str("required active sibling uniqueness index absent"),
@@ -139,11 +175,10 @@ pub fn inspect_connection(conn: &Connection) -> Result<SnapshotReport, SnapshotE
     if !has_table(conn, "schema_version")? {
         return Err(SnapshotError::MissingTable("schema_version"));
     }
-    let version: Option<i64> = conn.query_row(
-        "SELECT MAX(version) FROM schema_version",
-        [],
-        |row| row.get(0),
-    )?;
+    let version: Option<i64> =
+        conn.query_row("SELECT MAX(version) FROM schema_version", [], |row| {
+            row.get(0)
+        })?;
     let version = version.unwrap_or(0);
     if version != LEGACY_SCHEMA_VERSION {
         return Err(SnapshotError::UnsupportedSchema(version));
@@ -207,7 +242,10 @@ pub fn inspect_connection(conn: &Connection) -> Result<SnapshotReport, SnapshotE
         let count: i64 = conn.query_row(&sql, [], |row| row.get(0))?;
         table_counts.push((table, count));
     }
-    Ok(SnapshotReport { schema_version: version, table_counts })
+    Ok(SnapshotReport {
+        schema_version: version,
+        table_counts,
+    })
 }
 
 fn has_table(conn: &Connection, name: &str) -> Result<bool, SnapshotError> {
@@ -246,7 +284,8 @@ mod tests {
         conn.execute_batch(
             "CREATE TABLE schema_version(version INTEGER PRIMARY KEY); \
              INSERT INTO schema_version(version) VALUES(17);",
-        ).unwrap();
+        )
+        .unwrap();
         assert!(matches!(
             inspect_connection(&conn),
             Err(SnapshotError::UnsupportedSchema(17))

@@ -48,7 +48,9 @@ fn main() -> ExitCode {
             }
         }
         _ => {
-            eprintln!("usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite>");
+            eprintln!(
+                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite>"
+            );
             ExitCode::FAILURE
         }
     }
