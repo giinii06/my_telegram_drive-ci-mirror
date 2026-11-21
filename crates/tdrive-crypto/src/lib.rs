@@ -7,7 +7,9 @@
 mod auth;
 #[cfg(unix)]
 mod file_io;
+mod name;
 mod stream;
+pub use name::{NAME_KEY_VERSION, NameCryptoError, decrypt_file_name, encrypt_file_name};
 #[cfg(unix)]
 pub use file_io::{FileCryptoError, decrypt_file_atomic, encrypt_file_atomic};
 pub use auth::{DecryptError, MAX_SMALL_PLAINTEXT, decrypt_small_tde1};
