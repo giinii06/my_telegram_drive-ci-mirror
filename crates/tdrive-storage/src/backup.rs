@@ -195,3 +195,120 @@ pub fn create_consistent_snapshot(
         table_counts,
     })
 }
+
+/// Reads the persisted manifest and verifies it against the actual standalone
+/// SQLite file. A changed byte, extra field, unsupported schema, bad row count
+/// or missing manifest is an error. No in-memory receipt is trusted.
+pub fn verify_snapshot(snapshot: &Path) -> Result<BackupReceipt, SnapshotError> {
+    let metadata = fs::symlink_metadata(snapshot)?;
+    if !metadata.is_file() || metadata.file_type().is_symlink() {
+        return Err(SnapshotError::UnsafePath);
+    }
+    #[cfg(unix)]
+    if metadata.permissions().mode() & 0o077 != 0 {
+        return Err(SnapshotError::UnsafeBackupDestination);
+    }
+
+    let parent = snapshot
+        .parent()
+        .ok_or(SnapshotError::UnsafeBackupDestination)?;
+    let name = snapshot
+        .file_name()
+        .ok_or(SnapshotError::UnsafeBackupDestination)?;
+    let manifest = parent.join(format!("{}.manifest", name.to_string_lossy()));
+    let manifest_metadata = fs::symlink_metadata(&manifest)?;
+    if !manifest_metadata.is_file() || manifest_metadata.file_type().is_symlink() {
+        return Err(SnapshotError::UnsafePath);
+    }
+    if manifest_metadata.len() > 8192 {
+        return Err(SnapshotError::InvalidBackupManifest);
+    }
+    let content = fs::read_to_string(&manifest)?;
+    let mut lines = content.lines();
+    if lines.next() != Some("tdrive-snapshot-v1") {
+        return Err(SnapshotError::InvalidBackupManifest);
+    }
+    let schema: i64 = parse_manifest_field(&mut lines, "schema_version")?
+        .parse()
+        .map_err(|_| SnapshotError::InvalidBackupManifest)?;
+    let size: u64 = parse_manifest_field(&mut lines, "byte_size")?
+        .parse()
+        .map_err(|_| SnapshotError::InvalidBackupManifest)?;
+    let expected_hash = parse_manifest_field(&mut lines, "sha256")?;
+    if expected_hash.len() != 64
+        || !expected_hash
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(SnapshotError::InvalidBackupManifest);
+    }
+    let current = inspect_snapshot(snapshot)?;
+    let (hash, actual_size) = digest_file(snapshot)?;
+    if schema != current.schema_version || size != actual_size || expected_hash != hash {
+        return Err(SnapshotError::InvalidBackupManifest);
+    }
+    for (table, count) in &current.table_counts {
+        let expected = format!("table\t{table}\t{count}");
+        if lines.next() != Some(expected.as_str()) {
+            return Err(SnapshotError::InvalidBackupManifest);
+        }
+    }
+    if lines.next().is_some() {
+        return Err(SnapshotError::InvalidBackupManifest);
+    }
+    Ok(BackupReceipt {
+        snapshot_path: snapshot.to_path_buf(),
+        manifest_path: manifest,
+        sha256: hash,
+        byte_size: size,
+        schema_version: schema,
+        table_counts: current.table_counts,
+    })
+}
+
+fn parse_manifest_field<'a>(
+    lines: &mut impl Iterator<Item = &'a str>,
+    field: &str,
+) -> Result<&'a str, SnapshotError> {
+    let line = lines.next().ok_or(SnapshotError::InvalidBackupManifest)?;
+    let (key, value) = line
+        .split_once('\t')
+        .ok_or(SnapshotError::InvalidBackupManifest)?;
+    if key != field || value.is_empty() {
+        return Err(SnapshotError::InvalidBackupManifest);
+    }
+    Ok(value)
+}
+
+/// Makes an independent detached clone for migration rehearsals, never
+/// overwrites any destination. This is NOT an in-place production restore.
+pub fn restore_verified_clone(
+    snapshot: &Path,
+    destination: &Path,
+) -> Result<PathBuf, SnapshotError> {
+    let receipt = verify_snapshot(snapshot)?;
+    let parent = destination
+        .parent()
+        .ok_or(SnapshotError::UnsafeBackupDestination)?;
+    ensure_private_backup_parent(parent)?;
+    ensure_new_output(destination)?;
+    let (mut temp_file, temp) = fresh_temp(parent)?;
+    let mut source = File::open(snapshot)?;
+    std::io::copy(&mut source, &mut temp_file)?;
+    temp_file.sync_all()?;
+    drop(temp_file);
+
+    let report = inspect_snapshot(&temp.0)?;
+    let (hash, size) = digest_file(&temp.0)?;
+    if report.schema_version != receipt.schema_version
+        || report.table_counts != receipt.table_counts
+        || hash != receipt.sha256
+        || size != receipt.byte_size
+    {
+        return Err(SnapshotError::InvalidBackupManifest);
+    }
+    fs::hard_link(&temp.0, destination)?;
+    fs::remove_file(&temp.0)?;
+    File::open(parent)?.sync_all()?;
+    Ok(destination.to_path_buf())
+}

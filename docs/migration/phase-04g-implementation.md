@@ -14,3 +14,7 @@ Safety invariants:
 **Known gaps**: This does not stop a live Go writer, guarantee a Go/Rust cross-namespace writer lock, implement a restore command, create a verified pre-migration rollback clone, cover Windows ACLs, or provide crash atomicity of the snapshot+manifest as a single pair. If manifest publication fails, the new snapshot may remain without its manifest and must be treated as incomplete. No live customer database is tested or accessed. Phase 04.g is not complete until restore drills and migration dry-run are independently verified.
 
 External API reference: https://docs.rs/rusqlite/0.43.0/rusqlite/backup/index.html
+
+## Restore rehearsal extension
+
+`verify_snapshot` is a persisted-manifest verifier: on a later invocation it reopens the backup, checks the exact version/size/hash/table counts against the on-disk manifest, rejects missing/tampered fields and checks the SQLite database again. `restore_verified_clone` first validates the backup, then creates a fresh 0600 no-clobber private clone, validates that clone's schema/count/hash and never replaces an existing target. Tests verify correct cloned bytes and that a corrupt manifest never creates a clone. This is a rehearsable clone, not a live production swap or cross-filesystem transactional cutover.

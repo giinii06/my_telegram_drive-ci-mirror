@@ -123,3 +123,37 @@ fn symlink_source_and_insecure_parent_are_rejected() {
         Err(SnapshotError::UnsafeBackupDestination)
     ));
 }
+
+#[test]
+fn verifies_persisted_manifest_before_restoring_to_new_clone() {
+    let Some(source) = go_fixture() else { return };
+    let scratch = Scratch::new();
+    let backup = scratch.file("source-backup.sqlite");
+    let original = create_consistent_snapshot(&source, &backup).unwrap();
+    let verified = tdrive_storage::verify_snapshot(&backup).unwrap();
+    assert_eq!(verified.sha256, original.sha256);
+    assert_eq!(verified.table_counts, original.table_counts);
+
+    let clone = scratch.file("restored-dryrun.sqlite");
+    let result = tdrive_storage::restore_verified_clone(&backup, &clone).unwrap();
+    assert_eq!(result, clone);
+    assert_eq!(fs::read(&backup).unwrap(), fs::read(&clone).unwrap());
+    assert!(tdrive_storage::restore_verified_clone(&backup, &clone).is_err());
+    assert_eq!(tdrive_storage::inspect_snapshot(&clone).unwrap().schema_version, 16);
+}
+
+#[test]
+fn refuses_corrupt_manifest_and_never_creates_clone() {
+    let Some(source) = go_fixture() else { return };
+    let scratch = Scratch::new();
+    let backup = scratch.file("backup.sqlite");
+    let receipt = create_consistent_snapshot(&source, &backup).unwrap();
+    let clone = scratch.file("clone.sqlite");
+    fs::write(receipt.manifest_path, b"tdrive-snapshot-v1\nsha256\t0\n").unwrap();
+    assert!(matches!(
+        tdrive_storage::restore_verified_clone(&backup, &clone),
+        Err(SnapshotError::InvalidBackupManifest)
+    ));
+    assert!(!clone.exists());
+    assert!(tdrive_storage::verify_snapshot(&backup).is_err());
+}
