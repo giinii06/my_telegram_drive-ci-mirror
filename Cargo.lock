@@ -3,6 +3,10 @@
 version = 4
 
 [[package]]
+name = "tdrive-crypto"
+version = "0.1.0"
+
+[[package]]
 name = "tdrive-inspect"
 version = "0.1.0"
 dependencies = [

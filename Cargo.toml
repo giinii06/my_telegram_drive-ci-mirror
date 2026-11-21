@@ -3,11 +3,13 @@ resolver = "3"
 members = [
     "crates/tdrive-types",
     "crates/tdrive-projection",
+    "crates/tdrive-crypto",
     "apps/tdrive-inspect",
 ]
 default-members = [
     "crates/tdrive-types",
     "crates/tdrive-projection",
+    "crates/tdrive-crypto",
     "apps/tdrive-inspect",
 ]
 
