@@ -11,9 +11,15 @@
       "id": "01",
       "kind": "foundation",
       "consumer_phase": "07.c,05,06,08,11 user-facing encrypted Telegram flows",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
-      "history": []
+      "history": [
+        {
+          "frm": "not_started",
+          "to": "in_progress",
+          "evidence": "Plan b588dd91942d2a8014120577b1ac4c06a6d79063 and test-only 60ffec1cfa5e77a973021de27ba99d1d3d716f85; existing workflow structural RED check"
+        }
+      ]
     },
     {
       "id": "02",
