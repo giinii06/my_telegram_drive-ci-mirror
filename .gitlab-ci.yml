@@ -31,13 +31,17 @@ legacy-go-fixture:
     GOMAXPROCS: "2"
     GOFLAGS: "-p=1"
     TDRIVE_COMPAT_FIXTURE_OUT: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.sqlite"
+    TDRIVE_COMPAT_TDE1_OUT: "$CI_PROJECT_DIR/tests/fixtures/tde1/generated"
   script:
     - go test ./backend/projection -run '^TestExportRustV16Fixture$' -count=1
     - test -s tests/fixtures/sqlite/go-v16.sqlite
+    - go test ./backend/crypto -run '^TestExportRustTDE1Fixtures$' -count=1
+    - test -s tests/fixtures/tde1/generated/tde1-0.bin
   artifacts:
     expire_in: 1 day
     paths:
       - tests/fixtures/sqlite/go-v16.sqlite
+      - tests/fixtures/tde1/generated/*.bin
 
 rust-contracts:
   stage: test
@@ -47,12 +51,18 @@ rust-contracts:
       artifacts: true
   variables:
     TDRIVE_GO_SQLITE_FIXTURE: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.sqlite"
+    TDRIVE_GO_TDE1_FIXTURES_DIR: "$CI_PROJECT_DIR/tests/fixtures/tde1/generated"
   script:
     - rustc --version
     - test -s "$TDRIVE_GO_SQLITE_FIXTURE"
+    - test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-0.bin"
+    - cargo generate-lockfile
+    - echo TDRIVE_GENERATED_CARGO_LOCK_BEGIN
+    - cat Cargo.lock
+    - echo TDRIVE_GENERATED_CARGO_LOCK_END
     - cargo fmt --all --check
-    - cargo clippy --workspace --all-targets --locked -- -D warnings
-    - cargo test --workspace --locked
+    - cargo clippy --workspace --all-targets -- -D warnings
+    - cargo test --workspace
 
 legacy-go-projection:
   stage: test
@@ -68,6 +78,7 @@ legacy-go-projection:
     - go test ./backend/projection
     - go test ./backend/tgclient -run '^TestRustStableRandomIDVectors$' -count=1
     - go test ./backend/tgclient
+    - go test ./backend/crypto
 
 legacy-web-checks:
   stage: test
