@@ -1,20 +1,28 @@
-stages:
-  - contracts
-  - test
+# GitLab checks only. Reuses the existing Oracle ARM64 project runner when
+# runner #59776971 is explicitly assigned to my_telegram_drive.
+# No Telegram credentials, deployments, image publication or DB mutations.
 
 workflow:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
     - if: '$CI_COMMIT_BRANCH'
+
+stages:
+  - contracts
+  - test
+
+default:
+  tags:
+    - oracle-arm64
+  interruptible: true
 
 legacy-contracts:
   stage: contracts
   image: python:3.12-slim
   script:
     - python3 scripts/check-legacy-contracts.py
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH'
 
 rust-contracts:
   stage: test
@@ -24,17 +32,24 @@ rust-contracts:
     - cargo fmt --all --check
     - cargo clippy --workspace --all-targets --locked -- -D warnings
     - cargo test --workspace --locked
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH'
 
 legacy-go-projection:
   stage: test
-  image: golang:1.25-bookworm
+  image: golang:1.27-bookworm
   variables:
+    GOTOOLCHAIN: "go1.25.13"
+    CGO_ENABLED: "0"
     GOMAXPROCS: "2"
+    GOFLAGS: "-p=1"
   script:
-    - go test -p 1 ./backend/projection
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH'
+    - go version
+    - go test ./backend/projection -run TestRustTDX1Fixtures -count=1
+    - go test ./backend/projection
+
+legacy-web-checks:
+  stage: test
+  image: oven/bun:1.4.3
+  script:
+    - bun install --cwd cmd/tdrive/webui --frozen-lockfile
+    - bun run --cwd cmd/tdrive/webui lint
+    - bun run --cwd cmd/tdrive/webui test:unit
