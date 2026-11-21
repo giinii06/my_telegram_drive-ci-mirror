@@ -125,7 +125,9 @@ impl fmt::Display for SnapshotError {
                 f.write_str("detached SQLite table exceeds bounded digest limits")
             }
             Self::BackupOutputExists => f.write_str("snapshot or manifest already exists"),
-            Self::UnsafeBackupDestination => f.write_str("backup target directory must be private and non-symlink"),
+            Self::UnsafeBackupDestination => {
+                f.write_str("backup target directory must be private and non-symlink")
+            }
             Self::InvalidBackupManifest => f.write_str("snapshot manifest or content verification failed"),
             Self::Database(e) => write!(f, "SQLite read failed: {e}"),
             Self::Io(e) => write!(f, "snapshot access failed: {e}"),

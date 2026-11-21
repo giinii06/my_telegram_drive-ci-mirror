@@ -18,7 +18,10 @@ impl Scratch {
         use std::os::unix::fs::PermissionsExt;
 
         let sequence = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         let folder = env::temp_dir().join(format!(
             "tdrive-wal-backup-{}-{now}-{sequence}",
             std::process::id()
@@ -58,8 +61,12 @@ fn snapshots_a_live_wal_file_including_committed_wal_header_pages() {
         .pragma_query_value(None, "journal_mode", |row| row.get(0))
         .unwrap();
     assert_eq!(mode, "delete");
-    source_writer.pragma_update(None, "journal_mode", "WAL").unwrap();
-    source_writer.pragma_update(None, "user_version", 73_i64).unwrap();
+    source_writer
+        .pragma_update(None, "journal_mode", "WAL")
+        .unwrap();
+    source_writer
+        .pragma_update(None, "user_version", 73_i64)
+        .unwrap();
     // Keep source writer open; the last WAL checkpoint must not be required.
     assert!(Path::new(&format!("{}-wal", source.display())).exists());
 
@@ -68,10 +75,20 @@ fn snapshots_a_live_wal_file_including_committed_wal_header_pages() {
     let receipt = create_consistent_snapshot(&source, &destination).unwrap();
     assert_eq!(receipt.schema_version, 16);
     assert!(receipt.byte_size > 4096);
-    assert!(receipt.table_counts.iter().any(|(name, count)| *name == "files" && *count > 0));
-    assert_eq!(fs::read(&source).unwrap(), original_data, "source main file modified");
+    assert!(
+        receipt
+            .table_counts
+            .iter()
+            .any(|(name, count)| *name == "files" && *count > 0)
+    );
+    assert_eq!(
+        fs::read(&source).unwrap(),
+        original_data,
+        "source main file modified"
+    );
 
-    let output = Connection::open_with_flags(&destination, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+    let output =
+        Connection::open_with_flags(&destination, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
     let version: i64 = output
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
@@ -85,7 +102,9 @@ fn snapshots_a_live_wal_file_including_committed_wal_header_pages() {
 
 #[test]
 fn never_overwrites_existing_snapshot_or_manifest() {
-    let Some(go_fixture) = go_fixture() else { return };
+    let Some(go_fixture) = go_fixture() else {
+        return;
+    };
     let scratch = Scratch::new();
     let destination = scratch.file("backup.sqlite");
     fs::write(&destination, b"existing user backup").unwrap();
@@ -106,9 +125,11 @@ fn never_overwrites_existing_snapshot_or_manifest() {
 
 #[test]
 fn symlink_source_and_insecure_parent_are_rejected() {
-    use std::os::unix::fs::{symlink, PermissionsExt};
+    use std::os::unix::fs::{PermissionsExt, symlink};
 
-    let Some(go_fixture) = go_fixture() else { return };
+    let Some(go_fixture) = go_fixture() else {
+        return;
+    };
     let scratch = Scratch::new();
     let symlink_source = scratch.file("source-link");
     symlink(&go_fixture, &symlink_source).unwrap();
@@ -126,7 +147,9 @@ fn symlink_source_and_insecure_parent_are_rejected() {
 
 #[test]
 fn verifies_persisted_manifest_before_restoring_to_new_clone() {
-    let Some(source) = go_fixture() else { return };
+    let Some(source) = go_fixture() else {
+        return;
+    };
     let scratch = Scratch::new();
     let backup = scratch.file("source-backup.sqlite");
     let original = create_consistent_snapshot(&source, &backup).unwrap();
@@ -144,7 +167,9 @@ fn verifies_persisted_manifest_before_restoring_to_new_clone() {
 
 #[test]
 fn refuses_corrupt_manifest_and_never_creates_clone() {
-    let Some(source) = go_fixture() else { return };
+    let Some(source) = go_fixture() else {
+        return;
+    };
     let scratch = Scratch::new();
     let backup = scratch.file("backup.sqlite");
     let receipt = create_consistent_snapshot(&source, &backup).unwrap();
