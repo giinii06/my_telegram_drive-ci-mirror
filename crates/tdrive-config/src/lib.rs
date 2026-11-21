@@ -311,10 +311,8 @@ pub fn user_config_base() -> Result<PathBuf, ConfigError> {
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
-        if let Some(xdg) = non_empty_env("XDG_CONFIG_HOME") {
-            if xdg.is_absolute() {
-                return Ok(xdg);
-            }
+        if let Some(xdg) = non_empty_env("XDG_CONFIG_HOME").filter(|value| value.is_absolute()) {
+            return Ok(xdg);
         }
         Ok(home_dir()?.join(".config"))
     }
@@ -335,10 +333,8 @@ pub fn user_cache_base() -> Result<PathBuf, ConfigError> {
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
-        if let Some(xdg) = non_empty_env("XDG_CACHE_HOME") {
-            if xdg.is_absolute() {
-                return Ok(xdg);
-            }
+        if let Some(xdg) = non_empty_env("XDG_CACHE_HOME").filter(|value| value.is_absolute()) {
+            return Ok(xdg);
         }
         Ok(home_dir()?.join(".cache"))
     }
