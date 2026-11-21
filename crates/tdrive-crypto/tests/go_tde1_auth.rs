@@ -20,7 +20,11 @@ fn go_tde1_authenticated_decrypt_boundary_vectors() {
             .expect("read Go-encrypted TDE1 fixture");
         let plain = decrypt_small_tde1(&ciphertext, &master)
             .unwrap_or_else(|error| panic!("Rust failed Go TDE1 size={size}: {error}"));
-        assert_eq!(plain, expected_plaintext(size), "Go/Rust mismatch: size={size}");
+        assert_eq!(
+            plain,
+            expected_plaintext(size),
+            "Go/Rust mismatch: size={size}"
+        );
 
         let mut tampered = ciphertext.clone();
         tampered[50] ^= 1; // First authenticated ciphertext/tag, never the header.
@@ -35,12 +39,15 @@ fn go_tde1_authenticated_decrypt_boundary_vectors() {
             "wrong key size={size}"
         );
         assert_ne!(
-            decrypt_small_tde1(&ciphertext[..ciphertext.len()-1], &master),
+            decrypt_small_tde1(&ciphertext[..ciphertext.len() - 1], &master),
             Ok(expected_plaintext(size)),
             "truncated size={size}"
         );
         let mut extended = ciphertext.clone();
         extended.push(0);
-        assert!(decrypt_small_tde1(&extended, &master).is_err(), "extra bytes size={size}");
+        assert!(
+            decrypt_small_tde1(&extended, &master).is_err(),
+            "extra bytes size={size}"
+        );
     }
 }

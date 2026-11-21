@@ -5,7 +5,10 @@
 //! after all XChaCha20-Poly1305 chunks and final-marker tag have authenticated.
 
 use crate::{CHUNK_BYTES, HEADER_BYTES, Header, HeaderError, TAG_BYTES};
-use chacha20poly1305::{XChaCha20Poly1305, XNonce, aead::{Aead, KeyInit}};
+use chacha20poly1305::{
+    XChaCha20Poly1305, XNonce,
+    aead::{Aead, KeyInit},
+};
 use hkdf::Hkdf;
 use sha2::Sha256;
 use std::error::Error;
@@ -51,14 +54,16 @@ pub fn decrypt_small_tde1(input: &[u8], master_key: &[u8]) -> Result<Vec<u8>, De
         return Err(DecryptError::OversizedInput);
     }
     let stored = i64::try_from(input.len()).map_err(|_| DecryptError::OversizedInput)?;
-    header.validate_stored_size(stored).map_err(DecryptError::InvalidHeader)?;
+    header
+        .validate_stored_size(stored)
+        .map_err(DecryptError::InvalidHeader)?;
 
     let hk = Hkdf::<Sha256>::new(Some(&header.salt), master_key);
     let mut subkey = [0_u8; 32];
     hk.expand(b"tdrive/file/v1", &mut subkey)
         .map_err(|_| DecryptError::InvalidDerivation)?;
-    let cipher = XChaCha20Poly1305::new_from_slice(&subkey)
-        .map_err(|_| DecryptError::InvalidDerivation)?;
+    let cipher =
+        XChaCha20Poly1305::new_from_slice(&subkey).map_err(|_| DecryptError::InvalidDerivation)?;
     subkey.fill(0);
 
     let size = usize::try_from(header.plaintext_size).map_err(|_| DecryptError::OversizedInput)?;
@@ -72,8 +77,12 @@ pub fn decrypt_small_tde1(input: &[u8], master_key: &[u8]) -> Result<Vec<u8>, De
         let last = counter == full_chunks;
         let chunk_len = if last { final_size } else { chunk_size };
         let stored_len = chunk_len + usize::try_from(TAG_BYTES).expect("fixed tag fits usize");
-        let end = offset.checked_add(stored_len).ok_or(DecryptError::AuthenticationFailed)?;
-        let segment = input.get(offset..end).ok_or(DecryptError::AuthenticationFailed)?;
+        let end = offset
+            .checked_add(stored_len)
+            .ok_or(DecryptError::AuthenticationFailed)?;
+        let segment = input
+            .get(offset..end)
+            .ok_or(DecryptError::AuthenticationFailed)?;
 
         let mut nonce = [0_u8; 24];
         nonce[..20].copy_from_slice(&header.nonce_prefix);
@@ -104,7 +113,10 @@ mod tests {
 
     #[test]
     fn refuses_wrong_key_length_and_missing_header() {
-        assert_eq!(decrypt_small_tde1(&[], &[0; 31]), Err(DecryptError::InvalidKey));
+        assert_eq!(
+            decrypt_small_tde1(&[], &[0; 31]),
+            Err(DecryptError::InvalidKey)
+        );
         assert_eq!(
             decrypt_small_tde1(&[], &[0; 32]),
             Err(DecryptError::InvalidHeader(HeaderError::TooShort))
