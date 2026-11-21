@@ -4,7 +4,9 @@
 //! replays Telegram messages, or accesses the Go daemon's lock file.
 
 mod listing;
+mod replay;
 pub use listing::{FileSlim, FolderListing, FolderSlim, list_folder_contents_snapshot};
+pub use replay::{ReplayEntry, read_replay_page_snapshot};
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use std::error::Error;
@@ -82,6 +84,8 @@ pub enum SnapshotError {
     IntegrityFailure,
     ForeignKeyFailure,
     InvalidObjectIds,
+    InvalidReplayCursor,
+    ReplayHashMismatch,
     Database(rusqlite::Error),
     Io(std::io::Error),
 }
@@ -105,6 +109,8 @@ impl fmt::Display for SnapshotError {
             Self::IntegrityFailure => f.write_str("SQLite integrity_check did not return ok"),
             Self::ForeignKeyFailure => f.write_str("SQLite foreign_key_check returned violations"),
             Self::InvalidObjectIds => f.write_str("Go namespace identifier invariant violated"),
+            Self::InvalidReplayCursor => f.write_str("invalid channel ID, replay cursor, or page limit"),
+            Self::ReplayHashMismatch => f.write_str("Go replay_log raw header SHA-256 mismatch"),
             Self::Database(e) => write!(f, "SQLite read failed: {e}"),
             Self::Io(e) => write!(f, "snapshot access failed: {e}"),
         }

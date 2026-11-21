@@ -377,6 +377,7 @@ name = "tdrive-storage"
 version = "0.1.0"
 dependencies = [
  "rusqlite",
+ "sha2",
 ]
 
 [[package]]
