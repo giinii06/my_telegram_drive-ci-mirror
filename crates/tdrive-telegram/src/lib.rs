@@ -154,7 +154,9 @@ pub struct ChannelDifference {
 pub enum TelegramError {
     Unauthorized,
     NotFound,
-    FloodWait { seconds: u32 },
+    FloodWait {
+        seconds: u32,
+    },
     TransientTransport,
     /// The send may have succeeded; MUST retry with the same RandomId.
     SendOutcomeUnknown,
@@ -183,10 +185,16 @@ pub type PortFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, TelegramError
 /// MTProto adapter, rather than letting UI/server code share raw TL types.
 pub trait TelegramReadPort: Send + Sync {
     fn self_id(&self) -> PortFuture<'_, i64>;
-    fn get_history(&self, peer: InputPeer, cursor: HistoryCursor)
-        -> PortFuture<'_, Vec<HistoryMessage>>;
+    fn get_history(
+        &self,
+        peer: InputPeer,
+        cursor: HistoryCursor,
+    ) -> PortFuture<'_, Vec<HistoryMessage>>;
     fn get_channel_difference(
-        &self, peer: InputPeer, pts: i64, limit: u16
+        &self,
+        peer: InputPeer,
+        pts: i64,
+        limit: u16,
     ) -> PortFuture<'_, ChannelDifference>;
     fn get_channel_pts(&self, peer: InputPeer) -> PortFuture<'_, i64>;
 }
@@ -277,15 +285,28 @@ mod tests {
     #[test]
     fn flood_wait_cannot_exceed_go_budgets() {
         let mut budget = FloodWaitBudget::default();
-        assert_eq!(budget.permit(TelegramError::FloodWait { seconds: 31 }), None);
-        assert_eq!(budget.permit(TelegramError::FloodWait { seconds: 30 }), Some(30));
-        assert_eq!(budget.permit(TelegramError::FloodWait { seconds: 30 }), Some(30));
+        assert_eq!(
+            budget.permit(TelegramError::FloodWait { seconds: 31 }),
+            None
+        );
+        assert_eq!(
+            budget.permit(TelegramError::FloodWait { seconds: 30 }),
+            Some(30)
+        );
+        assert_eq!(
+            budget.permit(TelegramError::FloodWait { seconds: 30 }),
+            Some(30)
+        );
         assert_eq!(budget.permit(TelegramError::FloodWait { seconds: 1 }), None);
     }
 
     #[test]
     fn no_credentials_or_peer_hash_in_errors() {
-        assert!(!TelegramError::SendOutcomeUnknown.to_string().contains("hash"));
+        assert!(
+            !TelegramError::SendOutcomeUnknown
+                .to_string()
+                .contains("hash")
+        );
         assert!(!TelegramError::Unauthorized.to_string().contains("token"));
     }
 }

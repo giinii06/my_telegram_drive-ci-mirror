@@ -5,7 +5,10 @@ use tdrive_telegram::stable_random_id;
 fn matches_go_stable_random_id_goldens() -> Result<(), ParseIntError> {
     let fixtures = include_str!("../../../tests/fixtures/telegram/random-ids.tsv");
     let mut seen = 0;
-    for row in fixtures.lines().filter(|r| !r.is_empty() && !r.starts_with('#')) {
+    for row in fixtures
+        .lines()
+        .filter(|r| !r.is_empty() && !r.starts_with('#'))
+    {
         let mut it = row.split('\t');
         let operation_id = it.next().unwrap();
         let step = it.next().unwrap();
