@@ -162,7 +162,12 @@ fn verifies_persisted_manifest_before_restoring_to_new_clone() {
     assert_eq!(result, clone);
     assert_eq!(fs::read(&backup).unwrap(), fs::read(&clone).unwrap());
     assert!(tdrive_storage::restore_verified_clone(&backup, &clone).is_err());
-    assert_eq!(tdrive_storage::inspect_snapshot(&clone).unwrap().schema_version, 16);
+    assert_eq!(
+        tdrive_storage::inspect_snapshot(&clone)
+            .unwrap()
+            .schema_version,
+        16
+    );
 }
 
 #[test]
