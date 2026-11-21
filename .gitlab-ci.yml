@@ -84,6 +84,7 @@ legacy-go-projection:
     - go test ./backend/crypto
     - go test ./cmd/tdrive-backup -run '^TestRustBackupJobVectors$' -count=1
     - go test ./cmd/tdrive-backup
+    - go test ./backend/media -run '^TestRustMediaRangeFixtures$' -count=1
 
 legacy-web-checks:
   stage: test

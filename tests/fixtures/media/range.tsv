@@ -1,0 +1,19 @@
+# case<TAB>raw-range<TAB>size<TAB>start<TAB>end<TAB>partial<TAB>valid
+whole	<none>	2048	0	0	false	true
+empty	<none>	0	0	0	false	true
+zero_to_zero	bytes=0-0	2048	0	0	true	true
+first_hundred	bytes=0-99	2048	0	99	true	true
+last_open	bytes=2047-	2048	2047	2047	true	true
+begin_open	bytes=0-	2048	0	2047	true	true
+clamp_end	bytes=0-9999	2048	0	2047	true	true
+suffix_100	bytes=-100	2048	1948	2047	true	true
+suffix_all	bytes=-99999	2048	0	2047	true	true
+trimming	bytes= 0-1 	2048	0	1	true	true
+range_empty	bytes=0-0	0	0	0	true	false
+suffix_zero	bytes=-0	2048	0	0	true	false
+outside	bytes=2048-	2048	0	0	true	false
+reverse	bytes=100-99	2048	0	0	true	false
+multi	bytes=0-1,3-4	2048	0	0	true	false
+unknown_unit	items=0-1	2048	0	0	true	false
+not_numeric	bytes=abc-xyz	2048	0	0	true	false
+overflow	bytes=9223372036854775808-	2048	0	0	true	false
