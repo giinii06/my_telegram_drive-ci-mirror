@@ -48,6 +48,10 @@ impl BackendLock {
         }
         #[cfg(unix)]
         {
+            let started_at = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map_err(|_| ConfigError::UnsafePath)?
+                .as_secs();
             let path = dirs.data_dir().join("backend.lock");
             let file = match OpenOptions::new()
                 .write(true)
@@ -62,10 +66,6 @@ impl BackendLock {
                 }
                 Err(error) => return Err(error.into()),
             };
-            let started_at = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map_err(|_| ConfigError::UnsafePath)?
-                .as_secs();
             let info = LockInfo {
                 role: role.to_owned(),
                 pid: std::process::id(),

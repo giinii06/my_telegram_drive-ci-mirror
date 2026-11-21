@@ -116,7 +116,8 @@ fn competing_rust_process_roles_only_one_wins() {
     }
     let wins = threads
         .into_iter()
-        .filter(|thread| thread.join().unwrap())
+        .map(|thread| thread.join().unwrap())
+        .filter(|success| *success)
         .count();
     assert_eq!(wins, 1);
     assert!(!config.data_dir().join("backend.lock").exists());
