@@ -82,6 +82,8 @@ legacy-go-projection:
     - go test ./backend/tgclient -run '^TestRustStableRandomIDVectors$' -count=1
     - go test ./backend/tgclient
     - go test ./backend/crypto
+    - go test ./cmd/tdrive-backup -run '^TestRustBackupJobVectors$' -count=1
+    - go test ./cmd/tdrive-backup
 
 legacy-web-checks:
   stage: test

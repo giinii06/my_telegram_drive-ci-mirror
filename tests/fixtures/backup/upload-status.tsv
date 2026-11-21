@@ -1,0 +1,12 @@
+# case<TAB>stages<TAB>error<TAB>done<TAB>failure
+none	-	-	false	upload job reported no files
+one_done	done	-	true	-
+all_done	done,done	-	true	-
+uploading	uploading	-	false	-
+pending	pending	-	false	-
+mixed	done,uploading	-	false	-
+unknown	future	-	false	-
+error	error	-	false	server reported an upload error
+error_message	error	disk full	false	disk full
+error_after_pending	uploading,error	connection lost	false	connection lost
+error_after_done	done,error	timed out	false	timed out
