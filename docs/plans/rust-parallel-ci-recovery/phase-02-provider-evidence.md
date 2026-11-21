@@ -27,3 +27,7 @@ Do not change mirror, CI secrets, runner or repo visibility to satisfy CI. No pr
 ## Observation from Phase 01 candidate (does not clear this phase)
 
 A generic external success callback exists for GitLab source `c51c6d3419ab96c018fbbd93c2589a4c8bd07e40` at pipeline 3098370541, GitHub run 44958713063. That status has no per-category `alchemy/format`, `alchemy/lint`, `alchemy/test`, `alchemy/build` contexts. The effective GitLab CI is the external ci-hub dispatcher and the GitLab Runner job list is empty. Requirement 02.1–02.4 **not satisfied**; no claim of cargo, Go or Bun tests passing. To clear, inspect the actual GitHub receiving workflow and checked-out SHA plus step/job result evidence, or adopt a separately approved category-status reporting bridge without revealing private source to the public mirror. No repo visibility/mirroring/secrets or runner settings changed.
+
+## Consuming user flow
+
+This foundation explicitly points to the never-started **Phase 03** operator encrypted upload/download E2E gate. Phase 02 cannot be marked jobs-verified solely because the provider sends `github-actions/ci-hub-request: success`. Absence of remote job logs remains a security/verification blocker for the larger Rust migration.

@@ -10,7 +10,7 @@
     {
       "id": "01",
       "kind": "foundation",
-      "consumer_phase": "07.c,05,06,08,11 user-facing encrypted Telegram flows",
+      "consumer_phase": "03",
       "status": "tested",
       "implemented": true,
       "history": [
@@ -33,12 +33,21 @@
       "candidate_sha": "4017cab5c270b82d227c97b3ea459d42ae1454fc",
       "green_verified": true,
       "checks_evidenced": false,
-      "ci_level": "none"
+      "ci_level": "none",
+      "red_verified": true
     },
     {
       "id": "02",
       "kind": "foundation",
-      "consumer_phase": "07.c,05,06,08,11 user-facing encrypted Telegram flows",
+      "consumer_phase": "03",
+      "status": "not_started",
+      "implemented": false,
+      "history": []
+    },
+    {
+      "id": "03",
+      "kind": "user_flow",
+      "entrypoint": "Rust CLI/desktop client authenticates and uploads/downloads an encrypted file over a real isolated Telegram account",
       "status": "not_started",
       "implemented": false,
       "history": []

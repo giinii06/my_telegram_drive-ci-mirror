@@ -76,3 +76,7 @@ The exact three checked GitLab-file SHA-256s after fixes, independently verified
 Observed local commands: `python3 scripts/check_rust_ci_workflow.py` **PASS**, `python3 scripts/test_rust_ci_workflow.py` **8/8 PASS**, `python3 -m py_compile scripts/check_rust_ci_workflow.py` **PASS**, and `yaml.load(workflow, Loader=yaml.BaseLoader)` **PASS** with exactly six GitHub jobs. This proves local structural/parsing behavior of these exact bytes, **not GitHub Actions job execution**. Rust toolchain unavailable in this container and private GitLab source not checked out locally. [New same-code SHA provider pipeline #3098379726](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098379726) remains separate and must not be conflated with local tests.
 
 Alchemy Phase State Machine: `tested`, *not* `verified` or `completed`; real GitHub job/checkout SHA proof remains mandatory before Phase 02. No waiver.
+
+## Observed RED case classification
+
+The original malformed YAML failed source-backed structural RED. In addition, the exact GitLab checker copy at the initial candidate `c51c6d3` was locally executed and **failed** with `FAIL workflow must enforce its own contract check` because its expected filename had hyphens instead of underscores. This is genuine observed RED for that regression. After commits `2f4b26e0` and `4017cab5`, identical-hash source copies produced PASS and eight unittest results. The v2.2 state marks `red_verified=true` for this specific checker contract, not for all downstream Rust/Go tests.
