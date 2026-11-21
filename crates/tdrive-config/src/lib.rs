@@ -38,8 +38,12 @@ impl fmt::Display for ConfigError {
             Self::InvalidRoot => f.write_str("config base must be an absolute clean path"),
             Self::UnsafePath => f.write_str("symlink or non-directory in private config path"),
             Self::UnsafePermissions => f.write_str("private config path has unsafe permissions"),
-            Self::UnsupportedPlatform => f.write_str("secure Windows ACL support is not implemented"),
-            Self::OversizedSecret => f.write_str("config or session exceeded the 1 MiB safety limit"),
+            Self::UnsupportedPlatform => {
+                f.write_str("secure Windows ACL support is not implemented")
+            }
+            Self::OversizedSecret => {
+                f.write_str("config or session exceeded the 1 MiB safety limit")
+            }
             Self::EmptySession => f.write_str("refusing to store an empty Telegram session"),
             Self::Io(e) => write!(f, "private config IO failure: {e}"),
         }
@@ -134,7 +138,8 @@ impl ConfigDirs {
         }
         let file = File::open(&path)?;
         let mut data = Vec::new();
-        file.take((MAX_SECRET_BYTES + 1) as u64).read_to_end(&mut data)?;
+        file.take((MAX_SECRET_BYTES + 1) as u64)
+            .read_to_end(&mut data)?;
         if data.len() > MAX_SECRET_BYTES {
             return Err(ConfigError::OversizedSecret);
         }
