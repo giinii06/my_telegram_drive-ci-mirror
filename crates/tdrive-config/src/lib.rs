@@ -15,7 +15,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[cfg(unix)]
-use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
 
 const APP_DIR: &str = "TDrive";
 const MAX_SECRET_BYTES: usize = 1024 * 1024;
@@ -132,7 +132,7 @@ impl ConfigDirs {
         if metadata.len() > MAX_SECRET_BYTES as u64 {
             return Err(ConfigError::OversizedSecret);
         }
-        let mut file = File::open(&path)?;
+        let file = File::open(&path)?;
         let mut data = Vec::new();
         file.take((MAX_SECRET_BYTES + 1) as u64).read_to_end(&mut data)?;
         if data.len() > MAX_SECRET_BYTES {

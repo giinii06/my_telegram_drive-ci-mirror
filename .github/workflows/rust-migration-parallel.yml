@@ -106,6 +106,7 @@ jobs:
         with:
           go-version-file: go.mod
       - run: go test ./backend/projection
+      - run: go test ./backend/datadir ./backend/auth
       - run: go test ./backend/tgclient
       - run: go test ./backend/crypto
       - run: go test ./cmd/tdrive-backup

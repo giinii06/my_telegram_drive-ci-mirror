@@ -94,6 +94,7 @@ legacy-go-projection:
     - go version
     - go test ./backend/projection -run TestRustTDX1Fixtures -count=1
     - go test ./backend/projection
+    - go test ./backend/datadir ./backend/auth
     - go test ./backend/tgclient -run '^TestRustStableRandomIDVectors$' -count=1
     - go test ./backend/tgclient
     - go test ./backend/crypto
