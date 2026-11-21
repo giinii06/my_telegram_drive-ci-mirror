@@ -40,10 +40,12 @@ legacy-go-fixture:
     TDRIVE_COMPAT_FIXTURE_OUT: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.sqlite"
     TDRIVE_COMPAT_TDE1_OUT: "$CI_PROJECT_DIR/tests/fixtures/tde1/generated"
     TDRIVE_COMPAT_FOLDER_LISTING_OUT: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.listing.tsv"
+    TDRIVE_COMPAT_REPLAY_OUT: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.replay.tsv"
   script:
     - go test ./backend/projection -run '^TestExportRustV16Fixture$' -count=1
     - test -s tests/fixtures/sqlite/go-v16.sqlite
     - test -s tests/fixtures/sqlite/go-v16.listing.tsv
+    - test -s tests/fixtures/sqlite/go-v16.replay.tsv
     - go test ./backend/crypto -run '^TestExportRustTDE1Fixtures$' -count=1
     - test -s tests/fixtures/tde1/generated/tde1-0.bin
   artifacts:
@@ -51,6 +53,7 @@ legacy-go-fixture:
     paths:
       - tests/fixtures/sqlite/go-v16.sqlite
       - tests/fixtures/sqlite/go-v16.listing.tsv
+      - tests/fixtures/sqlite/go-v16.replay.tsv
       - tests/fixtures/tde1/generated/*.bin
 
 rust-contracts:
@@ -62,11 +65,13 @@ rust-contracts:
   variables:
     TDRIVE_GO_SQLITE_FIXTURE: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.sqlite"
     TDRIVE_GO_SQLITE_LISTING_FIXTURE: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.listing.tsv"
+    TDRIVE_GO_SQLITE_REPLAY_FIXTURE: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.replay.tsv"
     TDRIVE_GO_TDE1_FIXTURES_DIR: "$CI_PROJECT_DIR/tests/fixtures/tde1/generated"
   script:
     - rustc --version
     - test -s "$TDRIVE_GO_SQLITE_FIXTURE"
     - test -s "$TDRIVE_GO_SQLITE_LISTING_FIXTURE"
+    - test -s "$TDRIVE_GO_SQLITE_REPLAY_FIXTURE"
     - test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-0.bin"
     - cargo fmt --all --check
     - cargo clippy --workspace --all-targets --locked -- -D warnings

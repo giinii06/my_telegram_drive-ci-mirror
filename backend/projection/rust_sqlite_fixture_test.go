@@ -70,6 +70,82 @@ func TestExportRustV16Fixture(t *testing.T) {
     if err := tx.Commit(); err != nil {
         t.Fatal(err)
     }
+    // These rows simulate actual received operations using the same
+    // HashHeader implementation that Go ProjectFromOp uses.
+    syntheticReplay := []struct {
+        channel int64
+        msg int64
+        kind string
+        raw string
+        actor int64
+    }{
+        {123456, 101, "mkdir", "TDX1|t=mkdir|obj=d:docs|p=|n=Docs", 77},
+        {123456, 103, "f", "TDX1|t=f|p=d:docs|n=%ED%95%9C%EA%B8%80.txt|sz=9", 99},
+        {123456, 205, "tomb", "TDX1|t=tomb|obj=f:31", 5},
+        {654321, 7, "move", "TDX1|t=move|obj=f:4|p=", 6},
+    }
+    for _, event := range syntheticReplay {
+        _, err := db.Exec(
+            "INSERT INTO replay_log(channel_id,msg_id,op_type,op_payload_json,raw_header,first_seen_hash,actor_user_id,seen_at) VALUES (?,?,?,?,?,?,?,?)",
+            event.channel, event.msg, event.kind, "{}", event.raw, HashHeader(event.raw), event.actor, int64(1700000000),
+        )
+        if err != nil {
+            t.Fatalf("insert synthetic replay row: %v", err)
+        }
+    }
+    if oraclePath := os.Getenv("TDRIVE_COMPAT_REPLAY_OUT"); oraclePath != "" {
+        if !filepath.IsAbs(oraclePath) {
+            t.Fatal("replay oracle path must be absolute")
+        }
+        if err := os.MkdirAll(filepath.Dir(oraclePath), 0o700); err != nil {
+            t.Fatal(err)
+        }
+        if _, err := os.Lstat(oraclePath); err == nil {
+            t.Fatal("refusing to overwrite replay oracle")
+        } else if !os.IsNotExist(err) {
+            t.Fatal(err)
+        }
+        var oracle strings.Builder
+        cases := []struct {
+            channel int64
+            after int64
+            limit int64
+        }{{123456, 0, 2}, {123456, 101, 2}, {123456, 103, 2}, {654321, 0, 2}, {654321, 7, 2}}
+        for _, c := range cases {
+            fmt.Fprintf(&oracle, "CASE\t%d\t%d\t%d\n", c.channel, c.after, c.limit)
+            rows, err := db.Query(
+                "SELECT channel_id,msg_id,op_type,op_payload_json,raw_header,first_seen_hash,actor_user_id,seen_at FROM replay_log WHERE channel_id=? AND msg_id>? ORDER BY msg_id ASC LIMIT ?",
+                c.channel, c.after, c.limit,
+            )
+            if err != nil {
+                t.Fatalf("Go replay oracle select: %v", err)
+            }
+            for rows.Next() {
+                var rowChannel, rowID, actor, seen int64
+                var kind, payload, header, hash string
+                if err := rows.Scan(&rowChannel, &rowID, &kind, &payload, &header, &hash, &actor, &seen); err != nil {
+                    _ = rows.Close()
+                    t.Fatal(err)
+                }
+                if HashHeader(header) != hash {
+                    _ = rows.Close()
+                    t.Fatal("invalid Go replay hash fixture")
+                }
+                fmt.Fprintf(&oracle, "OP\t%d\t%d\t%s\t%s\t%s\t%s\t%d\t%d\n",
+                    rowChannel, rowID, kind, payload, header, hash, actor, seen)
+            }
+            if err := rows.Err(); err != nil {
+                _ = rows.Close()
+                t.Fatal(err)
+            }
+            if err := rows.Close(); err != nil {
+                t.Fatal(err)
+            }
+        }
+        if err := os.WriteFile(oraclePath, []byte(oracle.String()), 0o600); err != nil {
+            t.Fatal(err)
+        }
+    }
     var version int
     if err := db.QueryRow("SELECT MAX(version) FROM schema_version").Scan(&version); err != nil {
         t.Fatal(err)
