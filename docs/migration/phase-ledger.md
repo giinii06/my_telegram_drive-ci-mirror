@@ -47,13 +47,23 @@
 
 ### 04 — Storage/config/session (현재 read-only DB inspector만)
 - [x] 04.a read-only Go schema v16 integrity/table count/snapshot checker (검증 증분)
-- [ ] 04.b 실제 Go ListFolderContents의 folder/file SELECT, 정렬, tombstone/channel 격리 차등 검증
+- [x] 04.b 실제 Go ListFolderContents의 folder/file SELECT, 정렬, tombstone/channel 격리 차등 검증 — 검증된 **증분**: [MR !10 / Pipeline #3098026998](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098026998)
 - [ ] 04.c full schema and schema version migration fixtures (all supported legacy versions)
 - [ ] 04.d read-only all core tables and normalized record digest, populated encrypted/multipart/trash snapshots
 - [ ] 04.e secure config/session data paths, 0700/0600, symlink/reparse protections, corrupt/missing handling
 - [ ] 04.f process/OS advisory+SQLite single writer lock preventing cross-Go/Rust collision
 - [ ] 04.g consistent WAL-aware backup with hash manifest, restore and dry-run clone migration
 - [ ] 04.h transactional typed SQLite writer + rollback, corruption, interrupted migration, foreign-key tests
+
+### Phase 04 검증 증분 기록 (전체 Phase 미완료)
+
+- **04.b folder listing:** [MR !10](https://gitlab.com/blond11qq/my_telegram_drive/-/merge_requests/10), HEAD `e5dc61165726de315cc4622301fdd8cd3662be84` — GitLab #3098026998 **success**.
+- **04.c-a replay reader (보조 증분):** [MR !11](https://gitlab.com/blond11qq/my_telegram_drive/-/merge_requests/11), HEAD `ba398b96d7f1db85b8a4f8d8a7ff3a6624c346be` — GitLab #3098033516 **success**. 위의 04.c **legacy schema migration 전부 완료 아님**.
+- **04.d-a core-table digest:** [MR !13](https://gitlab.com/blond11qq/my_telegram_drive/-/merge_requests/13), HEAD `c00a2a71054e2f5103b7575907ce039f02d635cc` — GitLab #3098129784 **success**. 다양한 실제 DB/암호화·multipart/휴지통 변형 커버리지 부족.
+- **04.e-a private config:** [MR !16](https://gitlab.com/blond11qq/my_telegram_drive/-/merge_requests/16) — Unix 원자적 설정·세션 저장과 안전 경로 검사 구현, Windows ACL 및 동시 수정 race 등 미해결. CI 결과 확인 전 검증 선언 금지.
+- **04.f-a backend lock:** [MR !17](https://gitlab.com/blond11qq/my_telegram_drive/-/merge_requests/17) — Go 호환 O_EXCL PID lock 증분. 컨테이너 PID namespace/공유 advisory lock 미해결.
+- **04.g-a SQLite backup/restore clone:** [MR !18](https://gitlab.com/blond11qq/my_telegram_drive/-/merge_requests/18) — SQLite online backup, content digest, 매니페스트 검증, 복원용 clone 구현. CI 확인 전 부분 구현이며 프로덕션 복구는 미구현.
+- [병렬 GitHub workflow](github-parallel-ci.md)는 [MR !15](https://gitlab.com/blond11qq/my_telegram_drive/-/merge_requests/15); GitHub 미러 동일 SHA의 실제 실행은 별도로 확인해야 한다.
 
 ### 05 — Telegram user-account transport (현재 network 미구현)
 - [x] 05.a trait/port models and stable SHA-256 random_id Go golden vectors
