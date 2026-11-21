@@ -7,3 +7,4 @@ license.workspace = true
 
 [dependencies]
 tdrive-projection = { path = "../../crates/tdrive-projection" }
+tdrive-storage = { path = "../../crates/tdrive-storage" }
