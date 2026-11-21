@@ -53,6 +53,7 @@ jobs:
           test -s tests/fixtures/sqlite/go-v16.replay.tsv
           test -s tests/fixtures/sqlite/go-v16.digest.tsv
           test -s tests/fixtures/tde1/generated/tde1-0.bin
+          test -s tests/fixtures/tde1/generated/tde1-seeded-0.bin
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: go-rust-fixtures
@@ -89,6 +90,7 @@ jobs:
           test -s "$TDRIVE_GO_SQLITE_REPLAY_FIXTURE"
           test -s "$TDRIVE_GO_SQLITE_DIGEST_FIXTURE"
           test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-0.bin"
+          test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-seeded-0.bin"
       - run: cargo +1.92.0 fmt --all --check
       - run: cargo +1.92.0 clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo +1.92.0 test --workspace --locked

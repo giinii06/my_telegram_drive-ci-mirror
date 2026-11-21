@@ -2,6 +2,7 @@ package crypto
 
 import (
     "bytes"
+    cryptorand "crypto/rand"
     "fmt"
     "os"
     "path/filepath"
@@ -56,6 +57,40 @@ func TestExportRustTDE1Fixtures(t *testing.T) {
         closeErr := f.Close()
         if writeErr != nil || closeErr != nil {
             t.Fatalf("writing synthetic TDE1 fixture: write=%v close=%v", writeErr, closeErr)
+        }
+    }
+
+    // Exact Go ↔ Rust writer compatibility vectors. A deterministic entropy
+    // source is ONLY used in this synthetic test; production encrypt always
+    // uses the OS cryptographic source.
+    for _, size := range []int{0, 1, 65535, 65536, 65537, 196625} {
+        plain := make([]byte, size)
+        for i := range plain {
+            plain[i] = byte((i*31 + 7) % 251)
+        }
+        entropy := append(bytes.Repeat([]byte{0x11}, 16), bytes.Repeat([]byte{0x22}, 20)...)
+        var expected bytes.Buffer
+        encryptErr := func() error {
+            original := cryptorand.Reader
+            cryptorand.Reader = bytes.NewReader(entropy)
+            defer func() { cryptorand.Reader = original }()
+            return EncryptStream(bytes.NewReader(plain), &expected, key[:], int64(len(plain)))
+        }()
+        if encryptErr != nil {
+            t.Fatalf("seeded Go EncryptStream(%d): %v", size, encryptErr)
+        }
+        if int64(expected.Len()) != CiphertextSize(int64(size)) {
+            t.Fatalf("seeded writer size mismatch for %d", size)
+        }
+        target := filepath.Join(root, fmt.Sprintf("tde1-seeded-%d.bin", size))
+        f, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+        if err != nil {
+            t.Fatal(err)
+        }
+        _, writeErr := f.Write(expected.Bytes())
+        closeErr := f.Close()
+        if writeErr != nil || closeErr != nil {
+            t.Fatalf("seeded TDE1 output: write=%v close=%v", writeErr, closeErr)
         }
     }
 }

@@ -50,6 +50,7 @@ legacy-go-fixture:
     - test -s tests/fixtures/sqlite/go-v16.digest.tsv
     - go test ./backend/crypto -run '^TestExportRustTDE1Fixtures$' -count=1
     - test -s tests/fixtures/tde1/generated/tde1-0.bin
+    - test -s tests/fixtures/tde1/generated/tde1-seeded-0.bin
   artifacts:
     expire_in: 1 day
     paths:
@@ -78,6 +79,7 @@ rust-contracts:
     - test -s "$TDRIVE_GO_SQLITE_REPLAY_FIXTURE"
     - test -s "$TDRIVE_GO_SQLITE_DIGEST_FIXTURE"
     - test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-0.bin"
+    - test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-seeded-0.bin"
     - cargo fmt --all --check
     - cargo clippy --workspace --all-targets --locked -- -D warnings
     - cargo test --workspace --locked

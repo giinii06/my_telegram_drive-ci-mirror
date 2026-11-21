@@ -181,8 +181,7 @@ fn assert_no_trailing_plaintext<R: Read>(source: &mut R) -> Result<(), StreamErr
             Err(error) => return Err(StreamError::Io(error)),
         }
     }
-    Err(StreamError::Io(io::Error::new(
-        io::ErrorKind::Other,
+    Err(StreamError::Io(io::Error::other(
         "plaintext reader made no progress",
     )))
 }
