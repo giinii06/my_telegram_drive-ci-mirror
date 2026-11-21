@@ -1,8 +1,11 @@
 //! Read-only TDE1 envelope inspection derived from backend/crypto/stream.go.
 //!
 //! WARNING: A valid header and length do not authenticate ciphertext. This
-//! module cannot decrypt data or establish key authenticity. It must never
-//! be used to authorize plaintext access, writes, or vault unlocking.
+//! production server still owns all encryption and vault access. The new
+//! bounded testing decryptor is exported separately and never wired to writes.
+
+mod auth;
+pub use auth::{DecryptError, MAX_SMALL_PLAINTEXT, decrypt_small_tde1};
 
 use std::error::Error;
 use std::fmt;
