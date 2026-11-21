@@ -8,6 +8,7 @@ workflow:
     - if: '$CI_COMMIT_BRANCH'
 
 stages:
+  - preflight
   - contracts
   - test
 
@@ -17,10 +18,16 @@ default:
   interruptible: true
 
 legacy-contracts:
-  stage: contracts
+  stage: preflight
   image: python:3.12-slim
   script:
     - python3 scripts/check-legacy-contracts.py
+
+rust-style:
+  stage: preflight
+  image: rust:1.92-bookworm
+  script:
+    - cargo fmt --all --check
 
 legacy-go-fixture:
   stage: contracts
