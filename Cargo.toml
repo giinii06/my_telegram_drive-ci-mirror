@@ -7,6 +7,7 @@ members = [
     "crates/tdrive-storage",
     "crates/tdrive-telegram",
     "crates/tdrive-backup",
+    "crates/tdrive-media",
     "apps/tdrive-inspect",
 ]
 default-members = [
@@ -16,6 +17,7 @@ default-members = [
     "crates/tdrive-storage",
     "crates/tdrive-telegram",
     "crates/tdrive-backup",
+    "crates/tdrive-media",
     "apps/tdrive-inspect",
 ]
 

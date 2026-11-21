@@ -362,6 +362,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "tdrive-media"
+version = "0.1.0"
+
+[[package]]
 name = "tdrive-projection"
 version = "0.1.0"
 dependencies = [
