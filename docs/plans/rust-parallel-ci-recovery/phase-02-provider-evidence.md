@@ -39,3 +39,7 @@ For `4017cab5c270b82d227c97b3ea459d42ae1454fc`, GitLab pipeline [#3098379726](ht
 ### GitHub REST verifier contract (planned)
 
 `scripts/verify_rust_gha_run.py --repo giinii06/my_telegram_drive-ci-mirror --run-id <actual-run> --sha <40hex>` must inspect **GitHub's own** runs/jobs JSON, not GitLab's generic status. The exact workflow path `.github/workflows/rust-migration-parallel.yml` and complete six job steps/checkout SHA checks must match; otherwise fail closed. Runtime access from this ChatGPT environment failed (GitHub API DNS, web cache). A local fake fixture cannot claim provider jobs.
+
+## Evidence status for new testable source SHA
+
+GitLab [pipeline 3098443401](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098443401) targets `5aeb52a881616eb4f3eb1468198a01aece56be6d`. The GitHub run link [44962575820](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44962575820) is **not** verified to have run `.github/workflows/rust-migration-parallel.yml` or checked out this SHA. New `scripts/verify_rust_gha_run.py` uses GitHub's run/jobs REST API to make those independent assertions; from the current runtime, the real API call is blocked and returns nonzero. Therefore Stage 02 cannot advance, irrespective of generic provider callback outcome.

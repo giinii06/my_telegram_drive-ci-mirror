@@ -30,10 +30,10 @@
           "evidence": "Local Python 3 checker PASS and 8/8 unittest on checksum-matched exact GitLab files; PyYAML BaseLoader parsed six jobs; remote commit 4017cab5c270b82d227c97b3ea459d42ae1454fc; no actual GitHub job proof"
         }
       ],
-      "candidate_sha": "4017cab5c270b82d227c97b3ea459d42ae1454fc",
+      "candidate_sha": "5aeb52a881616eb4f3eb1468198a01aece56be6d",
       "green_verified": true,
       "checks_evidenced": false,
-      "ci_level": "none",
+      "ci_level": "dispatch",
       "red_verified": true
     },
     {

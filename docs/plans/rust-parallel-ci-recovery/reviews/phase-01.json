@@ -1,21 +1,21 @@
 {
   "phase_id": "01",
   "base_sha": "e4a98f880828d57cfcf2f2f4371b66f3ee269174",
-  "head_sha": "4017cab5c270b82d227c97b3ea459d42ae1454fc",
+  "head_sha": "5aeb52a881616eb4f3eb1468198a01aece56be6d",
   "reviews": [
     {
       "lens": "requirements",
-      "head_sha": "4017cab5c270b82d227c97b3ea459d42ae1454fc",
+      "head_sha": "5aeb52a881616eb4f3eb1468198a01aece56be6d",
       "reviewer_type": "self",
       "reviewer_id": "Alchemy v2.2 requirements self-review",
-      "evidence": "Read-only GitLab file at code SHA c51c6d3: exactly six job IDs, one Rust dependency on Go fixtures, all three Go exporter commands restored, Rust fmt/clippy/test and Bun lint/test steps present; original Go/Rust full migration outcome remains unmet. Local exact SHA256-matched workflow YAML parser PASS and 8/8 contract unit tests PASS; corrected runner/fixture hyphen/underscore discrepancy at current candidate 4017cab5. GitHub provider step logs and checkout SHA still unknown."
+      "evidence": " Reviewed actual source at 5aeb52: six independent/aligned GH jobs, SHA checkout step in all six, 3 Go fixtures, Rust fmt/clippy/test and Bun lint/unit named. Offline 12+16 tests are fixture tests only. Actual GH job runs and product E2E unknown."
     },
     {
       "lens": "quality_security",
-      "head_sha": "4017cab5c270b82d227c97b3ea459d42ae1454fc",
+      "head_sha": "5aeb52a881616eb4f3eb1468198a01aece56be6d",
       "reviewer_type": "self",
       "reviewer_id": "Alchemy v2.2 security self-review",
-      "evidence": "GitLab raw YAML at SHA c51c6d3 has global contents:read, no publish job or secrets, fixture artifacts synthetic and retention one day, no runner/mirror/visibility changes. Root-cause JavaScript $' suffix interpretation fixed via callback. Security remaining: private GitLab source must not be disclosed to a public mirror; actual provider checkout SHA and individual GitHub jobs unverified. Local exact SHA256-matched workflow YAML parser PASS and 8/8 contract unit tests PASS; corrected runner/fixture hyphen/underscore discrepancy at current candidate 4017cab5. GitHub provider step logs and checkout SHA still unknown."
+      "evidence": " Reviewed exact 5aeb52: fixed an orphan name-only artifact upload step found in self-review, added fail-closed name-only step guard. All GH jobs use read-only permissions, no publish/secret changes. Verifier uses fixed api.github.com HTTPS, bounded JSON, strict SHA/repo/workflow/step validation; external GitHub API unavailable, so no independent CI proof."
     }
   ],
   "findings": []
