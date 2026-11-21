@@ -42,6 +42,11 @@ GitLab `main`에 푸시하면 GitLab이 공개 GitHub 미러를 동기화합니�
 
 Docker와 웹 UI 검증은 같은 미러의 `Docker and application checks` 워크플로에서 확인합니다.
 
+### CI 병렬 실행
+
+- Pmanager와 TDrive의 CI는 동시에 실행할 수 있습니다. 같은 프로젝트의 여러 푸시가 각각 실행을 시작하면 그 실행들도 겹칠 수 있습니다. 사용 가능한 러너가 모두 사용 중이면 실행은 대기열에 들어갑니다. [워크플로 동시 실행](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
+- 현재 공통 워크플로는 실행마다 `build` 작업 하나에서 Go 빌드와 테스트를 순서대로 실행합니다. 한 실행 안에서 병렬로 처리하려면 `ci-hub`에서 독립 검사를 별도 `jobs`로 나눕니다. 같은 검사를 여러 버전이나 운영체제에서 실행하려면 `strategy.matrix`를 사용합니다. 선행 결과가 필요한 작업에는 `needs`를 지정합니다. [작업 의존성](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-jobs) · [매트릭스 실행](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations)
+
 ## 유지할 규칙
 
 - JS 의존성은 `bun.lock`으로 고정하고 `bunfig.toml`의 Bun 실행 설정을 유지하세요.
