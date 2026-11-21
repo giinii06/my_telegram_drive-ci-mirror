@@ -36,3 +36,13 @@ At the pinned base, `.github/workflows/rust-migration-parallel.yml` has:
 - Evidence class: `provider_result` until actual job checkout/logs are inspected; no runtime proof from a synthetic CI rule file alone.
 - Precommit executor: local shell exists only for Python checker, no Rust toolchain or authorized private repo checkout. Rust compilation not locally executed.
 - No merge/deploy; reviewer traces and decisions recorded in `docs/plans/rust-parallel-ci-recovery/`.
+
+## Observed failure and root cause
+
+Real read-only source check on `60ffec1cfa5e77a973021de27ba99d1d3d716f85`: 12 top-level job declarations instead of six (three repeated jobs), 2 orphan `-count=1` lines, incomplete seeded/name Go fixture commands. The previously-used JavaScript `String.replace(old, replacementString)` expanded the Go regex suffix `$'` as a **special replacement token meaning the remainder of the source string**, thereby duplicating the rest of the workflow. The corrective transformation uses a function callback `replace(old, () => replacement)` so `$'` is literal. This is a *reproduced root cause* (5,805-byte first segment ballooned to 13,595 bytes under naive replacement in a safe read-only experiment).
+
+RED contract cases were committed independently as `60ffec1c`. Existing broken source fails those predicates. No standalone Python RED process was observed on the old private checkout, only the source-backed read-only structural check.
+
+## Candidate remediation
+
+Rebuild six intended job sections, restore both Go fixture exporter calls, require Rust to check every produced fixture, and invoke the new guard/self-tests in `legacy-contracts`. This is only a candidate; GitHub's native workflow parser and individual job checks still need independent execution/checkout-SHA proof.

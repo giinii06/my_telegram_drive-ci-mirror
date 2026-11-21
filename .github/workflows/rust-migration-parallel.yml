@@ -17,6 +17,8 @@ jobs:
       - name: Verify GitHub event SHA
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - run: python3 scripts/check-legacy-contracts.py
+      - run: python3 scripts/check_rust_ci_workflow.py
+      - run: python3 scripts/test_rust_ci_workflow.py
 
   rust-style:
     runs-on: ubuntu-24.04
@@ -46,7 +48,8 @@ jobs:
           echo "TDRIVE_COMPAT_REPLAY_OUT=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.replay.tsv" >> "$GITHUB_ENV"
           echo "TDRIVE_COMPAT_DIGEST_OUT=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.digest.tsv" >> "$GITHUB_ENV"
       - run: go test ./backend/projection -run '^TestExportRustV16Fixture$' -count=1
-      - run: go test ./backend/crypto -run '^TestExportRustTDE1Fixtures
+      - run: go test ./backend/crypto -run '^TestExportRustTDE1Fixtures$' -count=1
+      - run: go test ./backend/crypto -run '^TestExportRustNameSealFixtures$' -count=1
       - name: Require all Go fixture outputs
         run: |
           test -s tests/fixtures/sqlite/go-v16.sqlite
@@ -89,172 +92,13 @@ jobs:
       - run: rustup toolchain install 1.92.0 --profile minimal --component rustfmt,clippy
       - name: Assert Go-generated artifacts
         run: |
-          test -s "$TDRIVE_GO_SQLITE_FIXTURE"
-          test -s "$TDRIVE_GO_SQLITE_LISTING_FIXTURE"
-          test -s "$TDRIVE_GO_SQLITE_REPLAY_FIXTURE"
-          test -s "$TDRIVE_GO_SQLITE_DIGEST_FIXTURE"
-          test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-0.bin"
-          test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-seeded-0.bin"
-          test -s "$TDRIVE_GO_NAME_FIXTURE"
-      - run: cargo +1.92.0 fmt --all --check
-      - run: cargo +1.92.0 clippy --workspace --all-targets --locked -- -D warnings
-      - run: cargo +1.92.0 test --workspace --locked
-
-  legacy-go-tests:
-    runs-on: ubuntu-24.04
-    env:
-      GOTOOLCHAIN: go1.25.13
-      CGO_ENABLED: '0'
-      GOMAXPROCS: '2'
-      GOFLAGS: -p=1
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
-        with:
-          go-version-file: go.mod
-      - run: go test ./backend/projection
-      - run: go test ./backend/datadir ./backend/auth ./backend/processlock
-      - run: go test ./backend/tgclient
-      - run: go test ./backend/crypto
-      - run: go test ./cmd/tdrive-backup
-      - run: go test ./backend/media -run '^TestRustMediaRangeFixtures$' -count=1
-
-  web-checks:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: '1.4.3'
-      - run: bun install --cwd cmd/tdrive/webui --frozen-lockfile
-      - run: bun run --cwd cmd/tdrive/webui lint
-      - run: bun run --cwd cmd/tdrive/webui test:unit
- -count=1
-      - run: go test ./backend/crypto -run '^TestExportRustNameSealFixtures
-      - name: Require all Go fixture outputs
-        run: |
           test -s tests/fixtures/sqlite/go-v16.sqlite
           test -s tests/fixtures/sqlite/go-v16.listing.tsv
           test -s tests/fixtures/sqlite/go-v16.replay.tsv
           test -s tests/fixtures/sqlite/go-v16.digest.tsv
           test -s tests/fixtures/tde1/generated/tde1-0.bin
           test -s tests/fixtures/tde1/generated/tde1-seeded-0.bin
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: go-rust-fixtures
-          path: |
-            tests/fixtures/sqlite/go-v16.sqlite
-            tests/fixtures/sqlite/go-v16.listing.tsv
-            tests/fixtures/sqlite/go-v16.replay.tsv
-            tests/fixtures/sqlite/go-v16.digest.tsv
-            tests/fixtures/tde1/generated/*.bin
-          if-no-files-found: error
-          retention-days: 1
-
-  rust-contracts:
-    needs: go-fixtures
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          name: go-rust-fixtures
-          path: .
-      - name: Export absolute paths for Cargo test package working directories
-        run: |
-          echo "TDRIVE_GO_SQLITE_FIXTURE=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.sqlite" >> "$GITHUB_ENV"
-          echo "TDRIVE_GO_SQLITE_LISTING_FIXTURE=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.listing.tsv" >> "$GITHUB_ENV"
-          echo "TDRIVE_GO_SQLITE_REPLAY_FIXTURE=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.replay.tsv" >> "$GITHUB_ENV"
-          echo "TDRIVE_GO_SQLITE_DIGEST_FIXTURE=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.digest.tsv" >> "$GITHUB_ENV"
-          echo "TDRIVE_GO_TDE1_FIXTURES_DIR=$GITHUB_WORKSPACE/tests/fixtures/tde1/generated" >> "$GITHUB_ENV"
-      - run: rustup toolchain install 1.92.0 --profile minimal --component rustfmt,clippy
-      - name: Assert Go-generated artifacts
-        run: |
-          test -s "$TDRIVE_GO_SQLITE_FIXTURE"
-          test -s "$TDRIVE_GO_SQLITE_LISTING_FIXTURE"
-          test -s "$TDRIVE_GO_SQLITE_REPLAY_FIXTURE"
-          test -s "$TDRIVE_GO_SQLITE_DIGEST_FIXTURE"
-          test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-0.bin"
-          test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-seeded-0.bin"
-      - run: cargo +1.92.0 fmt --all --check
-      - run: cargo +1.92.0 clippy --workspace --all-targets --locked -- -D warnings
-      - run: cargo +1.92.0 test --workspace --locked
-
-  legacy-go-tests:
-    runs-on: ubuntu-24.04
-    env:
-      GOTOOLCHAIN: go1.25.13
-      CGO_ENABLED: '0'
-      GOMAXPROCS: '2'
-      GOFLAGS: -p=1
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
-        with:
-          go-version-file: go.mod
-      - run: go test ./backend/projection
-      - run: go test ./backend/datadir ./backend/auth ./backend/processlock
-      - run: go test ./backend/tgclient
-      - run: go test ./backend/crypto
-      - run: go test ./cmd/tdrive-backup
-      - run: go test ./backend/media -run '^TestRustMediaRangeFixtures$' -count=1
-
-  web-checks:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-        with:
-          bun-version: '1.4.3'
-      - run: bun install --cwd cmd/tdrive/webui --frozen-lockfile
-      - run: bun run --cwd cmd/tdrive/webui lint
-      - run: bun run --cwd cmd/tdrive/webui test:unit
- -count=1
-      - name: Require all Go fixture outputs
-        run: |
-          test -s tests/fixtures/sqlite/go-v16.sqlite
-          test -s tests/fixtures/sqlite/go-v16.listing.tsv
-          test -s tests/fixtures/sqlite/go-v16.replay.tsv
-          test -s tests/fixtures/sqlite/go-v16.digest.tsv
-          test -s tests/fixtures/tde1/generated/tde1-0.bin
-          test -s tests/fixtures/tde1/generated/tde1-seeded-0.bin
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: go-rust-fixtures
-          path: |
-            tests/fixtures/sqlite/go-v16.sqlite
-            tests/fixtures/sqlite/go-v16.listing.tsv
-            tests/fixtures/sqlite/go-v16.replay.tsv
-            tests/fixtures/sqlite/go-v16.digest.tsv
-            tests/fixtures/tde1/generated/*.bin
-          if-no-files-found: error
-          retention-days: 1
-
-  rust-contracts:
-    needs: go-fixtures
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          name: go-rust-fixtures
-          path: .
-      - name: Export absolute paths for Cargo test package working directories
-        run: |
-          echo "TDRIVE_GO_SQLITE_FIXTURE=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.sqlite" >> "$GITHUB_ENV"
-          echo "TDRIVE_GO_SQLITE_LISTING_FIXTURE=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.listing.tsv" >> "$GITHUB_ENV"
-          echo "TDRIVE_GO_SQLITE_REPLAY_FIXTURE=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.replay.tsv" >> "$GITHUB_ENV"
-          echo "TDRIVE_GO_SQLITE_DIGEST_FIXTURE=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.digest.tsv" >> "$GITHUB_ENV"
-          echo "TDRIVE_GO_TDE1_FIXTURES_DIR=$GITHUB_WORKSPACE/tests/fixtures/tde1/generated" >> "$GITHUB_ENV"
-      - run: rustup toolchain install 1.92.0 --profile minimal --component rustfmt,clippy
-      - name: Assert Go-generated artifacts
-        run: |
-          test -s "$TDRIVE_GO_SQLITE_FIXTURE"
-          test -s "$TDRIVE_GO_SQLITE_LISTING_FIXTURE"
-          test -s "$TDRIVE_GO_SQLITE_REPLAY_FIXTURE"
-          test -s "$TDRIVE_GO_SQLITE_DIGEST_FIXTURE"
-          test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-0.bin"
-          test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-seeded-0.bin"
+          test -s tests/fixtures/name/go-v1.tsv
       - run: cargo +1.92.0 fmt --all --check
       - run: cargo +1.92.0 clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo +1.92.0 test --workspace --locked
