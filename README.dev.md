@@ -33,6 +33,10 @@ Linux에서 브라우저 시스템 패키지도 필요하면 `browser:install` �
 
 `compile: signal: killed`가 발생하면 Docker 메모리·스왑을 확인하세요. 스왑 없는 2GB 환경에서는 빌드가 실패했습니다.
 
+## Rust 병렬 CI
+
+Rust 브랜치에서 GitHub Actions + GitLab Oracle ARM64 검증을 병행하려면 [병렬 CI 운영 문서](docs/migration/github-parallel-ci.md)를 참고하세요. GitLab 커밋만으로 GitHub CI가 실행되는 것은 아니며 실제 GitHub 브랜치 미러링이 필요합니다.
+
 ## 유지할 규칙
 
 - JS 의존성은 `bun.lock`으로 고정하고 `bunfig.toml`의 Bun 실행 설정을 유지하세요.
