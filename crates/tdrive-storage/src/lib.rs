@@ -3,8 +3,10 @@
 //! This is not a migration engine. It never creates or modifies a database,
 //! replays Telegram messages, or accesses the Go daemon's lock file.
 
+mod digest;
 mod listing;
 mod replay;
+pub use digest::{TableDigest, snapshot_table_digests};
 pub use listing::{FileSlim, FolderListing, FolderSlim, list_folder_contents_snapshot};
 pub use replay::{ReplayEntry, read_replay_page_snapshot};
 
@@ -86,6 +88,7 @@ pub enum SnapshotError {
     InvalidObjectIds,
     InvalidReplayCursor,
     ReplayHashMismatch,
+    SnapshotTooLarge,
     Database(rusqlite::Error),
     Io(std::io::Error),
 }
@@ -111,6 +114,7 @@ impl fmt::Display for SnapshotError {
             Self::InvalidObjectIds => f.write_str("Go namespace identifier invariant violated"),
             Self::InvalidReplayCursor => f.write_str("invalid channel ID, replay cursor, or page limit"),
             Self::ReplayHashMismatch => f.write_str("Go replay_log raw header SHA-256 mismatch"),
+            Self::SnapshotTooLarge => f.write_str("detached SQLite table exceeds bounded digest limits"),
             Self::Database(e) => write!(f, "SQLite read failed: {e}"),
             Self::Io(e) => write!(f, "snapshot access failed: {e}"),
         }
