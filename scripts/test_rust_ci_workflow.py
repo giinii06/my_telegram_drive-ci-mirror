@@ -15,8 +15,13 @@ def fixture() -> str:
         if name == "rust-contracts":
             lines.append("    needs: go-fixtures")
         lines.append("    steps:")
+        lines += [
+            "      - name: Verify checkout SHA",
+            '        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+        ]
         if name == "legacy-contracts":
             lines.append("      - run: python3 scripts/check_rust_ci_workflow.py")
+            lines.append("      - run: python3 scripts/test_rust_gha_run.py")
         if name == "rust-style":
             lines.append("      - run: cargo +1.92.0 fmt --all --check")
         if name == "go-fixtures":
@@ -79,6 +84,27 @@ class WorkflowContractTests(unittest.TestCase):
             "-run '^TestExportRustNameSealFixtures",
         )
         self.assertTrue(any("Go oracle" in error for error in validate_text(sample)))
+
+    def test_missing_checkout_sha_check_is_rejected(self):
+        sample = fixture().replace(
+            '      - name: Verify checkout SHA\n'
+            '        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+            "", 1,
+        )
+        self.assertTrue(any("checkout SHA attestation" in x for x in validate_text(sample)))
+
+    def test_wrong_sha_check_command_is_rejected(self):
+        sample = fixture().replace(
+            'run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+            'run: echo skip source SHA assertion', 1,
+        )
+        self.assertTrue(any("checkout SHA attestation" in x for x in validate_text(sample)))
+
+    def test_missing_github_evidence_tests_rejected(self):
+        sample = fixture().replace(
+            "      - run: python3 scripts/test_rust_gha_run.py", "",
+        )
+        self.assertTrue(any("GH job-evidence" in x for x in validate_text(sample)))
 
     def test_no_tests_is_not_success(self):
         sample = fixture().replace(

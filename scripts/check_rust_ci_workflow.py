@@ -81,6 +81,12 @@ def validate_text(content: str) -> list[str]:
             continue
         if "runs-on: ubuntu-24.04" not in section or "steps:" not in section:
             errors.append(name + " is missing the expected runner/steps")
+        sha_attestation = (
+            '      - name: Verify checkout SHA\n'
+            '        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"'
+        )
+        if section.count(sha_attestation) != 1:
+            errors.append(name + " must execute exactly one checkout SHA attestation")
         if name == "rust-contracts":
             if not re.search(r"(?m)^    needs: go-fixtures$", section):
                 errors.append("rust-contracts must depend on go-fixtures")
@@ -118,6 +124,8 @@ def validate_text(content: str) -> list[str]:
             errors.append("missing Bun regression suite: " + step)
     if "python3 scripts/check_rust_ci_workflow.py" not in sections.get("legacy-contracts", ""):
         errors.append("workflow must enforce its own contract check")
+    if "python3 scripts/test_rust_gha_run.py" not in sections.get("legacy-contracts", ""):
+        errors.append("workflow must execute its GH job-evidence regression tests")
     for line in lines:
         if "- run:" in line and line.count("'") % 2 == 1:
             errors.append("unbalanced quoted step: " + line.strip()[:120])
