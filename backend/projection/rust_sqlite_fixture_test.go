@@ -2,6 +2,9 @@ package projection
 
 import (
     "database/sql"
+    "crypto/sha256"
+    "encoding/binary"
+    "hash"
     "fmt"
     "strings"
     "os"
@@ -146,6 +149,97 @@ func TestExportRustV16Fixture(t *testing.T) {
             t.Fatal(err)
         }
     }
+    if oraclePath := os.Getenv("TDRIVE_COMPAT_DIGEST_OUT"); oraclePath != "" {
+        if !filepath.IsAbs(oraclePath) {
+            t.Fatal("digest oracle path must be absolute")
+        }
+        if err := os.MkdirAll(filepath.Dir(oraclePath), 0o700); err != nil {
+            t.Fatal(err)
+        }
+        if _, err := os.Lstat(oraclePath); err == nil {
+            t.Fatal("refusing to replace an existing Go digest oracle")
+        } else if !os.IsNotExist(err) {
+            t.Fatal(err)
+        }
+        var oracle strings.Builder
+        tables := []string{
+            "schema_version", "channels", "replay_log", "replay_log_tamper",
+            "replay_log_rejects", "folders", "files", "dirents",
+            "file_revisions", "projection_operations", "encryption",
+            "file_parts", "pending_joins", "trash_entries",
+        }
+        for _, table := range tables {
+            columnRows, err := db.Query("PRAGMA table_info(\"" + table + "\")")
+            if err != nil {
+                t.Fatal(err)
+            }
+            var columns []string
+            for columnRows.Next() {
+                var cid, notNull, pk int64
+                var name, kind string
+                var defaultValue sql.NullString
+                if err := columnRows.Scan(&cid, &name, &kind, &notNull, &defaultValue, &pk); err != nil {
+                    _ = columnRows.Close()
+                    t.Fatal(err)
+                }
+                columns = append(columns, name)
+            }
+            if err := columnRows.Err(); err != nil {
+                _ = columnRows.Close()
+                t.Fatal(err)
+            }
+            _ = columnRows.Close()
+            if len(columns) == 0 {
+                t.Fatalf("no columns for table %s", table)
+            }
+
+            h := sha256.New()
+            goDigestFeed(h, table)
+            var expressions []string
+            for _, column := range columns {
+                goDigestFeed(h, column)
+                quoted := "\"" + strings.ReplaceAll(column, "\"", "\"\"") + "\""
+                expressions = append(expressions, "typeof("+quoted+")", "hex(CAST("+quoted+" AS BLOB))")
+            }
+            order := make([]string, len(expressions))
+            for i := range expressions {
+                order[i] = fmt.Sprint(i + 1)
+            }
+            query := fmt.Sprintf("SELECT %s FROM \"%s\" ORDER BY %s",
+                strings.Join(expressions, ","), table, strings.Join(order, ","))
+            rows, err := db.Query(query)
+            if err != nil {
+                t.Fatal(err)
+            }
+            values := make([]string, len(expressions))
+            dest := make([]any, len(expressions))
+            for i := range values {
+                dest[i] = &values[i]
+            }
+            count := 0
+            for rows.Next() {
+                if err := rows.Scan(dest...); err != nil {
+                    _ = rows.Close()
+                    t.Fatal(err)
+                }
+                count++
+                for _, value := range values {
+                    goDigestFeed(h, value)
+                }
+            }
+            if err := rows.Err(); err != nil {
+                _ = rows.Close()
+                t.Fatal(err)
+            }
+            if err := rows.Close(); err != nil {
+                t.Fatal(err)
+            }
+            fmt.Fprintf(&oracle, "%s\t%d\t%x\n", table, count, h.Sum(nil))
+        }
+        if err := os.WriteFile(oraclePath, []byte(oracle.String()), 0o600); err != nil {
+            t.Fatal(err)
+        }
+    }
     var version int
     if err := db.QueryRow("SELECT MAX(version) FROM schema_version").Scan(&version); err != nil {
         t.Fatal(err)
@@ -216,4 +310,13 @@ func TestExportRustV16Fixture(t *testing.T) {
             t.Fatal(err)
         }
     }
+}
+
+// Length-prefix fields so distinct row contents can never produce the same
+// concatenation before hashing. Matches Rust digest::feed exactly.
+func goDigestFeed(h hash.Hash, value string) {
+    var prefix [8]byte
+    binary.BigEndian.PutUint64(prefix[:], uint64(len(value)))
+    _, _ = h.Write(prefix[:])
+    _, _ = h.Write([]byte(value))
 }
