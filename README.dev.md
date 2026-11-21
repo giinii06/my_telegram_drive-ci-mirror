@@ -29,9 +29,18 @@ bun run --cwd cmd/tdrive/webui browser:install
 bun run --cwd cmd/tdrive/webui test
 ```
 
-Linux에서 브라우저 시스템 패키지도 필요하면 `browser:install` 뒤에 `--with-deps`를 붙이세요. CI 명령은 [.github/workflows/ci.yml](.github/workflows/ci.yml)에 있습니다.
+Linux에서 브라우저 시스템 패키지도 필요하면 `browser:install` 뒤에 `--with-deps`를 붙이세요.
 
 `compile: signal: killed`가 발생하면 Docker 메모리·스왑을 확인하세요. 스왑 없는 2GB 환경에서는 빌드가 실패했습니다.
+
+## CI 실행과 결과 확인
+
+GitLab `main`에 푸시하면 GitLab이 공개 GitHub 미러를 동기화합니다. GitHub-hosted Runner가 중앙 `ci-hub`의 공통 워크플로에서 Go 빌드와 테스트를 실행합니다.
+
+- [GitHub Actions 실행 로그](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/workflows/gitlab-bridge.yml)를 확인합니다. 즉시 재실행하려면 해당 실행의 **Re-run jobs**를 선택합니다.
+- GitLab 커밋 상세에서 같은 SHA의 `github-actions/ci-hub` 상태를 확인합니다. 상태 보고는 브리지가 실행 중일 때 5분 주기로 반영됩니다.
+
+Docker와 웹 UI 검증은 같은 미러의 `Docker and application checks` 워크플로에서 확인합니다.
 
 ## 유지할 규칙
 
