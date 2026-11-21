@@ -1,11 +1,13 @@
-//! Read-only TDE1 envelope inspection derived from backend/crypto/stream.go.
+//! TDE1 header inspection, small-file authentication and streaming encryption from Go.
 //!
-//! WARNING: A valid header and length do not authenticate ciphertext. This
-//! production server still owns all encryption and vault access. The new
-//! bounded testing decryptor is exported separately and never wired to writes.
+//! A valid header alone does not authenticate ciphertext. Streaming encrypt
+//! is compatible with the original Go envelope, but callers must stage output
+//! atomically and must not publish failed streams. Vault integration is pending.
 
 mod auth;
+mod stream;
 pub use auth::{DecryptError, MAX_SMALL_PLAINTEXT, decrypt_small_tde1};
+pub use stream::{StreamError, encrypt_stream};
 
 use std::error::Error;
 use std::fmt;
