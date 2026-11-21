@@ -85,6 +85,7 @@ pub enum WireError {
     BadObject,
     BadParent,
     UnsupportedRendition,
+    UnsupportedFormat,
 }
 
 impl WireError {
@@ -97,6 +98,7 @@ impl WireError {
             Self::BadObject => "bad_object",
             Self::BadParent => "bad_parent",
             Self::UnsupportedRendition => "unsupported_rendition",
+            Self::UnsupportedFormat => "unsupported_format",
         }
     }
 }
@@ -469,6 +471,135 @@ pub fn parse_wire(raw: &str) -> Result<Operation, WireError> {
         };
     }
     Ok(op)
+}
+
+/// Encode only the plain seven-operation subset of Go Format().
+///
+/// All writable CAS, multipart and sealed-filename operations are rejected
+/// until full-field Go↔Rust differential tests cover their entire envelope.
+/// Never use this helper to publish Telegram messages.
+pub fn format_simple_wire(op: &Operation) -> Result<String, WireError> {
+    if !matches!(
+        op.op_type,
+        OpType::File
+            | OpType::Meta
+            | OpType::Mkdir
+            | OpType::Rename
+            | OpType::Move
+            | OpType::Rmdir
+            | OpType::Tomb
+    ) {
+        return Err(WireError::UnsupportedFormat);
+    }
+    if op.encrypted
+        || op.encrypted_name.is_some()
+        || op.part_count != 0
+        || op.content_message_id != 0
+        || op.operation_id.is_some()
+        || op.file_size < 0
+        || op.upload_time < 0
+    {
+        return Err(WireError::UnsupportedFormat);
+    }
+    if !matches!(op.op_type, OpType::File | OpType::Meta)
+        && (op.file_size != 0 || op.upload_time != 0)
+    {
+        return Err(WireError::UnsupportedFormat);
+    }
+
+    let mut out = format!("TDX1|t={}", op.op_type.as_str());
+    match op.op_type {
+        OpType::File => {
+            let parent = valid_parent(&op.parent)?;
+            out.push_str("|p=");
+            out.push_str(&parent);
+            append_simple_name(&mut out, op)?;
+            append_simple_file_attrs(&mut out, op);
+        }
+        OpType::Meta => {
+            append_simple_object(&mut out, op, Some('f'))?;
+            let parent = valid_parent(&op.parent)?;
+            out.push_str("|p=");
+            out.push_str(&parent);
+            append_simple_name(&mut out, op)?;
+            append_simple_file_attrs(&mut out, op);
+        }
+        OpType::Mkdir => {
+            append_simple_object(&mut out, op, Some('d'))?;
+            let parent = valid_parent(&op.parent)?;
+            out.push_str("|p=");
+            out.push_str(&parent);
+            append_simple_name(&mut out, op)?;
+        }
+        OpType::Rename => {
+            append_simple_object(&mut out, op, None)?;
+            append_simple_name(&mut out, op)?;
+        }
+        OpType::Move => {
+            append_simple_object(&mut out, op, None)?;
+            let parent = valid_parent(&op.parent)?;
+            out.push_str("|p=");
+            out.push_str(&parent);
+        }
+        OpType::Rmdir => append_simple_object(&mut out, op, Some('d'))?,
+        OpType::Tomb => append_simple_object(&mut out, op, Some('f'))?,
+        _ => return Err(WireError::UnsupportedFormat),
+    }
+    Ok(out)
+}
+
+fn append_simple_object(
+    out: &mut String,
+    op: &Operation,
+    kind: Option<char>,
+) -> Result<(), WireError> {
+    let id = op.object.as_deref().ok_or(WireError::BadObject)?;
+    valid_object(id, kind)?;
+    out.push_str("|obj=");
+    out.push_str(id);
+    Ok(())
+}
+
+fn append_simple_name(out: &mut String, op: &Operation) -> Result<(), WireError> {
+    let name = op.name.as_deref().ok_or(WireError::Malformed)?;
+    if name.is_empty() {
+        return Err(WireError::Malformed);
+    }
+    out.push_str("|n=");
+    out.push_str(&query_escape(name));
+    Ok(())
+}
+
+fn append_simple_file_attrs(out: &mut String, op: &Operation) {
+    if op.file_size > 0 {
+        out.push_str("|sz=");
+        out.push_str(&op.file_size.to_string());
+    }
+    if op.upload_time > 0 {
+        out.push_str("|ts=");
+        out.push_str(&op.upload_time.to_string());
+    }
+}
+
+/// Valid-UTF-8 subset of Go net/url.QueryEscape: form encoding uses '+' for
+/// spaces, upper-case hexadecimal escapes, and unescaped ASCII -_.~.
+fn query_escape(input: &str) -> String {
+    const HEX: &[u8; 16] = b"0123456789ABCDEF";
+    let mut out = String::with_capacity(input.len());
+    for byte in input.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(char::from(byte));
+            }
+            b' ' => out.push('+'),
+            _ => {
+                out.push('%');
+                out.push(char::from(HEX[usize::from(byte >> 4)]));
+                out.push(char::from(HEX[usize::from(byte & 15)]));
+            }
+        }
+    }
+    out
 }
 
 #[cfg(test)]

@@ -1,0 +1,15 @@
+# name<TAB>exact Go Format output for TDX1 plain operations
+file_root	TDX1|t=f|p=|n=hello.txt
+file_subdir	TDX1|t=f|p=d:abc|n=sunset.jpg|sz=4321|ts=99
+file_reserved_chars	TDX1|t=f|p=|n=hello+world%2B%2F%3F%26
+file_zero_attrs	TDX1|t=f|p=|n=a.txt
+meta_unicode	TDX1|t=meta|obj=f:99|p=d:abc|n=%ED%95%9C%EA%B8%80+%26+test.txt|sz=123
+meta_root	TDX1|t=meta|obj=f:51|p=|n=a.mp4|sz=99|ts=77
+mkdir_root	TDX1|t=mkdir|obj=d:docs|p=|n=Docs
+mkdir_unicode	TDX1|t=mkdir|obj=d:seoul|p=|n=%EC%84%9C%EC%9A%B8+%26+Busan
+rename_file	TDX1|t=rename|obj=f:51|n=a%25b.txt
+rename_folder	TDX1|t=rename|obj=d:docs|n=New+Name
+move_file	TDX1|t=move|obj=f:51|p=d:docs
+move_folder_root	TDX1|t=move|obj=d:docs|p=
+rmdir	TDX1|t=rmdir|obj=d:docs
+tomb	TDX1|t=tomb|obj=f:51
