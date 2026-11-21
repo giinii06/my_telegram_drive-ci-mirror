@@ -15,7 +15,7 @@ The GitLab project uses `ci_config_path=.gitlab/ci-hub-request.yml@blond11qq/ci-
 
 ## Dependency-ordered workstream
 
-1. **S1: Phase 07.b follow-up — atomic private TDE1 file staging** (active): [07b2-atomic-file-boundary.md](07b2-atomic-file-boundary.md). Encrypt/decrypt onto 0600 temp file, authenticate then no-clobber publish, durability sync, test wrong key / late corrupt tag / truncation / existing target / symlink / source preservation / large files. No Telegram or vault access.
+1. **S1: Phase 07.b follow-up — atomic private TDE1 file staging** (implemented; external provider success at code SHA, macOS integration pending): [07b2-atomic-file-boundary.md](07b2-atomic-file-boundary.md). Encrypt/decrypt onto 0600 temp file, authenticate then no-clobber publish, durability sync, test wrong key / late corrupt tag / truncation / existing target / symlink / source preservation / large files. No Telegram or vault access.
 2. **S2: Phase 07.c — vault password and key lifecycle**: Go Argon2id/wrapping fixtures, key rotation, cleanup and redaction; approve only after Go byte-oracle and threat model, then own plan/commit/gates.
 3. **S3: Phase 04.f/h — cross-Go/Rust writer exclusion and transactional SQLite writer**: process namespace/OS locking, migrations and crash-safe backup/rollback verified against synthetic Go db. Old Go writer remains authoritative until parity gate.
 4. **S4: Phase 05 — real user-account MTProto**: pinned native Rust stack, auth/session/DC, discovery, history and actual binary transport; quarantined test account and deterministic fake. **Do not call transport trait a client.**
@@ -28,3 +28,10 @@ The GitLab project uses `ci_config_path=.gitlab/ci-hub-request.yml@blond11qq/ci-
 ## Phase reporting contract
 
 Each checkpoint must contain: test intent (RED), actual candidate SHA, implemented paths, observed tool/job/test command, passed/failed/skipped/unavailable status, actual external provider run link if available, reviewer findings, and explicit remaining holes. Archive evidence in the phase file and update the ledger with facts, never just ticking a broad Phase from code existence.
+
+## S1 evidence checkpoint (2026-11-22)
+
+- RED acceptance contract committed `f04fdd3ac06b753cbffd16354262945a4b7ee855`. This commit adds tests for not-yet-existent exported functions; no independent red CI run evidence is claimed.
+- GREEN candidate `d82edc167482695c10dea351e6deeefe1e5afcb3`, pipeline 3098264188 → `github-actions/ci-hub-request: success`, [GitHub run 44952398680](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44952398680).
+- Two-lens self-review found macOS `/var`/`tmp` system symlink compatibility issue; fix `79b520bd26b3f604b332f697e8d2425945ff1ed3`, exact-SHA pipeline [3098266896](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098266896), status `github-actions/ci-hub-request: success`, [GitHub run 44952585082](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44952585082).
+- GitLab-only connector cannot independently inspect GitHub job steps; per-job coverage and real Mac runtime remain UNKNOWN. Thus S1 is a **provider-green implementation increment**, not full cross-platform Phase 07.b or product completion. The source Go file and production application have not been modified or wired.

@@ -28,10 +28,10 @@ The existing `tdrive-crypto::encrypt_stream` and `decrypt_stream` accept arbitra
 | Event | Commit SHA | Evidence | Status |
 |---|---|---|---|
 | Plan committed | recorded via GitLab commit | GitLab review branch | PLANNED |
-| RED test | pending | none | NOT STARTED |
-| Candidate implementation | pending | none | NOT STARTED |
-| Provider verification | pending | none | NOT VERIFIED |
-| Dual-lens review | pending | none | NOT REVIEWED |
+| RED test | `f04fdd3ac06b753cbffd16354262945a4b7ee855` | Added missing-API acceptance tests (no isolated failing CI run) | WRITTEN; RED EXECUTION UNVERIFIED |
+| Candidate implementation | `d82edc167482695c10dea351e6deeefe1e5afcb3` | File I/O with 0600 staging, exclusive link, fsync | COMMITTED |
+| Provider verification | `79b520bd26b3f604b332f697e8d2425945ff1ed3` | Pipeline 3098266896; `github-actions/ci-hub-request: success`; GitHub run 44952585082. GitHub individual job logs inaccessible. | PROVIDER SUCCESS; JOB DETAIL UNVERIFIED |
+| Dual-lens review | `d82edc16..79b520bd` | Self-review requirements: tests cover late failure/no-clobber/source; security: macOS root symlink bug fixed. Residual runtime Mac and time-of-check/time-of-use races documented. | SELF-REVIEW COMPLETE; MAC GATE OPEN |
 
 ## Platform review finding and correction
 

@@ -32,3 +32,7 @@
 ### Safety boundary
 
 Detached synthetic database only; no automatic live SQLite writer, secrets, user Telegram account, Go replacement, data deletion, deployment or old user storage change. Go and Rust must never write to the same data dir or Telegram channel simultaneously.
+
+### Phase 07.b2 verified implementation increment (2026-11-22)
+
+[Draft MR !20](https://gitlab.com/blond11qq/my_telegram_drive/-/merge_requests/20) adds atomic 0600 private staging and no-clobber hard-link publishing for file encryption and decryption (not wired to app). Test contract covers 9MiB+, late tag corruption, truncated final tag, wrong keys, original-preservation, existing files, symlinks and public destination dirs. Latest implementation SHA `79b520bd26b3f604b332f697e8d2425945ff1ed3`; [GitLab pipeline #3098266896](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098266896) has separate `github-actions/ci-hub-request: success` status pointing to GitHub run 44952585082; GitLab CI itself only dispatches. Individual GitHub job logs and macOS runtime validation not independently available. **Partial phase, not production file encryption release.**
