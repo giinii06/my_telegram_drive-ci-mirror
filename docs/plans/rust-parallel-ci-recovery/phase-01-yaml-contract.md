@@ -80,3 +80,11 @@ Alchemy Phase State Machine: `tested`, *not* `verified` or `completed`; real Git
 ## Observed RED case classification
 
 The original malformed YAML failed source-backed structural RED. In addition, the exact GitLab checker copy at the initial candidate `c51c6d3` was locally executed and **failed** with `FAIL workflow must enforce its own contract check` because its expected filename had hyphens instead of underscores. This is genuine observed RED for that regression. After commits `2f4b26e0` and `4017cab5`, identical-hash source copies produced PASS and eight unittest results. The v2.2 state marks `red_verified=true` for this specific checker contract, not for all downstream Rust/Go tests.
+
+## Latest provider recheck for final code candidate
+
+- **Code SHA:** `4017cab5c270b82d227c97b3ea459d42ae1454fc` (not the newer docs checkpoint).
+- **GitLab pipeline:** [#3098379726](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098379726). `dispatch_github_actions=success` and external `github-actions/ci-hub-request=success` with [GitHub run 44959273388](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44959273388). This is `provider_result` only; no GitHub checked-out SHA or per-category test job logs are visible through the available connector/web/browser.
+- **Actually run locally on SHA256-matched bytes:** `python3 scripts/check_rust_ci_workflow.py` PASS; `python3 scripts/test_rust_ci_workflow.py` 8/8 PASS; `python3 -m py_compile scripts/check_rust_ci_workflow.py` PASS; PyYAML `yaml.BaseLoader` parsed `jobs` with six unique IDs. `cargo fmt/clippy/test`, Go exporters and Bun tests **NOT observed**.
+- The three Phase state records (Phase01 tested, Phase02/Phase03 not_started) were validated with `Alchemy scripts/phase_state.py` and `scripts/workflow_gates.py`: both returned **zero violations** and `next_gate=VERIFY_REAL_CI_CHECKS`. These checks were executed on a local JSON reconstruction of the exact GitLab state values. They are offline consistency tests, not independent CI or E2E proof.
+- No fresh request to change GitHub receiver workflows, private mirrors/secrets or GitLab runner settings was authorized. No waiver granted; gate remains open.

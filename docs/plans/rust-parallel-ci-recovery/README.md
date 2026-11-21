@@ -30,3 +30,10 @@ No change to GitLab `ci_config_path`, mirrors, runner quotas, project visibility
 ## Alchemy v2.2 outcome linkage
 
 Phase 01 and Phase 02 are **foundations**, and both point to Phase **03** as the explicitly planned consuming `user_flow`. This ensures `workflow_gates.py` can reject a workflow that delivers only checks/CI files but claims a finished product. Phase 03 is **not implemented, tested or promised as complete** by this CI recovery branch: the real Rust MTProto engine, Vault lifecycle, upload/download service, GPUI/server binaries and deployment remain in the broader [migration plan](../my-telegram-drive-rust-migration/README.md). This phase is only the cross-plan terminal integration acceptance owner; no user account, network or secret is accessed by CI recovery.
+
+## Current exact evidence checkpoint
+
+- Code `4017cab5c270b82d227c97b3ea459d42ae1454fc`: checksum-matched local Python contract 8/8 PASS, YAML parsed six unique jobs.
+- External provider callback on code SHA: [GitLab #3098379726](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098379726) → [GitHub run 44959273388](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44959273388), `provider_result=success`, `jobs_verified=unknown`.
+- Alchemy 2.2 offline state and outcome-gate consistency: 0 violations, next gate `VERIFY_REAL_CI_CHECKS` (Phase03 user-facing E2E explicitly not_started).
+- The next **safe** action requires observable GitHub receiver job steps and checked-out SHA; do not infer them from the callback or change private/public mirror settings without authorization.

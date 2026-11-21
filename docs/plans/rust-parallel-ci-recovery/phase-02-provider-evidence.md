@@ -31,3 +31,7 @@ A generic external success callback exists for GitLab source `c51c6d3419ab96c018
 ## Consuming user flow
 
 This foundation explicitly points to the never-started **Phase 03** operator encrypted upload/download E2E gate. Phase 02 cannot be marked jobs-verified solely because the provider sends `github-actions/ci-hub-request: success`. Absence of remote job logs remains a security/verification blocker for the larger Rust migration.
+
+## Latest code SHA request result
+
+For `4017cab5c270b82d227c97b3ea459d42ae1454fc`, GitLab pipeline [#3098379726](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098379726) received external GitHub Actions success callback [run 44959273388](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44959273388). Provider callback does not establish that the **repaired** `rust-migration-parallel.yml` workflow ran. Remote GitHub job-level evidence is inaccessible, so Phase02 remains not_started/blocked on external visibility and cannot clear the Phase01 `verified` transition. This does not authorize further dependent Vault implementation as a verified migration Phase.
