@@ -1,53 +1,28 @@
-# Rust/GPUI/Docker migration — implementation status
+# Rust migration implementation status — updated 2026-11-22
 
-Baseline: legacy Go main commit 7edfea5456f4e9b18305e15e9de5d149976331da. This implementation branch is based on docs/rust-gpui-docker-migration-phases-20261121 and does **not** update main.
+현재 branch lineage: docs plan branch → Phase 04 → 05 → 06 → 07 → 08 → 09 → full parity plan. 원래 Go main은 수정/배포되지 않았으며 Rust 코드는 운영 서버에 연결되지 않았다.
 
-## Phase status
+**이 표의 "CI verified"는 해당 증분의 테스트만 통과했다는 뜻이고 phase 전체 완료가 아니다.** 모든 미구현 작업의 상세 목록은 [phase-ledger](phase-ledger.md)를 보라.
 
-| Phase | Implemented in this branch | Overall complete? |
-|---|---|---|
-| 00 | Source-only legacy contract checker for schema v16, daemon protocol v6, TDX1/TDE1 identifiers, 17 ops, 25 HTTP routes, Docker/Tailscale invariant | **No**: real Go full tests/performance and runtime baseline outstanding |
-| 01 | Detailed architecture, compatibility matrix and ADR documents inherited from docs MR | **No**: key ADRs require spikes and approvals |
-| 02 | 43 curated TDX1 positive/negative cases; standalone Rust tests and Go oracle regression test | **No**: cryptographic, DB, media, HTTP/IPC golden fixtures outstanding |
-| 03 | Cargo workspace, 64-bit-safe positive IDs, isolated tdrive-inspect executable and GitLab CI jobs | **No**: cargo compiler/job execution not yet confirmed |
-| 04 | None: SQLite schema migration and read-only DB parity still Go-owned | **Not started** |
-| 05 | None: authenticated Telegram/MTProto remains Go-owned | **Not started** |
-| 06 | Read-only Rust parser that recognizes all 17 TDX1 operation kinds with required-field validation | **No**: canonical formatter, positive rendition, projection, replay, SQLite and sync not ported |
-| 07 | Read-only TDE1 50-byte header/size inspector with ciphertext-size bounds tests | **No**: no key derivation, crypto, stream decrypt or vault state |
-| 08–15 | No production Rust components; Go keeps file transfer, media, mount, server, web, packaging and mobile | **Not started** |
+| Phase | 실제 Rust 증분 | GitLab 증거 | 전체 Phase 완료 |
+|---|---|---|---|
+| 00~03 | Go contract guard, curated TDX1 parser fixtures, Rust workspace + inspect CLI | inherited Phase 04 CI | 아니오 |
+| 04.a | Go 생성 SQLite v16 snapshot read-only schema/integrity/row counts | b4733e9 / pipeline 3097711065 | 아니오 |
+| 05.a | offline MTProto trait model + Go parity stable random_id | 9c4031c / pipeline 3097721220 | 아니오 |
+| 06.a | 7 simple TDX1 writer formats + 14 Go parity cases | 3c45de1 / pipeline 3097739847 | 아니오 |
+| 07.a | 8 MiB 제한 authenticated TDE1 read-only decrypt + 6 Go cipher fixtures | 89243d8 / pipeline 3097788263 | 아니오 |
+| 08.a | backup deletion-permit decision type-state; unlink 미구현 | dc6e0d7 / pipeline 3097799701 | 아니오 |
+| 09.a | Go-equivalent Range parser, 18 fixtures; media server 미구현 | 89fbdd1 / pipeline 3097808960 | 아니오 |
+| 10~15 | production Rust WebDAV/server/GPUI/Docker/release/cutover 미구현 | 검증 증거 없음 | 아니오 |
 
-**Safety**: The Rust code currently has NO database writer, no Telegram network adapter, no vault key handling, no GPUI, and no Rust Docker production image. It cannot be run as a replacement for Go. The existing Go binaries, DB, .env, Docker image/Compose, client, and package scripts remain unchanged.
+사용자가 의존할 수 없는 것: **Rust Telegram 로그인/전송, 재생/replay projection writer, vault key lifecycle, file/backup I/O, HTTP/WebDAV server, native GPUI GUI, Rust Docker image, Go→Rust production cutover 전부 미구현.**
 
-## Known limits
+### 다음 작업 순서
 
-- TDX1 rendition envelopes (rend=...) are rejected pending typed JSON descriptor validation; Go can accept valid renditions. This is a deliberately visible compatibility gap.
-- The Rust UTF-8 path rejects invalid UTF-8; Go's QueryUnescape returns raw byte strings. Production parity must decide how to represent these bytes without loss.
-- The legacy source inventory guards declarations and route names only; it is not full semantic parity.
-- The TDE1 inspector checks magic, flags, salt/nonce offsets and expected file size. It **does not authenticate or decrypt data**; it cannot be used for access decisions.
-- No actual build/test success has been observed for Rust at the commit where this document was written. Full CI remains a gate, not a formality.
+1. [전체 실행 원장](phase-ledger.md)의 04.b Go parity folder listing 구현/검증.
+2. 04.c..h(실제 영속성과 migration), 05.b..g(MTProto), 06.b..g(projection), 07.b..f(crypto) 등 설계된 상세 완료조건.
+3. 하위 Phase마다 개별 commit + matching SHA pipeline + Draft MR로 누적. 실제 사용 가능 전환은 Phase 15 승인 후.
 
-## CI configuration and operator dependency
+### Safety boundary
 
-The project has an Oracle A1 ARM64 runner #59776971, tag oracle-arm64, associated with Pmanager. In the GitLab project Settings → CI/CD → Runners, it must be explicitly assigned to my_telegram_drive and potentially unlocked first. The CI branch targets the tag, but an unassigned runner leaves all jobs pending. See [runner setup](ci-runner-setup.md).
-
-Planned verification commands:
-
-~~~sh
-python3 scripts/check-legacy-contracts.py
-go test ./backend/projection -run TestRustTDX1Fixtures -count=1
-cargo fmt --all --check
-cargo clippy --workspace --all-targets --locked -- -D warnings
-cargo test --workspace --locked
-printf 'TDX1|t=f|p=|n=hello.txt\n' | cargo run --locked -p tdrive-inspect -- --check-stdin
-~~~
-
-Do not claim a Phase fully complete without test execution and the downstream Phase acceptance gates. Do not merge/deploy this branch until a reviewer has inspected the result and CI has run at its exact SHA.
-
-## Next verified changes required
-
-1. Runner assignment, CI execution; repair any demonstrated Rust/Go test failures and record logs.
-2. TDX1 descriptor/rendition support plus canonical Format in Rust; compare parsed field values, not only operation kinds.
-3. Go→Rust SQLite v16 snapshot read, schema table/index inventory, replay table diff.
-4. Telegram user-account MTProto stack spike (safe test account; no two processes writing same channel).
-5. TDE1 Go↔Rust actual cryptographic golden vectors, failure tests and key lifecycle.
-6. Only then begin real file services, API/CLI, GPUI desktop and Rust Docker headless cutover in independent MRs.
+Detached synthetic database only; no automatic live SQLite writer, secrets, user Telegram account, Go replacement, data deletion, deployment or old user storage change. Go and Rust must never write to the same data dir or Telegram channel simultaneously.

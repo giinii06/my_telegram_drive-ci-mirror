@@ -1,5 +1,7 @@
 # TDrive Rust + GPUI + Docker 전환 마스터 플랜
 
+**최신 실행 추적:** [전체 이행 세부 Phase·커밋·CI 원장](phase-ledger.md) · [현재 구현 사실만 기록](implementation-status.md). 아래 내용은 최초 설계 문서이며 최초의 '문서 변경만' 문구는 역사적 배경으로 읽어야 한다.
+
 - **기준 저장소**: blond11qq/my_telegram_drive
 - **분석 기준**: main @ 7edfea5456f4e9b18305e15e9de5d149976331da (2026-11-21 확인)
 - **문서 변경의 범위**: 계획/설계 문서만. 구현, DB 이관, 배포, 서비스 중단, 기능 삭제 없음.
