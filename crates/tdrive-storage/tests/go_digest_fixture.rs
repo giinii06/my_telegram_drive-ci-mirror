@@ -26,5 +26,9 @@ fn go_v16_all_core_table_rows_match_rust_sha256_digests() {
         result,
         fs::read_to_string(oracle_path).expect("Go generated digest oracle")
     );
-    assert_eq!(before, fs::read(&db_path).unwrap(), "Rust must not write snapshot");
+    assert_eq!(
+        before,
+        fs::read(&db_path).unwrap(),
+        "Rust must not write snapshot"
+    );
 }

@@ -36,11 +36,7 @@ fn quote_identifier(name: &str) -> String {
     format!("\"{}\"", name.replace('"', "\"\""))
 }
 
-fn feed(
-    digest: &mut Sha256,
-    used: &mut usize,
-    value: &str,
-) -> Result<(), SnapshotError> {
+fn feed(digest: &mut Sha256, used: &mut usize, value: &str) -> Result<(), SnapshotError> {
     let bytes = value.as_bytes();
     *used = used
         .checked_add(bytes.len())
@@ -54,7 +50,10 @@ fn feed(
     Ok(())
 }
 
-fn digest_table(connection: &Connection, table: &'static str) -> Result<TableDigest, SnapshotError> {
+fn digest_table(
+    connection: &Connection,
+    table: &'static str,
+) -> Result<TableDigest, SnapshotError> {
     let table_name = quote_identifier(table);
     let mut columns_stmt = connection.prepare(&format!("PRAGMA table_info({table_name})"))?;
     let columns_rows = columns_stmt.query_map([], |row| row.get::<_, String>(1))?;

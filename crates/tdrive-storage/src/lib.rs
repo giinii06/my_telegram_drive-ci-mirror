@@ -116,7 +116,9 @@ impl fmt::Display for SnapshotError {
                 f.write_str("invalid channel ID, replay cursor, or page limit")
             }
             Self::ReplayHashMismatch => f.write_str("Go replay_log raw header SHA-256 mismatch"),
-            Self::SnapshotTooLarge => f.write_str("detached SQLite table exceeds bounded digest limits"),
+            Self::SnapshotTooLarge => {
+                f.write_str("detached SQLite table exceeds bounded digest limits")
+            }
             Self::Database(e) => write!(f, "SQLite read failed: {e}"),
             Self::Io(e) => write!(f, "snapshot access failed: {e}"),
         }
