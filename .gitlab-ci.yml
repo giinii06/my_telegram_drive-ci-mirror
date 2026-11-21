@@ -1,7 +1,5 @@
-# GitLab checks only. Reuses the existing Oracle ARM64 project runner when
-# runner #59776971 is explicitly assigned to my_telegram_drive.
-# No Telegram credentials, deployments, image publication or DB mutations.
-
+# GitLab verification only: no Telegram credentials or deployment.
+# Existing Oracle A1 ARM64 project runner must have tag oracle-arm64.
 workflow:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -24,14 +22,43 @@ legacy-contracts:
   script:
     - python3 scripts/check-legacy-contracts.py
 
+legacy-go-fixture:
+  stage: contracts
+  image: golang:1.27-bookworm
+  variables:
+    GOTOOLCHAIN: "go1.25.13"
+    CGO_ENABLED: "0"
+    GOMAXPROCS: "2"
+    GOFLAGS: "-p=1"
+    TDRIVE_COMPAT_FIXTURE_OUT: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.sqlite"
+  script:
+    - go test ./backend/projection -run '^TestExportRustV16Fixture$' -count=1
+    - test -s tests/fixtures/sqlite/go-v16.sqlite
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - tests/fixtures/sqlite/go-v16.sqlite
+
 rust-contracts:
   stage: test
   image: rust:1.92-bookworm
+  needs:
+    - job: legacy-go-fixture
+      artifacts: true
+  variables:
+    TDRIVE_GO_SQLITE_FIXTURE: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.sqlite"
   script:
     - rustc --version
+    - test -s "$TDRIVE_GO_SQLITE_FIXTURE"
+    # Initial lockfile-generation step during Phase 04 dependency addition.
+    # Once this CI output is captured and committed, restore --locked here.
+    - cargo generate-lockfile
+    - echo TDRIVE_GENERATED_CARGO_LOCK_BEGIN
+    - cat Cargo.lock
+    - echo TDRIVE_GENERATED_CARGO_LOCK_END
     - cargo fmt --all --check
-    - cargo clippy --workspace --all-targets --locked -- -D warnings
-    - cargo test --workspace --locked
+    - cargo clippy --workspace --all-targets -- -D warnings
+    - cargo test --workspace
 
 legacy-go-projection:
   stage: test
