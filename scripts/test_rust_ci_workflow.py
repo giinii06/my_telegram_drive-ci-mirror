@@ -16,7 +16,7 @@ def fixture() -> str:
             lines.append("    needs: go-fixtures")
         lines.append("    steps:")
         if name == "legacy-contracts":
-            lines.append("      - run: python3 scripts/check-rust-ci-workflow.py")
+            lines.append("      - run: python3 scripts/check_rust_ci_workflow.py")
         if name == "rust-style":
             lines.append("      - run: cargo +1.92.0 fmt --all --check")
         if name == "go-fixtures":
