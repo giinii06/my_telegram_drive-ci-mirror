@@ -25,3 +25,7 @@ tdrive-data-backup*.tar.gz
 
 # Rust build products
 /target/
+
+# Go-generated CI fixtures (never commit DB bytes)
+tests/fixtures/sqlite/*.sqlite
+tests/fixtures/sqlite/*.sqlite-*
