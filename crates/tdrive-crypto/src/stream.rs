@@ -291,7 +291,9 @@ mod tests {
     use std::io::Cursor;
 
     fn pattern(size: usize) -> Vec<u8> {
-        (0..size).map(|index| ((index * 31 + 7) % 251) as u8).collect()
+        (0..size)
+            .map(|index| ((index * 31 + 7) % 251) as u8)
+            .collect()
     }
 
     #[test]
@@ -430,8 +432,7 @@ mod tests {
         };
         let key = [0x42u8; 32];
         for size in [0, 1, 65_535, 65_536, 65_537, 196_625] {
-            let expected_path = std::path::Path::new(&root)
-                .join(format!("tde1-seeded-{size}.bin"));
+            let expected_path = std::path::Path::new(&root).join(format!("tde1-seeded-{size}.bin"));
             let expected = std::fs::read(expected_path).expect("Go seeded cipher fixture");
             let mut actual = Vec::new();
             encrypt_with_material(
