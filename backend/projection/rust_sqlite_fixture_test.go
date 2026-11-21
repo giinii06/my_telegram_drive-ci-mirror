@@ -2,6 +2,8 @@ package projection
 
 import (
     "database/sql"
+    "fmt"
+    "strings"
     "os"
     "path/filepath"
     "testing"
@@ -48,6 +50,12 @@ func TestExportRustV16Fixture(t *testing.T) {
         "INSERT INTO dirents(channel_id,object_id,object_kind,parent_id,display_name,name_key,revision,tombstoned) VALUES (123456,'d:docs','folder','','Docs','docs',1,0)",
         "INSERT INTO dirents(channel_id,object_id,object_kind,parent_id,display_name,name_key,revision,tombstoned) VALUES (123456,'f:31','file','d:docs','hello.txt','hello.txt',1,0)",
         "INSERT INTO file_revisions(channel_id,file_msg_id,revision,content_msg_id,committed_msg_id) VALUES (123456,31,1,31,31)",
+        "INSERT INTO folders(channel_id,id,name,parent_id,tombstoned,revision) VALUES (123456,'d:archive','Archive','d:docs',1,2)",
+        "INSERT INTO dirents(channel_id,object_id,object_kind,parent_id,display_name,name_key,revision,tombstoned) VALUES (123456,'d:archive','folder','d:docs','Archive','archive',2,1)",
+        "INSERT INTO files(channel_id,msg_id,name,size,parent_id,upload_time,uploader_user_id,tombstoned,encrypted,plaintext_size,content_msg_id,content_hash,revision) VALUES (123456,33,'resume.txt',300,'d:docs',1700000044,77,0,1,250,333,'sha256-test',2)",
+        "INSERT INTO dirents(channel_id,object_id,object_kind,parent_id,display_name,name_key,revision,tombstoned) VALUES (123456,'f:33','file','d:docs','résumé.txt','résumé.txt',2,0)",
+        "INSERT INTO files(channel_id,msg_id,name,size,parent_id,upload_time,tombstoned,content_msg_id) VALUES (123456,34,'gone.txt',25,'d:docs',1700000055,1,34)",
+        "INSERT INTO dirents(channel_id,object_id,object_kind,parent_id,display_name,name_key,revision,tombstoned) VALUES (123456,'f:34','file','d:docs','gone.txt','gone.txt',1,1)",
     }
     tx, err := db.Begin()
     if err != nil {
@@ -70,8 +78,8 @@ func TestExportRustV16Fixture(t *testing.T) {
         t.Fatalf("schema version %d, want %d", version, currentSchemaVersion)
     }
     for table, want := range map[string]int{
-        "channels": 1, "folders": 1, "files": 1,
-        "dirents": 2, "file_revisions": 1,
+        "channels": 1, "folders": 2, "files": 3,
+        "dirents": 5, "file_revisions": 1,
     } {
         var got int
         if err := db.QueryRow("SELECT COUNT(*) FROM " + table).Scan(&got); err != nil {
@@ -84,5 +92,52 @@ func TestExportRustV16Fixture(t *testing.T) {
     var integrity string
     if err := db.QueryRow("PRAGMA integrity_check").Scan(&integrity); err != nil || integrity != "ok" {
         t.Fatalf("integrity %q: %v", integrity, err)
+    }
+
+    // Export the output of the authoritative Go read API for comparison with
+    // the Rust implementation. This is synthetic test data, never real files.
+    if oraclePath := os.Getenv("TDRIVE_COMPAT_FOLDER_LISTING_OUT"); oraclePath != "" {
+        if !filepath.IsAbs(oraclePath) {
+            t.Fatal("listing oracle path must be absolute")
+        }
+        if err := os.MkdirAll(filepath.Dir(oraclePath), 0o700); err != nil {
+            t.Fatal(err)
+        }
+        if _, err := os.Lstat(oraclePath); err == nil {
+            t.Fatal("refusing to replace existing listing oracle")
+        } else if !os.IsNotExist(err) {
+            t.Fatal(err)
+        }
+        cases := []struct {
+            channelID int64
+            parentID string
+        }{
+            {123456, ""},
+            {123456, "d:docs"},
+            {123456, "d:archive"},
+            {123456, "d:missing"},
+            {654321, ""},
+        }
+        var oracle strings.Builder
+        for _, testCase := range cases {
+            fmt.Fprintf(&oracle, "CASE\t%d\t%s\n", testCase.channelID, testCase.parentID)
+            folders, files, err := ListFolderContents(db, testCase.channelID, testCase.parentID)
+            if err != nil {
+                t.Fatalf("Go folder listing oracle: %v", err)
+            }
+            for _, folder := range folders {
+                fmt.Fprintf(&oracle, "DIR\t%s\t%s\t%s\t%d\n",
+                    folder.ID, folder.Name, folder.ParentID, folder.Revision)
+            }
+            for _, file := range files {
+                fmt.Fprintf(&oracle, "FILE\t%d\t%d\t%s\t%d\t%s\t%d\t%s\t%d\t%s\t%d\t%d\t%t\t%d\n",
+                    file.MsgID, file.ContentMsgID, file.ContentHash, file.Revision,
+                    file.UploadUUID, file.PartCount, file.Name, file.Size, file.ParentID,
+                    file.UploadTime, file.UploaderID, file.Encrypted, file.PlaintextSize)
+            }
+        }
+        if err := os.WriteFile(oraclePath, []byte(oracle.String()), 0o600); err != nil {
+            t.Fatal(err)
+        }
     }
 }

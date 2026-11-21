@@ -3,6 +3,9 @@
 //! This is not a migration engine. It never creates or modifies a database,
 //! replays Telegram messages, or accesses the Go daemon's lock file.
 
+mod listing;
+pub use listing::{FileSlim, FolderListing, FolderSlim, list_folder_contents_snapshot};
+
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use std::error::Error;
 use std::fmt;
@@ -141,6 +144,13 @@ impl SnapshotReport {
 /// a self-contained transactionally-consistent copy through the Go daemon or
 /// SQLite backup API, **not** copy the live database's main file alone.
 pub fn inspect_snapshot(path: &Path) -> Result<SnapshotReport, SnapshotError> {
+    let conn = open_verified_snapshot(path)?;
+    inspect_connection(&conn)
+}
+
+/// Open a detached snapshot only. The caller must additionally inspect schema
+/// integrity before reading rows. Never returns an active Go daemon database.
+fn open_verified_snapshot(path: &Path) -> Result<Connection, SnapshotError> {
     let meta = fs::symlink_metadata(path).map_err(SnapshotError::Io)?;
     if !meta.file_type().is_file() || meta.file_type().is_symlink() {
         return Err(SnapshotError::UnsafePath);
@@ -166,7 +176,7 @@ pub fn inspect_snapshot(path: &Path) -> Result<SnapshotReport, SnapshotError> {
     )?;
     // query_only affects this connection, not persistent journal state.
     conn.pragma_update(None, "query_only", "ON")?;
-    inspect_connection(&conn)
+    Ok(conn)
 }
 
 /// Read-only schema and row-count inspection; not a substitute for a replay
