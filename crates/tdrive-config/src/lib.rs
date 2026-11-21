@@ -51,8 +51,12 @@ impl fmt::Display for ConfigError {
                 f.write_str("config or session exceeded the 1 MiB safety limit")
             }
             Self::EmptySession => f.write_str("refusing to store an empty Telegram session"),
-            Self::InvalidLockRole => f.write_str("backend lock role must be a safe ASCII identifier"),
-            Self::LockHeld => f.write_str("Go or Rust backend.lock exists; refusing concurrent writer"),
+            Self::InvalidLockRole => {
+                f.write_str("backend lock role must be a safe ASCII identifier")
+            }
+            Self::LockHeld => {
+                f.write_str("Go or Rust backend.lock exists; refusing concurrent writer")
+            }
             Self::LockReplaced => f.write_str("backend lock identity changed while held"),
             Self::Io(e) => write!(f, "private config IO failure: {e}"),
         }

@@ -2,7 +2,10 @@
 
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Arc, Barrier, atomic::{AtomicU64, Ordering}};
+use std::sync::{
+    Arc, Barrier,
+    atomic::{AtomicU64, Ordering},
+};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -14,11 +17,12 @@ struct Scratch(PathBuf);
 impl Scratch {
     fn new() -> Self {
         let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "tdrive-lock-test-{}-{now}-{n}",
-            std::process::id()
-        ));
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path =
+            std::env::temp_dir().join(format!("tdrive-lock-test-{}-{now}-{n}", std::process::id()));
         fs::create_dir(&path).unwrap();
         Self(path)
     }
