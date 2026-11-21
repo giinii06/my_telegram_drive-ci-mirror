@@ -68,18 +68,19 @@ jobs:
   rust-contracts:
     needs: go-fixtures
     runs-on: ubuntu-24.04
-    env:
-      TDRIVE_GO_SQLITE_FIXTURE: tests/fixtures/sqlite/go-v16.sqlite
-      TDRIVE_GO_SQLITE_LISTING_FIXTURE: tests/fixtures/sqlite/go-v16.listing.tsv
-      TDRIVE_GO_SQLITE_REPLAY_FIXTURE: tests/fixtures/sqlite/go-v16.replay.tsv
-      TDRIVE_GO_SQLITE_DIGEST_FIXTURE: tests/fixtures/sqlite/go-v16.digest.tsv
-      TDRIVE_GO_TDE1_FIXTURES_DIR: tests/fixtures/tde1/generated
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: go-rust-fixtures
           path: .
+      - name: Export absolute paths for Cargo test package working directories
+        run: |
+          echo "TDRIVE_GO_SQLITE_FIXTURE=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.sqlite" >> "$GITHUB_ENV"
+          echo "TDRIVE_GO_SQLITE_LISTING_FIXTURE=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.listing.tsv" >> "$GITHUB_ENV"
+          echo "TDRIVE_GO_SQLITE_REPLAY_FIXTURE=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.replay.tsv" >> "$GITHUB_ENV"
+          echo "TDRIVE_GO_SQLITE_DIGEST_FIXTURE=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.digest.tsv" >> "$GITHUB_ENV"
+          echo "TDRIVE_GO_TDE1_FIXTURES_DIR=$GITHUB_WORKSPACE/tests/fixtures/tde1/generated" >> "$GITHUB_ENV"
       - run: rustup toolchain install 1.92.0 --profile minimal --component rustfmt,clippy
       - name: Assert Go-generated artifacts
         run: |
