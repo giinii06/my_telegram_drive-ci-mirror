@@ -64,10 +64,7 @@ impl RangeDecision {
             return Some(format!("bytes */{file_size}"));
         }
         if self.partial {
-            return Some(format!(
-                "bytes {}-{}/{file_size}",
-                self.start, self.end
-            ));
+            return Some(format!("bytes {}-{}/{file_size}", self.start, self.end));
         }
         None
     }
