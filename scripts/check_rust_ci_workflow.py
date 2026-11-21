@@ -116,7 +116,7 @@ def validate_text(content: str) -> list[str]:
     for step in ("bun run --cwd cmd/tdrive/webui lint", "bun run --cwd cmd/tdrive/webui test:unit"):
         if step not in sections.get("web-checks", ""):
             errors.append("missing Bun regression suite: " + step)
-    if "python3 scripts/check-rust-ci-workflow.py" not in sections.get("legacy-contracts", ""):
+    if "python3 scripts/check_rust_ci_workflow.py" not in sections.get("legacy-contracts", ""):
         errors.append("workflow must enforce its own contract check")
     for line in lines:
         if "- run:" in line and line.count("'") % 2 == 1:
