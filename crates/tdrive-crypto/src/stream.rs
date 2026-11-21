@@ -4,7 +4,7 @@
 //! function accepts fixed entropy so the produced bytes can be compared to
 //! Go's EncryptStream with the same 36 random bytes.
 
-use crate::{CHUNK_BYTES, HEADER_BYTES, MAX_PLAINTEXT_BYTES};
+use crate::{CHUNK_BYTES, HEADER_BYTES, MAX_PLAINTEXT_BYTES, Header, HeaderError};
 use chacha20poly1305::{
     XChaCha20Poly1305, XNonce,
     aead::{Aead, KeyInit},
@@ -28,6 +28,8 @@ pub enum StreamError {
     EntropyUnavailable,
     DerivationFailed,
     EncryptFailed,
+    InvalidHeader(HeaderError),
+    AuthenticationFailed,
     PlaintextSizeMismatch,
     Io(io::Error),
 }
@@ -40,6 +42,8 @@ impl fmt::Display for StreamError {
             Self::EntropyUnavailable => f.write_str("OS secure randomness unavailable"),
             Self::DerivationFailed => f.write_str("TDE1 per-file HKDF derivation failed"),
             Self::EncryptFailed => f.write_str("TDE1 AEAD encryption failed"),
+            Self::InvalidHeader(_) => f.write_str("TDE1 invalid stream header"),
+            Self::AuthenticationFailed => f.write_str("TDE1 ciphertext authentication failed"),
             Self::PlaintextSizeMismatch => {
                 f.write_str("TDE1 plaintext stream does not match declared byte length")
             }
@@ -101,9 +105,9 @@ fn encrypt_with_material<R: Read, W: Write>(
     let mut key = [0u8; 32];
     hk.expand(b"tdrive/file/v1", &mut key)
         .map_err(|_| StreamError::DerivationFailed)?;
-    let cipher =
-        XChaCha20Poly1305::new_from_slice(&key).map_err(|_| StreamError::DerivationFailed)?;
+    let cipher = XChaCha20Poly1305::new_from_slice(&key);
     key.fill(0);
+    let cipher = cipher.map_err(|_| StreamError::DerivationFailed)?;
 
     let mut header = [0u8; HEADER_BYTES];
     header[0..4].copy_from_slice(b"TDE1");
@@ -123,17 +127,25 @@ fn encrypt_with_material<R: Read, W: Write>(
         match source.read_exact(&mut chunk[..amount]) {
             Ok(()) => {}
             Err(error) if error.kind() == io::ErrorKind::UnexpectedEof => {
+                chunk.fill(0);
                 return Err(StreamError::PlaintextSizeMismatch);
             }
-            Err(error) => return Err(StreamError::Io(error)),
+            Err(error) => {
+                chunk.fill(0);
+                return Err(StreamError::Io(error));
+            }
         }
         remaining -= amount as u64;
         let is_final = remaining == 0 && amount < CHUNK_SIZE;
         if is_final {
-            assert_no_trailing_plaintext(source)?;
+            if let Err(error) = assert_no_trailing_plaintext(source) {
+                chunk.fill(0);
+                return Err(error);
+            }
         }
-        seal_chunk(&cipher, output, &prefix, counter, is_final, &chunk[..amount])?;
+        let result = seal_chunk(&cipher, output, &prefix, counter, is_final, &chunk[..amount]);
         chunk[..amount].fill(0);
+        result?;
         counter += 1;
         if is_final {
             return Ok(());
@@ -145,6 +157,92 @@ fn encrypt_with_material<R: Read, W: Write>(
     assert_no_trailing_plaintext(source)?;
     seal_chunk(&cipher, output, &prefix, counter, true, &[])?;
     Ok(())
+}
+
+
+/// Bounded-memory TDE1 decryption. Each chunk is authenticated before writing.
+/// The caller must use a private disposable staging file and publish only on
+/// successful return; a late authentication error may leave earlier plaintext.
+pub fn decrypt_stream<R: Read, W: Write>(
+    source: &mut R,
+    output: &mut W,
+    master_key: &[u8],
+) -> Result<i64, StreamError> {
+    if master_key.len() != 32 {
+        return Err(StreamError::InvalidKey);
+    }
+    let mut header_bytes = [0u8; HEADER_BYTES];
+    source
+        .read_exact(&mut header_bytes)
+        .map_err(|error| match error.kind() {
+            io::ErrorKind::UnexpectedEof => StreamError::InvalidHeader(HeaderError::TooShort),
+            _ => StreamError::Io(error),
+        })?;
+    let header = Header::parse(&header_bytes).map_err(StreamError::InvalidHeader)?;
+    header_bytes.fill(0);
+
+    let hk = Hkdf::<Sha256>::new(Some(&header.salt), master_key);
+    let mut key = [0u8; 32];
+    hk.expand(b"tdrive/file/v1", &mut key)
+        .map_err(|_| StreamError::DerivationFailed)?;
+    let cipher = XChaCha20Poly1305::new_from_slice(&key);
+    key.fill(0);
+    let cipher = cipher.map_err(|_| StreamError::DerivationFailed)?;
+
+    let mut ciphertext = [0u8; CHUNK_SIZE + 16];
+    let mut index = 0u32;
+    let mut total = 0i64;
+    loop {
+        let mut used = 0;
+        while used < ciphertext.len() {
+            match source.read(&mut ciphertext[used..]) {
+                Ok(0) => break,
+                Ok(n) => used += n,
+                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                Err(error) => {
+                    ciphertext.fill(0);
+                    return Err(StreamError::Io(error));
+                }
+            }
+        }
+        if used < 16 {
+            ciphertext.fill(0);
+            return Err(StreamError::AuthenticationFailed);
+        }
+        let final_chunk = used < ciphertext.len();
+        let mut nonce = [0u8; 24];
+        nonce[..20].copy_from_slice(&header.nonce_prefix);
+        let bits = if final_chunk { index | FINAL_BIT } else { index };
+        nonce[20..].copy_from_slice(&bits.to_be_bytes());
+        let decoded = cipher.decrypt(XNonce::from_slice(&nonce), &ciphertext[..used]);
+        nonce.fill(0);
+        ciphertext.fill(0);
+        let mut plaintext = decoded.map_err(|_| StreamError::AuthenticationFailed)?;
+        let new_total = total.checked_add(plaintext.len() as i64);
+        if (!final_chunk && plaintext.len() != CHUNK_SIZE)
+            || new_total.is_none()
+            || new_total.unwrap_or(i64::MAX) > header.plaintext_size
+        {
+            plaintext.fill(0);
+            return Err(StreamError::AuthenticationFailed);
+        }
+        total = new_total.ok_or(StreamError::AuthenticationFailed)?;
+        let written = output.write_all(&plaintext);
+        plaintext.fill(0);
+        written.map_err(StreamError::Io)?;
+        if final_chunk {
+            if total != header.plaintext_size {
+                return Err(StreamError::AuthenticationFailed);
+            }
+            return Ok(total);
+        }
+        index = index
+            .checked_add(1)
+            .ok_or(StreamError::AuthenticationFailed)?;
+        if index & FINAL_BIT != 0 {
+            return Err(StreamError::AuthenticationFailed);
+        }
+    }
 }
 
 fn seal_chunk<W: Write>(
@@ -248,6 +346,80 @@ mod tests {
                 Err(StreamError::PlaintextSizeMismatch)
             ));
         }
+    }
+
+
+    #[test]
+    fn streaming_decrypt_crosses_go_chunk_boundaries() {
+        let key = [0x42u8; 32];
+        for size in [0, 1, 65_535, 65_536, 65_537, 196_625] {
+            let expected = pattern(size);
+            let mut encrypted = Vec::new();
+            encrypt_with_material(
+                &mut Cursor::new(&expected),
+                &mut encrypted,
+                &key,
+                size as i64,
+                [0x11; SALT_BYTES],
+                [0x22; PREFIX_BYTES],
+            )
+            .unwrap();
+            let mut plaintext = Vec::new();
+            let actual =
+                decrypt_stream(&mut Cursor::new(encrypted), &mut plaintext, &key).unwrap();
+            assert_eq!(actual, size as i64);
+            assert_eq!(plaintext, expected);
+        }
+    }
+
+    #[test]
+    fn streaming_decrypt_rejects_wrong_key_and_missing_final_tag() {
+        let key = [0x42u8; 32];
+        let mut encrypted = Vec::new();
+        encrypt_with_material(
+            &mut Cursor::new(b"secret"),
+            &mut encrypted,
+            &key,
+            6,
+            [0x11; SALT_BYTES],
+            [0x22; PREFIX_BYTES],
+        )
+        .unwrap();
+        let mut output = Vec::new();
+        assert!(matches!(
+            decrypt_stream(&mut Cursor::new(&encrypted), &mut output, &[0x33; 32]),
+            Err(StreamError::AuthenticationFailed)
+        ));
+        assert!(output.is_empty());
+        encrypted.pop();
+        assert!(matches!(
+            decrypt_stream(&mut Cursor::new(&encrypted), &mut output, &key),
+            Err(StreamError::AuthenticationFailed)
+        ));
+        assert!(output.is_empty());
+    }
+
+    #[test]
+    fn streaming_decrypt_accepts_nine_megabyte_file() {
+        let key = [0x42u8; 32];
+        let size = 9 * 1024 * 1024 + 31;
+        let expected = pattern(size);
+        let mut ciphertext = Vec::new();
+        encrypt_with_material(
+            &mut Cursor::new(&expected),
+            &mut ciphertext,
+            &key,
+            size as i64,
+            [0x11; SALT_BYTES],
+            [0x22; PREFIX_BYTES],
+        )
+        .unwrap();
+        let mut actual = Vec::new();
+        assert_eq!(
+            decrypt_stream(&mut Cursor::new(ciphertext), &mut actual, &key).unwrap(),
+            size as i64
+        );
+        assert_eq!(actual, expected);
     }
 
     #[test]

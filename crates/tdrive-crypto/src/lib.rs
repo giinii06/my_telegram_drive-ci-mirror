@@ -7,7 +7,7 @@
 mod auth;
 mod stream;
 pub use auth::{DecryptError, MAX_SMALL_PLAINTEXT, decrypt_small_tde1};
-pub use stream::{StreamError, encrypt_stream};
+pub use stream::{StreamError, decrypt_stream, encrypt_stream};
 
 use std::error::Error;
 use std::fmt;

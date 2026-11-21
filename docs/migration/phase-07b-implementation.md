@@ -13,3 +13,7 @@ backend/crypto/rust_tde1_fixture_test.go generates six deterministic synthetic T
 - The public writer uses OS entropy; deterministic material is private to its unit tests. NEVER reuse deterministic salt/prefix with a real master key.
 - On I/O or declared-length error, the output writer may contain a **partial ciphertext**. Callers must write to a private temp file and publish only after success; there is no Telegram upload / local vault integration.
 - This does not yet add authenticated streaming decryption with private temp-file staging, vault key lifecycle, password KDF, key rotation, fully verified media range, or production E2E. Complete Phase 07.b only after these stage/restore/error/fault checks. All CI gates must match the exact HEAD SHA.
+
+## Streaming decrypt companion
+
+The same partial Phase 07.b implementation now includes decrypt_stream: it authenticates each 64-KiB chunk, requires the explicit authenticated final marker and validates plaintext length. Tests cover chunk boundaries, wrong keys, truncated final tags and 9-MiB streams. This is not a production file publishing API: an error in a later chunk may leave earlier authenticated bytes in the caller output; callers must privately stage and publish only after complete success.
