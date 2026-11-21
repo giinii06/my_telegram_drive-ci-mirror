@@ -92,3 +92,7 @@ The original malformed YAML failed source-backed structural RED. In addition, th
 ### Additional evidence-proof invariant (planned before implementation)
 
 The workflow currently checks `git rev-parse HEAD == GITHUB_SHA` only in `legacy-contracts`, not all jobs. To prevent false status attribution, add an explicit same-SHA step in every job and programmatically verify run/job evidence against the **requested GitLab commit**. Read-only GH API calls are permitted but any repository/project visibility, secrets, mirror or runner settings remain unchanged. Nonpublic GitHub runs without job access must return UNKNOWN/BLOCKED, never PASS.
+
+## CI run evidence RED (2026-11-22 continuation)
+
+Before this change, the actual GitLab source for all six GitHub jobs lacked an explicit named `Verify checkout SHA` step (the legacy job alone had a differently named SHA check). The pinned-source structural RED check observed 0/6 of the required step name. This change makes GitHub run-job API results attest to the step in **every** job, alongside named Go oracle, Rust fmt/clippy/test and Bun lint/test commands. Failure to fetch real GitHub job results remains BLOCKED. The plain local script `scripts/verify_rust_gha_run.py` does not fabricate provider runs.

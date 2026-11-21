@@ -14,18 +14,26 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Verify GitHub event SHA
+      - name: Verify checkout SHA
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-      - run: python3 scripts/check-legacy-contracts.py
-      - run: python3 scripts/check_rust_ci_workflow.py
-      - run: python3 scripts/test_rust_ci_workflow.py
+      - name: Legacy contract check
+        run: python3 scripts/check-legacy-contracts.py
+      - name: Rust workflow contract check
+        run: python3 scripts/check_rust_ci_workflow.py
+      - name: Rust workflow regression tests
+        run: python3 scripts/test_rust_ci_workflow.py
+      - name: GitHub evidence verifier regression tests
+        run: python3 scripts/test_rust_gha_run.py
 
   rust-style:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Verify checkout SHA
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - run: rustup toolchain install 1.92.0 --profile minimal --component rustfmt
-      - run: cargo +1.92.0 fmt --all --check
+      - name: Rust format
+        run: cargo +1.92.0 fmt --all --check
 
   go-fixtures:
     runs-on: ubuntu-24.04
@@ -36,6 +44,8 @@ jobs:
       GOFLAGS: -p=1
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Verify checkout SHA
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: go.mod
@@ -47,9 +57,12 @@ jobs:
           echo "TDRIVE_COMPAT_FOLDER_LISTING_OUT=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.listing.tsv" >> "$GITHUB_ENV"
           echo "TDRIVE_COMPAT_REPLAY_OUT=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.replay.tsv" >> "$GITHUB_ENV"
           echo "TDRIVE_COMPAT_DIGEST_OUT=$GITHUB_WORKSPACE/tests/fixtures/sqlite/go-v16.digest.tsv" >> "$GITHUB_ENV"
-      - run: go test ./backend/projection -run '^TestExportRustV16Fixture$' -count=1
-      - run: go test ./backend/crypto -run '^TestExportRustTDE1Fixtures$' -count=1
-      - run: go test ./backend/crypto -run '^TestExportRustNameSealFixtures$' -count=1
+      - name: Generate Go V16 fixtures
+        run: go test ./backend/projection -run '^TestExportRustV16Fixture$' -count=1
+      - name: Generate Go TDE1 fixtures
+        run: go test ./backend/crypto -run '^TestExportRustTDE1Fixtures$' -count=1
+      - name: Generate Go name fixtures
+        run: go test ./backend/crypto -run '^TestExportRustNameSealFixtures$' -count=1
       - name: Require all Go fixture outputs
         run: |
           test -s tests/fixtures/sqlite/go-v16.sqlite
@@ -59,6 +72,7 @@ jobs:
           test -s tests/fixtures/tde1/generated/tde1-0.bin
           test -s tests/fixtures/tde1/generated/tde1-seeded-0.bin
           test -s tests/fixtures/name/go-v1.tsv
+      - name: Upload Go/Rust fixtures
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: go-rust-fixtures
@@ -77,6 +91,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Verify checkout SHA
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: go-rust-fixtures
@@ -99,9 +115,12 @@ jobs:
           test -s tests/fixtures/tde1/generated/tde1-0.bin
           test -s tests/fixtures/tde1/generated/tde1-seeded-0.bin
           test -s tests/fixtures/name/go-v1.tsv
-      - run: cargo +1.92.0 fmt --all --check
-      - run: cargo +1.92.0 clippy --workspace --all-targets --locked -- -D warnings
-      - run: cargo +1.92.0 test --workspace --locked
+      - name: Rust format
+        run: cargo +1.92.0 fmt --all --check
+      - name: Rust Clippy
+        run: cargo +1.92.0 clippy --workspace --all-targets --locked -- -D warnings
+      - name: Rust unit tests
+        run: cargo +1.92.0 test --workspace --locked
 
   legacy-go-tests:
     runs-on: ubuntu-24.04
@@ -112,23 +131,35 @@ jobs:
       GOFLAGS: -p=1
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Verify checkout SHA
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: go.mod
-      - run: go test ./backend/projection
-      - run: go test ./backend/datadir ./backend/auth ./backend/processlock
-      - run: go test ./backend/tgclient
-      - run: go test ./backend/crypto
-      - run: go test ./cmd/tdrive-backup
-      - run: go test ./backend/media -run '^TestRustMediaRangeFixtures$' -count=1
+      - name: Go projection tests
+        run: go test ./backend/projection
+      - name: Go data/auth/lock tests
+        run: go test ./backend/datadir ./backend/auth ./backend/processlock
+      - name: Go Telegram tests
+        run: go test ./backend/tgclient
+      - name: Go crypto tests
+        run: go test ./backend/crypto
+      - name: Go backup tests
+        run: go test ./cmd/tdrive-backup
+      - name: Go media range tests
+        run: go test ./backend/media -run '^TestRustMediaRangeFixtures$' -count=1
 
   web-checks:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Verify checkout SHA
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: '1.4.3'
       - run: bun install --cwd cmd/tdrive/webui --frozen-lockfile
-      - run: bun run --cwd cmd/tdrive/webui lint
-      - run: bun run --cwd cmd/tdrive/webui test:unit
+      - name: Bun lint
+        run: bun run --cwd cmd/tdrive/webui lint
+      - name: Bun unit tests
+        run: bun run --cwd cmd/tdrive/webui test:unit
