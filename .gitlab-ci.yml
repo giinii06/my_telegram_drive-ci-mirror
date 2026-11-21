@@ -63,13 +63,9 @@ rust-contracts:
     - rustc --version
     - test -s "$TDRIVE_GO_SQLITE_FIXTURE"
     - test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-0.bin"
-    - cargo generate-lockfile
-    - echo TDRIVE_GENERATED_CARGO_LOCK_BEGIN
-    - cat Cargo.lock
-    - echo TDRIVE_GENERATED_CARGO_LOCK_END
     - cargo fmt --all --check
-    - cargo clippy --workspace --all-targets -- -D warnings
-    - cargo test --workspace
+    - cargo clippy --workspace --all-targets --locked -- -D warnings
+    - cargo test --workspace --locked
 
 legacy-go-projection:
   stage: test
