@@ -41,6 +41,7 @@ legacy-go-fixture:
     GOFLAGS: "-p=1"
     TDRIVE_COMPAT_FIXTURE_OUT: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.sqlite"
     TDRIVE_COMPAT_TDE1_OUT: "$CI_PROJECT_DIR/tests/fixtures/tde1/generated"
+    TDRIVE_COMPAT_NAME_OUT: "$CI_PROJECT_DIR/tests/fixtures/name/go-v1.tsv"
     TDRIVE_COMPAT_FOLDER_LISTING_OUT: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.listing.tsv"
     TDRIVE_COMPAT_REPLAY_OUT: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.replay.tsv"
     TDRIVE_COMPAT_DIGEST_OUT: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.digest.tsv"
@@ -53,6 +54,72 @@ legacy-go-fixture:
     - go test ./backend/crypto -run '^TestExportRustTDE1Fixtures$' -count=1
     - test -s tests/fixtures/tde1/generated/tde1-0.bin
     - test -s tests/fixtures/tde1/generated/tde1-seeded-0.bin
+    - go test ./backend/crypto -run '^TestExportRustNameSealFixtures
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - tests/fixtures/sqlite/go-v16.sqlite
+      - tests/fixtures/sqlite/go-v16.listing.tsv
+      - tests/fixtures/sqlite/go-v16.replay.tsv
+      - tests/fixtures/sqlite/go-v16.digest.tsv
+      - tests/fixtures/tde1/generated/*.bin
+      - tests/fixtures/name/go-v1.tsv
+
+rust-contracts:
+  stage: test
+  image: rust:1.92-bookworm
+  needs:
+    - job: legacy-go-fixture
+      artifacts: true
+  variables:
+    TDRIVE_GO_SQLITE_FIXTURE: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.sqlite"
+    TDRIVE_GO_SQLITE_LISTING_FIXTURE: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.listing.tsv"
+    TDRIVE_GO_SQLITE_REPLAY_FIXTURE: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.replay.tsv"
+    TDRIVE_GO_SQLITE_DIGEST_FIXTURE: "$CI_PROJECT_DIR/tests/fixtures/sqlite/go-v16.digest.tsv"
+    TDRIVE_GO_TDE1_FIXTURES_DIR: "$CI_PROJECT_DIR/tests/fixtures/tde1/generated"
+    TDRIVE_GO_NAME_FIXTURE: "$CI_PROJECT_DIR/tests/fixtures/name/go-v1.tsv"
+  script:
+    - rustc --version
+    - test -s "$TDRIVE_GO_SQLITE_FIXTURE"
+    - test -s "$TDRIVE_GO_SQLITE_LISTING_FIXTURE"
+    - test -s "$TDRIVE_GO_SQLITE_REPLAY_FIXTURE"
+    - test -s "$TDRIVE_GO_SQLITE_DIGEST_FIXTURE"
+    - test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-0.bin"
+    - test -s "$TDRIVE_GO_TDE1_FIXTURES_DIR/tde1-seeded-0.bin"
+    - test -s "$TDRIVE_GO_NAME_FIXTURE"
+    - cargo fmt --all --check
+    - cargo clippy --workspace --all-targets --locked -- -D warnings
+    - cargo test --workspace --locked
+
+legacy-go-projection:
+  stage: test
+  image: golang:1.27-bookworm
+  variables:
+    GOTOOLCHAIN: "go1.25.13"
+    CGO_ENABLED: "0"
+    GOMAXPROCS: "2"
+    GOFLAGS: "-p=1"
+  script:
+    - go version
+    - go test ./backend/projection -run TestRustTDX1Fixtures -count=1
+    - go test ./backend/projection
+    - go test ./backend/datadir ./backend/auth ./backend/processlock
+    - go test ./backend/tgclient -run '^TestRustStableRandomIDVectors$' -count=1
+    - go test ./backend/tgclient
+    - go test ./backend/crypto
+    - go test ./cmd/tdrive-backup -run '^TestRustBackupJobVectors$' -count=1
+    - go test ./cmd/tdrive-backup
+    - go test ./backend/media -run '^TestRustMediaRangeFixtures$' -count=1
+
+legacy-web-checks:
+  stage: test
+  image: oven/bun:1.4.3
+  script:
+    - bun install --cwd cmd/tdrive/webui --frozen-lockfile
+    - bun run --cwd cmd/tdrive/webui lint
+    - bun run --cwd cmd/tdrive/webui test:unit
+ -count=1
+    - test -s tests/fixtures/name/go-v1.tsv
   artifacts:
     expire_in: 1 day
     paths:
