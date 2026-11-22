@@ -107,3 +107,79 @@ fn offline_stats_never_creates_missing_database() {
     assert_eq!(readonly.stats().unwrap().messages, 1);
     assert_eq!(readonly.stats().unwrap().tampered, 0);
 }
+
+#[test]
+fn completed_sync_cursor_persists_monotonic_across_restart() {
+    let dir = PrivateDir::new();
+    let db = dir.db();
+    let peer = "channel:1234567890";
+    {
+        let mut inbox = Inbox::open(&db).unwrap();
+        assert_eq!(inbox.high_watermark(peer).unwrap(), 0);
+        inbox.mark_scanned(peer, 0, 50).unwrap();
+        assert_eq!(inbox.high_watermark(peer).unwrap(), 50);
+    }
+    {
+        let mut inbox = Inbox::open(&db).unwrap();
+        assert_eq!(inbox.high_watermark(peer).unwrap(), 50);
+        assert!(inbox.mark_scanned(peer, 50, 100).is_ok());
+        assert_eq!(inbox.high_watermark(peer).unwrap(), 100);
+        assert_eq!(inbox.high_watermark("channel:other").unwrap(), 0);
+    }
+    assert_eq!(Inbox::open_existing(&db).unwrap().high_watermark(peer).unwrap(), 100);
+}
+
+#[test]
+fn stale_or_regressing_cursor_fails_without_changing_checkpoint() {
+    let mut inbox = Inbox::memory().unwrap();
+    let peer = "channel:123";
+    inbox.mark_scanned(peer, 0, 30).unwrap();
+    assert!(matches!(
+        inbox.mark_scanned(peer, 0, 50),
+        Err(InboxError::StaleCursor)
+    ));
+    assert!(matches!(
+        inbox.mark_scanned(peer, 30, 29),
+        Err(InboxError::InvalidEntry)
+    ));
+    assert_eq!(inbox.high_watermark(peer).unwrap(), 30);
+    assert!(matches!(
+        inbox.mark_scanned("../escape", 0, 40),
+        Err(InboxError::InvalidEntry)
+    ));
+}
+
+#[test]
+fn failed_or_partial_ingest_does_not_checkpoint_prior_inbox_writes() {
+    let mut inbox = Inbox::memory().unwrap();
+    let peer = "channel:123";
+    assert_eq!(inbox.append(&InboxEvent {
+        peer_key: peer, msg_id: 80, raw_header: FIRST
+    }).unwrap(), InboxOutcome::Inserted);
+    // A simulated transport failure or exhausted budget prevents mark_scanned:
+    // already stored messages stay idempotent and the cursor stays at zero.
+    assert_eq!(inbox.high_watermark(peer).unwrap(), 0);
+    assert_eq!(inbox.append(&InboxEvent {
+        peer_key: peer, msg_id: 80, raw_header: FIRST
+    }).unwrap(), InboxOutcome::AlreadySeen);
+    inbox.mark_scanned(peer, 0, 80).unwrap();
+    assert_eq!(inbox.high_watermark(peer).unwrap(), 80);
+}
+
+#[test]
+fn legacy_native_v1_inbox_adds_cursor_without_losing_headers() {
+    let dir = PrivateDir::new();
+    let db = dir.db();
+    {
+        let mut inbox = Inbox::open(&db).unwrap();
+        inbox.append(&event(FIRST)).unwrap();
+    }
+    {
+        let conn = rusqlite::Connection::open(&db).unwrap();
+        conn.execute_batch("DROP TABLE native_inbox_progress;").unwrap();
+    }
+    let mut reopened = Inbox::open(&db).unwrap();
+    assert_eq!(reopened.high_watermark("-1001234567890").unwrap(), 0);
+    reopened.mark_scanned("-1001234567890", 0, 42).unwrap();
+    assert_eq!(reopened.original_header("-1001234567890",42).unwrap(),Some(FIRST.into()));
+}
