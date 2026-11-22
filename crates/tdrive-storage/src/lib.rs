@@ -1,7 +1,8 @@
-//! Read-only verification of detached, Go-generated SQLite v16 snapshots.
+//! Read-only Go v16 snapshot verification and an isolated, caller-owned replay journal writer.
 //!
-//! This is not a migration engine. It never creates or modifies a database,
-//! replays Telegram messages, or accesses the Go daemon's lock file.
+//! Snapshot inspection never modifies a database. The separate replay_writer
+//! API accepts only an explicit caller-owned SQLite connection: never a live
+//! daemon DB without an exclusive lock, complete projection parity and rollback.
 
 mod backup;
 mod digest;
@@ -10,9 +11,13 @@ pub use backup::{
 };
 mod listing;
 mod replay;
+mod replay_writer;
 pub use digest::{TableDigest, snapshot_table_digests};
 pub use listing::{FileSlim, FolderListing, FolderSlim, list_folder_contents_snapshot};
 pub use replay::{ReplayEntry, read_replay_page_snapshot};
+pub use replay_writer::{
+    IncomingReplayEvent, ReplayWriteError, ReplayWriteOutcome, append_replay_event,
+};
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use std::error::Error;
