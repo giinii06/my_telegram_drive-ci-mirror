@@ -1,0 +1,42 @@
+{
+  "phase_id": "V.1 private local runner",
+  "head_sha": "ab4d23dd2d6fd933447fbe9fc07f13af145af962",
+  "test_only_sha": "d6ccf4485ccbf66c51f701035c3efdcdcb57fcbe",
+  "plan_sha": "4e9fe7affcd0f1f2d2a845447a61b43a920c8d19",
+  "reviews": [
+    {
+      "lens": "requirements",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy sequential requirements review",
+      "head_sha": "ab4d23dd2d6fd933447fbe9fc07f13af145af962",
+      "evidence": "Observed shell parser exit 0 and Python unittest 5/5 PASS against a synthetic checkout; GitLab content_sha256 for both files exactly equals locally executed bytes. Runner checks private SHA, clean tree, nonempty nested Cargo.lock, root+nested fmt, nested locked clippy/test/release build and optional offline Docker checks. No public Git history or real Telegram credentials needed. Still not a production verified Rust user flow."
+    },
+    {
+      "lens": "security_quality",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy sequential security review",
+      "head_sha": "ab4d23dd2d6fd933447fbe9fc07f13af145af962",
+      "evidence": "Script uses set -Eeuo pipefail, set +x, does not source .env or use Telegram login/upload/watch, optional Docker checks use dummy creds and network=none, no publishing/pushing. Failed clippy abort behavior and missing lock/ref/dirty fail-closed tested. Only synthetic fake tools executed, not real Rust/Docker, no independent reviewer; local operator must audit lockfile and use a trusted private checkout."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "important",
+      "file": "apps/tdrive-mtproto/Cargo.lock",
+      "finding": "Nested lockfile absent; actual Cargo/dependency resolution unknown, and verification runner deliberately refuses to build until reviewed lockfile exists.",
+      "disposition": "open-blocks-build"
+    },
+    {
+      "severity": "important",
+      "file": "docs/plans/rust-only-cutover/ci-publication-scan-blocker.md",
+      "finding": "The existing provider cannot publish full Git history, so actual GitHub Actions Cargo jobs are unavailable; local private verifier is an opt-in alternative, not a verified remote CI replacement.",
+      "disposition": "open-blocks-provider"
+    },
+    {
+      "severity": "important",
+      "file": "apps/tdrive-mtproto/src/main.rs",
+      "finding": "The real Grammers MTProto binary, Go 17-op storage projection, vault/GPUI/WebDAV and end-to-end cutover remain uncompiled/unimplemented.",
+      "disposition": "open-blocks-product"
+    }
+  ]
+}

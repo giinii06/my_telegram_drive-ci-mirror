@@ -52,3 +52,7 @@ Added experimental MTProto `watch` command with SIGINT/SIGTERM, private opt-in D
 ## CI publication scan incident (2026-11-22)
 
 Exact provider failure text is **`The requested Git history did not pass the publication scan`**, not a proven Rust compilation failure. GitLab #3099037733 dispatched successfully but provider failed; ci-hub-smoke child #3099037748 was skipped with an echo-only manual job. No actual Cargo job logs available. Public-history scanner must not be bypassed. See [CI root-cause evidence](ci-publication-scan-blocker.md); phase status remains unverified, Go is preserved.
+
+## Private local Rust build verification gate (ab4d23dd)
+
+Added `scripts/verify_mtproto_local.sh` with source SHA `ab4d23dd2d6fd933447fbe9fc07f13af145af962` and synthetic failure/ordering tests (5/5 PASS), exact checked-in file SHA-256 identical to locally exercised files. On a trusted private checkout, it checks clean SHA, nested Cargo.lock, Rust fmt/clippy/test/release build and optional no-secret offline Docker smoke. **Actual Cargo/Docker and Telegram E2E not executed; nested Cargo.lock absent.** This does not bypass the public-history publication scan or complete Go parity. [V.1 evidence](phase-v1-private-local-build.md) · [self-review](reviews/phase-v1-private-local-build.json) · [phase ledger](phase-state.json).

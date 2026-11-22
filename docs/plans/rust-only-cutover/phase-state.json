@@ -23,6 +23,11 @@
           "frm": "in_progress",
           "to": "implemented",
           "evidence": "Rust folder JSON CLI and SQLite synthetic fixture at 3034b46a0d419c860485826a3fdbcd8c129dbfdb; Rust-only CI + Python Go gate 2530f56945f26a2302fb6f24beabe9c1f2921d23; Go audit correction 8896f29370722925738005f4597cceb9f24e4e4b; static Rust unused import fix 12a39ccd07d79c64a8413083c858b520728c82f8. No compiled user flow."
+        },
+        {
+          "frm": "implemented",
+          "to": "implemented",
+          "evidence": "V.1 private local native build verifier script tested as exact GitLab source SHA ab4d23dd2d6fd933447fbe9fc07f13af145af962: local bash syntax PASS, synthetic 5/5 unittest PASS, checked-in content SHA-256 matched executed bytes; actual Cargo/Docker unavailable; nested Cargo.lock absent. No advancement or CI waiver."
         }
       ],
       "candidate_sha": "12a39ccd07d79c64a8413083c858b520728c82f8",
@@ -30,7 +35,7 @@
       "green_verified": false,
       "checks_evidenced": false,
       "ci_level": "dispatch",
-      "blocker": "Rust compiler/whole repo checkout unavailable; GitLab external bridge success does not prove the new independent Rust-only workflow ran. Real Cargo fmt/clippy/build/test and CLI binary E2E unknown."
+      "blocker": "V.1 private opt-in build verifier is source-identical and synthetic 5/5 tested, but nested apps/tdrive-mtproto/Cargo.lock absent and actual Rust/Docker/Telegram tests unexecuted. Existing external CI publication scan blocked; A not verified."
     },
     {
       "id": "B",
