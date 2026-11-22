@@ -37,6 +37,10 @@ class MtprotoDockerContract(unittest.TestCase):
         self.assertNotIn("network_mode: service:tailscale", compose)
         self.assertIn("TDRIVE_INBOX_PATH: /private/tdrive-inbox.sqlite", compose)
         self.assertIn("TDRIVE_SESSION_PATH: /private/session.sqlite", compose)
+        self.assertIn('TG_API_ID: "${TG_API_ID:-}"', compose)
+        self.assertIn('TG_API_HASH: "${TG_API_HASH:-}"', compose)
+        self.assertNotIn('TG_API_ID:?Set', compose)
+        self.assertNotIn('TG_API_HASH:?Set', compose)
 
     def test_docker_context_excludes_session_secret_artifacts(self):
         ignore = (ROOT / ".dockerignore").read_text()
