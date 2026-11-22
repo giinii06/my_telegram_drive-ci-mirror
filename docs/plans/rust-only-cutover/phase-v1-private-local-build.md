@@ -56,3 +56,15 @@ TDRIVE_CHECK_DOCKER=1 bash scripts/verify_mtproto_local.sh
 ```
 
 Do not run this against production session or user data. No automated external Git publication or secret disclosure, no merge/deploy. Treat any actual Cargo error as a real blocker to be repaired on that exact reviewed SHA. This is a CI foundation consumed later by Rust user-account E2E and full 17-op Go-parity migration.
+
+## V.1.1 — root + nested workspace verifier coverage (2026-11-23)
+
+- **TDD RED:** test-only local diff SHA-256 `4f2fa16fa3d50da6770dce4ebd9c2b1e1fa93e31bdba702c4c849252a40ceb16`, run in synthetic Git fixture; 6 tests, 2 expected failures: missing root Cargo.lock was accepted and the runner omitted root workspace Clippy/test/release commands.
+- **GREEN code SHA:** `74c9cbcbbbc16dcb2fcc5646d117424cba6b1af2`. Runner now refuses missing root `Cargo.lock`, then runs root `fmt/clippy/test/release build` and nested MTProto `fmt/clippy/test/release build`, each with `--locked` where relevant; optional Docker Compose config/build/network-isolated help remains opt-in.
+- **Actual local checks on exact source bytes:** `bash -n scripts/verify_mtproto_local.sh` exit 0; `python3 -m py_compile scripts/test_verify_mtproto_local.py` exit 0; synthetic Python unittest **6/6 PASS**. GitLab content hashes exactly match locally executed files: shell `7d8bc02f68d59b63a240267d305ad2bcbd5ddaa40737830bff9cf2e2938b4bb7`, test `9093ec78b0ddfe1a62a8a2645bc0d8cfd40a5049ed2bdfcbc794658407357240`.
+- **GitLab CI #3100184239** was created on exact source SHA `74c9cbcbbbc16dcb2fcc5646d117424cba6b1af2`; pipeline status `success` means `dispatch_github_actions=success` only. Child #3100184258 is `skipped`; its `github_actions_request` job is `manual`. No provider status, no GitHub job execution/logs. `dispatch=success`, `provider_result=unknown`, `jobs_verified=unknown`, `e2e_verified=unknown`.
+- **NOT executed:** real Rust fmt/clippy/tests/build, Docker build/runtime, Grammers API compilation, Telegram account E2E. `apps/tdrive-mtproto/Cargo.lock` is still absent. This sandbox has no cargo/rustc/Docker and no network DNS. This phase is **tested as a synthetic runner**, not verified as an application build. Do not advance Phase A or claim product completion.
+
+### Next private operator action
+
+On the user's trusted private macOS/Linux checkout, install Rust 1.92 and generate/audit/commit `apps/tdrive-mtproto/Cargo.lock`; then run `bash scripts/verify_mtproto_local.sh` and optionally `TDRIVE_CHECK_DOCKER=1 bash scripts/verify_mtproto_local.sh`. Share sanitized command output and exact HEAD SHA so actual errors can be repaired. No public history publication or secret/mirror/runner change.

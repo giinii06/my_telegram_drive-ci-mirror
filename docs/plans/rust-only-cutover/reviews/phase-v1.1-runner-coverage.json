@@ -1,0 +1,64 @@
+{
+  "phase_id": "V.1.1",
+  "head_sha": "74c9cbcbbbc16dcb2fcc5646d117424cba6b1af2",
+  "reviewer_provenance": "two sequential self-review lenses; no independent reviewer available",
+  "test_only": {
+    "local_diff_sha256": "4f2fa16fa3d50da6770dce4ebd9c2b1e1fa93e31bdba702c4c849252a40ceb16",
+    "observed_red": "6 synthetic tests; 2 expected failures: missing root Cargo.lock not rejected; root workspace Clippy/test/release coverage absent."
+  },
+  "green": {
+    "commands": [
+      "bash -n scripts/verify_mtproto_local.sh",
+      "python3 -m py_compile scripts/test_verify_mtproto_local.py",
+      "python3 -m unittest discover -s scripts -p test_verify_mtproto_local.py -v"
+    ],
+    "result": "exit 0; 6/6 PASS; exact GitLab file hashes matched local bytes",
+    "shell_sha256": "7d8bc02f68d59b63a240267d305ad2bcbd5ddaa40737830bff9cf2e2938b4bb7",
+    "test_sha256": "9093ec78b0ddfe1a62a8a2645bc0d8cfd40a5049ed2bdfcbc794658407357240"
+  },
+  "ci": {
+    "pipeline_id": 3100184239,
+    "sha": "74c9cbcbbbc16dcb2fcc5646d117424cba6b1af2",
+    "dispatch": "success",
+    "provider_result": "unknown",
+    "jobs_verified": "unknown",
+    "e2e_verified": "unknown",
+    "child_pipeline_id": 3100184258,
+    "child_status": "skipped",
+    "child_job_status": "manual"
+  },
+  "reviews": [
+    {
+      "lens": "requirements",
+      "reviewer_type": "self",
+      "head_sha": "74c9cbcbbbc16dcb2fcc5646d117424cba6b1af2",
+      "evidence": "The runner now enforces root Cargo.lock plus nested MTProto Cargo.lock, exact expected SHA and clean checkout. It exercises fmt/clippy/test/release build for both Cargo workspaces, plus opt-in Docker offline help. Six synthetic fixture tests verify the required order, lock refusal and failure short-circuit. The local tests do not run actual Rust."
+    },
+    {
+      "lens": "quality_security",
+      "reviewer_type": "self",
+      "head_sha": "74c9cbcbbbc16dcb2fcc5646d117424cba6b1af2",
+      "evidence": "set -Eeuo pipefail and set +x remain; no sourcing env, Telegram login, session DB, upload, watch, publish or deployment. Dummy TG values used only for Compose config and Docker run uses --network none. Root and nested lockfiles must be reviewed/committed before --locked checks. No actual Cargo/Docker execution or independent security reviewer."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "important",
+      "file": "apps/tdrive-mtproto/Cargo.lock",
+      "finding": "Nested lockfile is absent; MTProto dependency graph is not locked or compiled.",
+      "disposition": "blocks-real-build"
+    },
+    {
+      "severity": "important",
+      "file": ".gitlab/ci-hub-request.yml@blond11qq/ci-hub-smoke",
+      "finding": "Exact-SHA pipeline #3100184239 only proves dispatch; downstream job remains manual/skipped, provider execution and logs unknown.",
+      "disposition": "blocks-provider-verification"
+    },
+    {
+      "severity": "important",
+      "file": "apps/tdrive-mtproto/src/main.rs",
+      "finding": "The actual MTProto executable and full user-facing drive are not compiled or tested; this runner-only phase does not implement 17-op projection, vault, media, WebDAV, GPUI or full server parity.",
+      "disposition": "blocks-production-cutover"
+    }
+  ]
+}
