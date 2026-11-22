@@ -26,8 +26,8 @@ services:
         target: /private
         read_only: false
     environment:
-      TG_API_ID: "${TG_API_ID:?Set Telegram app ID}"
-      TG_API_HASH: "${TG_API_HASH:?Set Telegram app hash}"
+      TG_API_ID: "${TG_API_ID:-}"
+      TG_API_HASH: "${TG_API_HASH:-}"
       TDRIVE_SESSION_PATH: /private/session.sqlite
       TDRIVE_INBOX_PATH: /private/tdrive-inbox.sqlite
     command: ["--help"]
