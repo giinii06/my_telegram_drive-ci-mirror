@@ -11,9 +11,26 @@
       "id": "A",
       "kind": "user_flow",
       "entrypoint": "Rust CLI read-only folder listing + Rust-only CI",
-      "status": "not_started",
-      "implemented": false,
-      "history": []
+      "status": "implemented",
+      "implemented": true,
+      "history": [
+        {
+          "frm": "not_started",
+          "to": "in_progress",
+          "evidence": "Approved Go-free cutover plan commit 98eb3326206c46cca33afdd72922f4aa2f4cec4d; test-first code beaba9b58ebf01fb182403042f06dafaeaa7861a (Rust RED unexecuted)."
+        },
+        {
+          "frm": "in_progress",
+          "to": "implemented",
+          "evidence": "Rust folder JSON CLI and SQLite synthetic fixture at 3034b46a0d419c860485826a3fdbcd8c129dbfdb; Rust-only CI + Python Go gate 2530f56945f26a2302fb6f24beabe9c1f2921d23; Go audit correction 8896f29370722925738005f4597cceb9f24e4e4b; static Rust unused import fix 12a39ccd07d79c64a8413083c858b520728c82f8. No compiled user flow."
+        }
+      ],
+      "candidate_sha": "12a39ccd07d79c64a8413083c858b520728c82f8",
+      "red_verified": false,
+      "green_verified": false,
+      "checks_evidenced": false,
+      "ci_level": "dispatch",
+      "blocker": "Rust compiler/whole repo checkout unavailable; GitLab external bridge success does not prove the new independent Rust-only workflow ran. Real Cargo fmt/clippy/build/test and CLI binary E2E unknown."
     },
     {
       "id": "B",
@@ -45,7 +62,8 @@
       "entrypoint": "Go source removal and Go-free CI/E2E after full parity",
       "status": "not_started",
       "implemented": false,
-      "history": []
+      "history": [],
+      "blocker": "517 tracked .go files + go.mod/go.sum remain; native Rust Telegram, vault, DB writer, sync, media, WebDAV, HTTP daemon, GPUI, Docker and platform E2E not built/verified."
     }
   ]
 }

@@ -20,3 +20,7 @@ GitLab tree on `17df07d389fe317b645b4f9ef9bf5bc0d1fe857c`: **517** tracked `.go`
 
 ## CI and phase-state gates
 For each code change: test-first behavior + RED when runnable; implementation; Cargo fmt/clippy/build/test and backend integration on exact code SHA; original Go parity while it exists; two-lens review with actual source SHA; append checkpoint; Draft MR. A generic bridge callback is `provider_result` at most, not `jobs_verified`. No production cutover without separate authorization. This plan cannot make the entire 517-Go-file conversion fit into a single unverified code commit.
+
+## Work checkpoint at 12a39ccd
+
+Phase A Rust CLI + Go-free Rust CI source has been committed, but **not executed** by cargo. Python Go-deletion audit 5/5 tests are locally verified with exact GitLab file hashes; YAML structure parsed. GitLab #3098859551 only confirms dispatch. Go removal Phase E remains **blocked** with 517 Go files and missing Rust parity. See [Phase A evidence](phase-a-native-read-and-ci.md), the [phase state](phase-state.json), and [two-lens self-review](reviews/phase-a.json). This is **not** the completed Rust migration.

@@ -1,0 +1,22 @@
+{
+  "phase_id": "A",
+  "base_sha": "beaba9b58ebf01fb182403042f06dafaeaa7861a",
+  "head_sha": "12a39ccd07d79c64a8413083c858b520728c82f8",
+  "reviews": [
+    {
+      "lens": "requirements",
+      "head_sha": "12a39ccd07d79c64a8413083c858b520728c82f8",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy requirements self-review 2026-11-22",
+      "evidence": "Reviewed GitLab source and code diffs. New tdrive-inspect --list-folder uses existing Rust read-only SQLite v16 snapshot contract, returns escaped JSON, i64 IDs as strings; four source tests assert valid/invalid files. Standalone Rust-only GH workflow and Go audit added; exact Python 5/5 tests PASS, YAML parsed. Cargo, Rust E2E, real GH jobs NOT EXECUTED. User's goal of removing Go is unmet: live tree 517 .go files, Go engine still authoritative."
+    },
+    {
+      "lens": "quality_security",
+      "head_sha": "12a39ccd07d79c64a8413083c858b520728c82f8",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy security and quality self-review 2026-11-22",
+      "evidence": "Read actual Rust CLI/tests and static source. SQLite used in read-only detached mode with schema, integrity and WAL guard; query parameters bound; i64 precision protected; JSON controls and Unicode escaped. Found unused std::path::Path import and repaired in SHA 12a39ccd. Scope is offline only; unbounded folder query output and source-path race remain known preproduction review risks; do not expose over HTTP or as production mutation path. No secrets, Go removal, mirror/runner changes or user data touched."
+    }
+  ],
+  "findings": []
+}
