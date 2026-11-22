@@ -1,0 +1,16 @@
+# Experimental Rust user-account MTProto CLI; no production Go backend.
+FROM rust:1.92-bookworm AS build
+WORKDIR /build
+COPY apps/tdrive-mtproto/ ./apps/tdrive-mtproto/
+RUN cargo build --release --manifest-path apps/tdrive-mtproto/Cargo.toml
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
+COPY --from=build /build/apps/tdrive-mtproto/target/release/tdrive-mtproto \
+    /usr/local/bin/tdrive-mtproto
+RUN groupadd --system --gid 10001 tdrive \
+    && useradd --system --uid 10001 --gid 10001 --home-dir /nonexistent tdrive
+USER 10001:10001
+ENTRYPOINT ["/usr/local/bin/tdrive-mtproto"]
+CMD ["--help"]
