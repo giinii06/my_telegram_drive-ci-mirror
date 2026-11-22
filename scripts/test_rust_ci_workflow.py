@@ -5,6 +5,24 @@ from pathlib import Path
 from check_rust_ci_workflow import EXPECTED_JOBS, GO_ORACLES, REQUIRED_ARTIFACTS, validate_text
 
 
+GO_FIXTURE_ENV = (
+    "TDRIVE_COMPAT_FIXTURE_OUT",
+    "TDRIVE_COMPAT_TDE1_OUT",
+    "TDRIVE_COMPAT_NAME_OUT",
+    "TDRIVE_COMPAT_FOLDER_LISTING_OUT",
+    "TDRIVE_COMPAT_REPLAY_OUT",
+    "TDRIVE_COMPAT_DIGEST_OUT",
+)
+RUST_IMPORT_ENV = (
+    "TDRIVE_GO_SQLITE_FIXTURE",
+    "TDRIVE_GO_SQLITE_LISTING_FIXTURE",
+    "TDRIVE_GO_SQLITE_REPLAY_FIXTURE",
+    "TDRIVE_GO_SQLITE_DIGEST_FIXTURE",
+    "TDRIVE_GO_TDE1_FIXTURES_DIR",
+    "TDRIVE_GO_NAME_FIXTURE",
+)
+
+
 def fixture() -> str:
     lines = [
         "name: Rust migration parallel CI", "on:", "  push:",
@@ -34,7 +52,18 @@ def fixture() -> str:
                 "          if-no-files-found: error",
             ]
             lines += [f"          path: {f}" for f in REQUIRED_ARTIFACTS]
+        if name == "go-fixtures":
+            lines.append("      - run: |")
+            lines.extend(
+                f'          echo "{entry}=$GITHUB_WORKSPACE/fixture" >> "$GITHUB_ENV"'
+                for entry in GO_FIXTURE_ENV
+            )
         if name == "rust-contracts":
+            lines.append("      - run: |")
+            lines.extend(
+                f'          echo "{entry}=$GITHUB_WORKSPACE/fixture" >> "$GITHUB_ENV"'
+                for entry in RUST_IMPORT_ENV
+            )
             lines += ["      - uses: actions/download-artifact@dummy"]
             lines += [f"      - run: test -s {f}" for f in REQUIRED_ARTIFACTS]
             lines += [
@@ -119,6 +148,24 @@ class WorkflowContractTests(unittest.TestCase):
         sample = fixture().replace(
             "      - run: cargo +1.92.0 test --workspace --locked", "")
         self.assertTrue(any("Rust contract step" in error for error in validate_text(sample)))
+
+    def test_comment_only_export_env_rejected(self):
+        sample = fixture().replace(
+            '          echo "TDRIVE_COMPAT_REPLAY_OUT=$GITHUB_WORKSPACE/fixture" >> "$GITHUB_ENV"',
+            '          # removed TDRIVE_COMPAT_REPLAY_OUT assignment',
+            1,
+        )
+        errors = validate_text(sample)
+        self.assertTrue(any("TDRIVE_COMPAT_REPLAY_OUT" in error for error in errors), errors)
+
+    def test_comment_only_rust_import_env_rejected(self):
+        sample = fixture().replace(
+            '          echo "TDRIVE_GO_TDE1_FIXTURES_DIR=$GITHUB_WORKSPACE/fixture" >> "$GITHUB_ENV"',
+            '          # removed TDRIVE_GO_TDE1_FIXTURES_DIR assignment',
+            1,
+        )
+        errors = validate_text(sample)
+        self.assertTrue(any("TDRIVE_GO_TDE1_FIXTURES_DIR" in error for error in errors), errors)
 
     def test_no_publish_or_secret(self):
         sample = fixture() + "  publish:\n    runs-on: ubuntu-24.04\n"
