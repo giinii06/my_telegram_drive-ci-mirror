@@ -136,7 +136,7 @@ pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, Ht
     }
     let mut bearer = None;
     for line in lines {
-        if line.is_empty() || line.starts_with([' ', '\t']) {
+        if line.is_empty() || line.starts_with(' ') || line.starts_with('\t') {
             return Err(HttpError::BadRequest);
         }
         let (name, value) = line.split_once(':').ok_or(HttpError::BadRequest)?;
