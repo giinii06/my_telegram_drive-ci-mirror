@@ -15,15 +15,22 @@ from pathlib import Path
 
 def summarize(paths: list[str]) -> dict[str, object]:
     go_files = sorted(path for path in paths if path.endswith(".go"))
-    modules = sorted(path for path in paths if path in {"go.mod", "go.sum"})
+    modules = sorted(
+        path for path in paths
+        if path in {"go.mod", "go.sum"} or path.endswith(("/go.mod", "/go.sum"))
+    )
+    areas = {"backend/": 0, "cmd/": 0, "tests/": 0, "other/": 0}
+    for path in go_files:
+        area = next(
+            (name for name in ("backend/", "cmd/", "tests/") if path.startswith(name)),
+            "other/",
+        )
+        areas[area] += 1
     return {
         "go_source_files": len(go_files),
         "go_module_files": modules,
         "go_free": not go_files and not modules,
-        "remaining_go_by_area": {
-            area: sum(1 for path in go_files if path.startswith(area))
-            for area in ("backend/", "cmd/", "tests/", "other/")
-        },
+        "remaining_go_by_area": areas,
     }
 
 
