@@ -1,6 +1,6 @@
 # TDrive
 
-Telegram에 파일을 저장하고 웹에서 관리하는 드라이브입니다. Docker Compose 또는 네이티브 설치 파일(deb · dmg · exe · apk)로 실행합니다.
+Telegram에 파일을 저장하고 웹에서 관리하는 드라이브입니다. Docker Compose 또는 headless server 설치 파일(deb · dmg · exe)로 실행합니다.
 
 코드 수정과 테스트는 [개발자 가이드](README.dev.md)를 참고하세요.
 
@@ -47,14 +47,12 @@ Docker 없이 호스트에서 바로 실행하는 설치 파일은 [릴리즈](h
 | macOS (Apple Silicon·Intel) | `TDrive-<버전>-universal.dmg` | dmg를 열고 `Install TDrive.command` 실행 |
 | Windows 11 | `TDrive-Setup-<버전>.exe` | 설치 후 시작 메뉴의 TDrive |
 | Windows 11 자동 백업 | `TDrive-Backup-Setup-<버전>.exe` | 설치 후 서버 주소·백업 폴더 지정 |
-| Android | `TDrive-<버전>.apk` | APK 설치 후 앱 실행 |
 
 - 모든 네이티브 설치는 `TDRIVE_NO_OS_MOUNT=1`로 동작합니다. Finder·탐색기·GVfs에 드라이브를 마운트하지 않고 데몬의 내부 WebDAV 엔드포인트로 파일을 스트리밍합니다.
 - Telegram 로그인은 각 설치본이 여는 웹 UI에서 진행합니다.
 - macOS는 `127.0.0.1:8080`에만 열립니다. Windows는 설치 중 접속 범위를 고릅니다: 이 PC만(`127.0.0.1`) 또는 다른 기기 허용(`0.0.0.0`, 토큰 필요). 선택 값은 설치 폴더의 `listen.txt`·`port.txt`에서 바꿀 수 있습니다. 접속 토큰은 `~/.config/TDrive/web.token`(`%USERPROFILE%\.config\TDrive\web.token`)에 있습니다.
 - Windows 설치본은 로그인할 때 백그라운드로 자동 실행됩니다. 시작 메뉴의 **TDrive 서버 시작/중지**로 직접 제어합니다.
 - deb는 systemd 서비스로 상시 실행됩니다. 포트와 바인딩 주소는 `/etc/default/tdrive`에서 바꾸고, 접속 URL은 `sudo journalctl -u tdrive | grep 'TDrive web:'`에서 확인합니다.
-- Android 앱은 포그라운드 서비스로 기기에서 서버를 직접 실행하고, 같은 기기의 WebView로 접속합니다. 마운트와 mpv 포스터는 지원하지 않습니다.
 
 ### Windows 11 자동 백업
 

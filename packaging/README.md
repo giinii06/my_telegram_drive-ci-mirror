@@ -8,7 +8,6 @@
 | `TDrive-<버전>-universal.dmg` | `packaging/macos/build-dmg.sh` | macOS | [macos/README.md](macos/README.md) |
 | `TDrive-Setup-<버전>.exe` | `packaging/windows/build-exe.ps1` | Windows + Inno Setup 6 | [windows/README.md](windows/README.md) |
 | `TDrive-Backup-Setup-<버전>.exe` | `packaging/windows/build-backup-exe.ps1` | Windows + Inno Setup 6 | [windows/README.md](windows/README.md) |
-| `TDrive-<버전>.apk` | `packaging/android/build-apk.sh` | Linux/macOS + Android SDK + Gradle 8.7 | [android/README.md](android/README.md) |
 
 ## 공통 규칙
 
@@ -21,16 +20,14 @@
 
 ## 릴리즈 자동화
 
-`.github/workflows/installers.yml`이 `v*` 태그 푸시에서 다섯 산출물을 모두 빌드해 GitHub Release에 첨부한다. `workflow_dispatch`로 실행하면 같은 빌드를 검증만 하고 아티팩트로 남긴다.
+`.github/workflows/installers.yml`이 `v*` 태그 푸시에서 네 산출물을 모두 빌드해 GitHub Release에 첨부한다. `workflow_dispatch`로 실행하면 같은 빌드를 검증만 하고 아티팩트로 남긴다.
 
 - `linux-deb`: `ubuntu-latest`, `dpkg-deb`로 패키징 후 `dpkg-deb -I`로 검사
 - `macos-dmg`: `macos-14`, universal 바이너리 빌드 후 dmg를 마운트해 실행 파일 확인
 - `windows-exe`: `windows-latest`, `choco install innosetup` 후 PE 헤더 확인
 - `windows-backup-exe`: 같은 환경에서 `cmd/tdrive-backup`을 별도로 빌드하고 PE 헤더 확인
-- `android-apk`: `ubuntu-latest`, Gradle 8.7 + Android platform 34로 `assembleDebug`, APK 안의 `lib/arm64-v8a/libtdrive.so` 확인
 
 ## 알려진 한계
 
 - macOS dmg와 Windows exe는 서명되지 않는다. 첫 실행 시 Gatekeeper 승인 또는 SmartScreen 경고가 나온다.
-- Android APK는 디버그 키스토어로 서명한 사이드로드용이다. Play 스토어 배포용 구성이 아니다.
 - deb는 amd64만 만든다.
