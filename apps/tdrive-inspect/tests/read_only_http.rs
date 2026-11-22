@@ -38,7 +38,9 @@ fn fixture() -> (PathBuf, PathBuf, PathBuf) {
          CREATE TABLE replay_log_rejects(id INTEGER);
          CREATE TABLE folders(channel_id INTEGER,id TEXT,parent_id TEXT,revision INTEGER,tombstoned INTEGER);
          CREATE TABLE files(channel_id INTEGER,msg_id INTEGER,parent_id TEXT,content_msg_id INTEGER,
-                            revision INTEGER,encrypted INTEGER,upload_uuid TEXT,tombstoned INTEGER);
+                            revision INTEGER,encrypted INTEGER,upload_uuid TEXT,tombstoned INTEGER,
+                            content_hash TEXT,part_count INTEGER,size INTEGER,upload_time INTEGER,
+                            uploader_user_id INTEGER,plaintext_size INTEGER);
          CREATE TABLE dirents(channel_id INTEGER,object_id TEXT,parent_id TEXT,name_key TEXT,
                              revision INTEGER,tombstoned INTEGER,display_name TEXT,object_kind TEXT);
          CREATE TABLE file_revisions(channel_id INTEGER,file_msg_id INTEGER,revision INTEGER,content_msg_id INTEGER);
