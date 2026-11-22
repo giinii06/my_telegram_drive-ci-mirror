@@ -9,3 +9,6 @@ license.workspace = true
 tdrive-projection = { path = "../../crates/tdrive-projection" }
 tdrive-storage = { path = "../../crates/tdrive-storage" }
 tdrive-crypto = { path = "../../crates/tdrive-crypto" }
+
+[dev-dependencies]
+rusqlite = { version = "=0.43.0", features = ["bundled"] }

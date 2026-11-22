@@ -1,6 +1,7 @@
 //! Offline contract inspector. Never opens Telegram or production services.
 #[cfg(unix)]
 mod offline_crypto;
+mod folder_json;
 
 use std::env;
 use std::io::{self, Read};
@@ -58,9 +59,12 @@ fn main() -> ExitCode {
         [option, source, destination, key] if option == "--decrypt-file" => {
             offline_file(offline_crypto::Mode::Decrypt, source, destination, key)
         }
+        [option, path, channel, parent] if option == "--list-folder" => {
+            list_folder(path, channel, parent)
+        }
         _ => {
             eprintln!(
-                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file>"
+                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id>"
             );
             ExitCode::FAILURE
         }
@@ -76,6 +80,33 @@ fn offline_file(mode: offline_crypto::Mode, source: &str, destination: &str, key
         }
         Err(message) => {
             eprintln!("TDE1 offline file failed: {message}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn list_folder(path: &str, channel: &str, parent: &str) -> ExitCode {
+    let valid_channel = !channel.is_empty() && channel.bytes().all(|byte| byte.is_ascii_digit());
+    let parsed = valid_channel
+        .then(|| channel.parse::<i64>().ok())
+        .flatten()
+        .filter(|value| *value > 0);
+    let Some(channel_id) = parsed else {
+        eprintln!("invalid positive decimal channel ID");
+        return ExitCode::FAILURE;
+    };
+    let path = Path::new(path);
+    if !path.is_absolute() || !(parent.is_empty() || parent.starts_with("d:")) {
+        eprintln!("invalid detached SQLite snapshot path or folder ID");
+        return ExitCode::FAILURE;
+    }
+    match tdrive_storage::list_folder_contents_snapshot(path, channel_id, parent) {
+        Ok(listing) => {
+            println!("{}", folder_json::encode_json(&listing));
+            ExitCode::SUCCESS
+        }
+        Err(_) => {
+            eprintln!("detached SQLite snapshot is invalid or unsafe");
             ExitCode::FAILURE
         }
     }
