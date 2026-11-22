@@ -15,7 +15,7 @@ resolver = "3"
 grammers-client = "=0.10.0"
 grammers-mtsender = "=0.10.0"
 grammers-session = { version = "=0.10.0", features = ["sqlite-storage"] }
-tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "time"] }
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "time", "signal"] }
 rpassword = "=7.5.4"
 rusqlite = { version = "=0.43.0", features = ["bundled"] }
 sha2 = "=0.10.9"

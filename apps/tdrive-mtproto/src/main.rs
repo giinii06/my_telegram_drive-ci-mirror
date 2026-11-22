@@ -190,6 +190,45 @@ async fn catchup(client: &Client, name: &str, budget: usize) -> Result<()> {
     Ok(())
 }
 
+/// Supervised headless worker: an initial catch-up followed by periodic
+/// bounded scans. No Go v16 database writes or public HTTP listener.
+///
+/// Cancellation is safe: catches can leave already-appended idempotent inbox
+/// records, but mark_scanned is only called after the complete interval.
+async fn watch(client: &Client, peer: &str, budget: usize, poll_seconds: u64) -> Result<()> {
+    use tokio::signal::unix::{SignalKind, signal};
+    use tokio::time::{Duration, sleep};
+
+    let mut terminate = signal(SignalKind::terminate())?;
+    let mut interrupt = signal(SignalKind::interrupt())?;
+    println!("Native MTProto inbox watch active (no public HTTP port)");
+
+    loop {
+        tokio::select! {
+            result = catchup(client, peer, budget) => result?,
+            _ = terminate.recv() => {
+                println!("Watch stopped on SIGTERM");
+                return Ok(());
+            }
+            _ = interrupt.recv() => {
+                println!("Watch stopped on SIGINT");
+                return Ok(());
+            }
+        }
+        tokio::select! {
+            _ = sleep(Duration::from_secs(poll_seconds)) => {}
+            _ = terminate.recv() => {
+                println!("Watch stopped on SIGTERM");
+                return Ok(());
+            }
+            _ = interrupt.recv() => {
+                println!("Watch stopped on SIGINT");
+                return Ok(());
+            }
+        }
+    }
+}
+
 async fn login(client: &Client, api_hash: &str) -> Result<()> {
     if client.is_authorized().await? {
         println!("User account already authorized");
@@ -324,6 +363,7 @@ async fn run() -> Result<()> {
         println!("          download <@username|dialog-id> <message-id> <absolute-target>");
         println!("          ingest <@username|dialog-id> <1..100> | inbox-stats");
         println!("          catchup <@username|dialog-id> <1..10000>");
+        println!("          watch <@username|dialog-id> <1..10000> <15..3600-seconds>");
         println!("Ingest/stats require TDRIVE_INBOX_PATH (private separate SQLite)");
         println!("Environment: TG_API_ID, TG_API_HASH, TDRIVE_SESSION_PATH (private 0700 parent)");
         return Ok(());
@@ -370,6 +410,7 @@ async fn run() -> Result<()> {
             CliAction::Dialogs => list_dialogs(&client).await,
             CliAction::Ingest { peer, limit } => ingest(&client, &peer, limit).await,
             CliAction::Catchup { peer, budget } => catchup(&client, &peer, budget).await,
+            CliAction::Watch { peer, budget, poll_seconds } => watch(&client, &peer, budget, poll_seconds).await,
             CliAction::History { peer, limit } => history(&client, &peer, limit).await,
             CliAction::Upload { peer, source } => upload(&client, &peer, &source).await,
             CliAction::Download { peer, message_id, destination } =>
