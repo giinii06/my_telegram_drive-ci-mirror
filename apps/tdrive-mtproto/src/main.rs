@@ -16,7 +16,7 @@ use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tdrive_mtproto::inbox::{Inbox, InboxEvent, InboxOutcome};
+use tdrive_mtproto::inbox::{CatchupDecision, CatchupWindow, Inbox, InboxEvent, InboxOutcome};
 use tdrive_mtproto::policy::{
     CliAction, parse_action, validate_api_credentials, validate_download_path,
     validate_session_path, validate_source,
@@ -121,6 +121,72 @@ async fn ingest(client: &Client, name: &str, limit: usize) -> Result<()> {
         "Native Rust inbox ingest: inserted={inserted} seen={seen} tamper={tampered} skipped={skipped}"
     );
     println!("Bounded page only; this is not complete history/difference sync");
+    Ok(())
+}
+
+/// Reconcile all messages newer than the persisted watermark. Updates to
+/// older Telegram messages (edits/deletes) need a separate difference API.
+/// The watermark is deliberately not moved if the history scan is partial.
+async fn catchup(client: &Client, name: &str, budget: usize) -> Result<()> {
+    let path = env::var_os("TDRIVE_INBOX_PATH")
+        .map(PathBuf::from)
+        .ok_or("TDRIVE_INBOX_PATH is required for catchup")?;
+    let peer = resolve_peer(client, name).await?;
+    let peer_kind = match &peer {
+        Peer::User(_) => "user",
+        Peer::Group(_) => "group",
+        Peer::Channel(_) => "channel",
+        Peer::Community(_) => "community",
+    };
+    let peer_key = format!("{peer_kind}:{}", peer.id().bare_id_unchecked());
+    let reference = peer.to_ref().await?
+        .ok_or("Telegram peer reference not available")?;
+
+    let mut inbox = Inbox::open(&path)?;
+    let previous = inbox.high_watermark(&peer_key)?;
+    let mut window = CatchupWindow::new(previous, budget)?;
+    let mut messages = client.iter_messages(reference).limit(budget + 1);
+    let (mut inserted, mut already_seen, mut tampered, mut skipped) =
+        (0_usize, 0_usize, 0_usize, 0_usize);
+
+    let mut reached = false;
+    while let Some(message) = messages.next().await? {
+        match window.observe(i64::from(message.id()))? {
+            CatchupDecision::Complete => {
+                reached = true;
+                break;
+            }
+            CatchupDecision::Append => {}
+        }
+        let header = message.text().split('\n').next().unwrap_or("");
+        if !header.starts_with("TDX1|") {
+            skipped += 1;
+            continue;
+        }
+        match inbox.append(&InboxEvent {
+            peer_key: &peer_key,
+            msg_id: i64::from(message.id()),
+            raw_header: header,
+        })? {
+            InboxOutcome::Inserted => inserted += 1,
+            InboxOutcome::AlreadySeen => already_seen += 1,
+            InboxOutcome::TamperRecorded => tampered += 1,
+        }
+    }
+    if !reached {
+        // Only a successfully exhausted async Telegram iterator reaches here.
+        // Any connection error or exceeded budget exits via ? before this line.
+        window.exhaust();
+    }
+    let newest = window
+        .completed_newest()
+        .ok_or("catchup did not reach previous position or Telegram history end")?;
+    inbox.mark_scanned(&peer_key, previous, newest)?;
+    println!(
+        "Native Rust catchup complete: previous={previous} newest={newest} \
+         scanned={} inserted={inserted} seen={already_seen} tamper={tampered} skipped={skipped}",
+        window.processed(),
+    );
     Ok(())
 }
 
@@ -257,6 +323,7 @@ async fn run() -> Result<()> {
         println!("          upload <@username|dialog-id> <absolute-source>");
         println!("          download <@username|dialog-id> <message-id> <absolute-target>");
         println!("          ingest <@username|dialog-id> <1..100> | inbox-stats");
+        println!("          catchup <@username|dialog-id> <1..10000>");
         println!("Ingest/stats require TDRIVE_INBOX_PATH (private separate SQLite)");
         println!("Environment: TG_API_ID, TG_API_HASH, TDRIVE_SESSION_PATH (private 0700 parent)");
         return Ok(());
@@ -302,6 +369,7 @@ async fn run() -> Result<()> {
             }
             CliAction::Dialogs => list_dialogs(&client).await,
             CliAction::Ingest { peer, limit } => ingest(&client, &peer, limit).await,
+            CliAction::Catchup { peer, budget } => catchup(&client, &peer, budget).await,
             CliAction::History { peer, limit } => history(&client, &peer, limit).await,
             CliAction::Upload { peer, source } => upload(&client, &peer, &source).await,
             CliAction::Download { peer, message_id, destination } =>
