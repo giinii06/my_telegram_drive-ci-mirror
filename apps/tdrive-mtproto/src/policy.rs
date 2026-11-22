@@ -27,6 +27,8 @@ pub enum CliAction {
     Status,
     Login,
     Dialogs,
+    InboxStats,
+    Ingest { peer: String, limit: usize },
     History { peer: String, limit: usize },
     Upload { peer: String, source: PathBuf },
     Download { peer: String, message_id: i32, destination: PathBuf },
@@ -55,6 +57,14 @@ pub fn parse_action(args: &[String]) -> Result<CliAction, PolicyError> {
         [cmd] if cmd == "status" => Ok(CliAction::Status),
         [cmd] if cmd == "login" => Ok(CliAction::Login),
         [cmd] if cmd == "dialogs" => Ok(CliAction::Dialogs),
+        [cmd] if cmd == "inbox-stats" => Ok(CliAction::InboxStats),
+        [cmd, peer, limit] if cmd == "ingest" && valid_peer(peer) => {
+            let limit = limit.parse::<usize>().map_err(|_| PolicyError::InvalidArguments)?;
+            if !(1..=100).contains(&limit) {
+                return Err(PolicyError::InvalidArguments);
+            }
+            Ok(CliAction::Ingest { peer: peer.clone(), limit })
+        }
         [cmd, peer, limit] if cmd == "history" && valid_peer(peer) => {
             let limit = limit.parse::<usize>().map_err(|_| PolicyError::InvalidArguments)?;
             if !(1..=100).contains(&limit) {
