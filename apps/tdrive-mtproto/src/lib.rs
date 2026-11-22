@@ -3,3 +3,4 @@
 //! explicit non-destructive operations.  The client binary performs MTProto.
 
 pub mod policy;
+pub mod inbox;
