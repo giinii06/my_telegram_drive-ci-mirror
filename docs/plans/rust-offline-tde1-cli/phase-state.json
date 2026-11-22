@@ -1,0 +1,35 @@
+{
+  "gate_version": "2.2",
+  "grill_cleared": true,
+  "poteto_entered": true,
+  "plan_committed": true,
+  "pending_user_decisions": 0,
+  "project_id": "89276294",
+  "branch": "feat/rust-offline-tde1-cli-20261122",
+  "phases": [
+    {
+      "id": "01",
+      "kind": "user_flow",
+      "entrypoint": "offline Rust CLI encrypt/decrypt TDE1 without Telegram",
+      "status": "not_started",
+      "implemented": false,
+      "history": []
+    },
+    {
+      "id": "02",
+      "kind": "user_flow",
+      "entrypoint": "compiled Rust CLI offline E2E and exact-SHA jobs",
+      "status": "not_started",
+      "implemented": false,
+      "history": []
+    },
+    {
+      "id": "03",
+      "kind": "user_flow",
+      "entrypoint": "Telegram authenticated encrypted transfer plus GPUI Docker full Go parity per master migration ledger",
+      "status": "not_started",
+      "implemented": false,
+      "history": []
+    }
+  ]
+}
