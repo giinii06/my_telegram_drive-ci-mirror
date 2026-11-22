@@ -34,12 +34,18 @@ fn login_and_read_commands_are_user_account_only_and_bounded() {
     assert_eq!(parse_action(&args(&["login"])).unwrap(), CliAction::Login);
     assert_eq!(parse_action(&args(&["status"])).unwrap(), CliAction::Status);
     assert_eq!(parse_action(&args(&["dialogs"])).unwrap(), CliAction::Dialogs);
+    assert_eq!(parse_action(&args(&["inbox-stats"])).unwrap(), CliAction::InboxStats);
+    assert!(matches!(parse_action(&args(&["ingest", "@owner", "100"])),
+        Ok(CliAction::Ingest { limit: 100, .. })));
     assert!(matches!(
         parse_action(&args(&["history", "@owner", "100"])),
         Ok(CliAction::History { limit: 100, .. })
     ));
     for values in [
         vec!["history", "@owner", "0"],
+        vec!["ingest", "@owner", "0"],
+        vec!["ingest", "@owner", "101"],
+        vec!["ingest", "@owner"],
         vec!["history", "@owner", "101"],
         vec!["history", "a/b", "10"],
         vec!["login", "phone-number-on-argv"],
