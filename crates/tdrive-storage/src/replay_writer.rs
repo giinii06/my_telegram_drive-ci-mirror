@@ -107,12 +107,14 @@ pub fn append_replay_event(
     }
 
     // JSON1 is included in bundled SQLite. No user input enters SQL syntax.
-    let json_is_object: i64 = transaction.query_row(
-        "SELECT CASE WHEN json_valid(?1) THEN json_type(?1) = 'object' ELSE 0 END",
-        params![event.op_payload_json],
+    let payload_matches_wire: i64 = transaction.query_row(
+        "SELECT CASE WHEN json_valid(?1)
+          THEN json_type(?1) = 'object' AND json_extract(?1, '$.Type') = ?2
+          ELSE 0 END",
+        params![event.op_payload_json, event.op_type],
         |row| row.get(0),
     )?;
-    if json_is_object != 1 {
+    if payload_matches_wire != 1 {
         return Err(ReplayWriteError::InvalidPayload);
     }
 
