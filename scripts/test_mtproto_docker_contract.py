@@ -42,6 +42,26 @@ class MtprotoDockerContract(unittest.TestCase):
         self.assertNotIn('TG_API_ID:?Set', compose)
         self.assertNotIn('TG_API_HASH:?Set', compose)
 
+    def test_opt_in_rust_watch_has_restart_without_public_ports(self):
+        compose = (ROOT / 'docker-compose.rust-watch.yml').read_text()
+        self.assertIn('rust-experimental', compose)
+        self.assertIn('watch', compose)
+        self.assertIn('restart: on-failure:5', compose)
+        self.assertIn('read_only: true', compose)
+        self.assertIn('cap_drop:', compose)
+        self.assertIn('no-new-privileges:true', compose)
+        self.assertIn('stop_grace_period: 30s', compose)
+        self.assertIn('TDRIVE_INBOX_PATH: /private/tdrive-inbox.sqlite', compose)
+        self.assertIn('TDRIVE_SESSION_PATH: /private/session.sqlite', compose)
+        self.assertIn('TDRIVE_RUST_PEER', compose)
+        self.assertNotIn('ports:', compose)
+        self.assertNotIn('network_mode: service:tailscale', compose)
+
+    def test_native_ci_must_build_headless_watch_configuration(self):
+        workflow = (ROOT / '.github/workflows/rust-mtproto-native.yml').read_text()
+        self.assertIn('docker-compose.rust-watch.yml', workflow)
+        self.assertIn('docker compose -f docker-compose.rust-watch.yml config --quiet', workflow)
+
     def test_docker_context_excludes_session_secret_artifacts(self):
         ignore = (ROOT / ".dockerignore").read_text()
         for pattern in ("**/session.sqlite", "**/*.session", "**/tdrive-inbox.sqlite"):
