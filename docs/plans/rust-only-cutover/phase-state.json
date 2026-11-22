@@ -131,11 +131,11 @@
       "red_verified": true,
       "green_verified": true,
       "checks_evidenced": true,
-      "ci_level": "dispatch",
+      "ci_level": "provider_failed_before_jobs",
       "pipeline_id": 3100184239,
-      "provider_result": "unknown",
-      "jobs_verified": false,
-      "e2e_verified": false,
+      "provider_result": "failed",
+      "jobs_verified": "unknown",
+      "e2e_verified": "unknown",
       "review_report": "reviews/phase-v1.1-runner-coverage.json",
       "history": [
         {
@@ -154,7 +154,8 @@
           "evidence": "Test-only local diff SHA-256 4f2fa16fa3d50da6770dce4ebd9c2b1e1fa93e31bdba702c4c849252a40ceb16 observed 2 expected RED failures (missing root Cargo.lock rejection and root workspace Clippy coverage). Fixed at exact code SHA 74c9cbcbbbc16dcb2fcc5646d117424cba6b1af2; local synthetic test suite 6/6 PASS, bash -n and py_compile PASS. Exact checked-in source hashes matched locally executed bytes. Rust/Cargo/Docker themselves unavailable."
         }
       ],
-      "blocker": "Nested apps/tdrive-mtproto/Cargo.lock remains absent; this runtime has no cargo/rustc/Docker. Exact-SHA GitLab pipeline #3100184239 only dispatches successfully; downstream ci-hub-smoke #3100184258 is skipped with a manual no-op job, provider jobs unknown. Actual Rust build and Telegram E2E not run."
+      "blocker": "GitLab #3100184239 at exact code SHA 74c9cbcbbbc16dcb2fcc5646d117424cba6b1af2: dispatch_github_actions=success, github-actions/ci-hub-request=failed with publication-scan refusal; child #3100184258 skipped/manual, no actual build jobs. Nested Cargo.lock absent and no local cargo/rustc/Docker; Rust application build/E2E unexecuted.",
+      "provider_description": "The requested Git history did not pass the publication scan"
     }
   ]
 }

@@ -60,3 +60,7 @@ Added `scripts/verify_mtproto_local.sh` with source SHA `ab4d23dd2d6fd933447fbe9
 ## V.1.1 verifier coverage fix (`74c9cbc`)
 
 The private verifier now checks **both** root and nested Cargo workspaces, including Clippy, tests and release builds. Test-only RED had 2 expected failures; exact-source GREEN synthetic runner suite 6/6, shell syntax and Python compile pass. [Implementation SHA](https://gitlab.com/blond11qq/my_telegram_drive/-/commit/74c9cbcbbbc16dcb2fcc5646d117424cba6b1af2). GitLab #3100184239 confirms dispatch only; child #3100184258 skipped/manual, no Rust jobs. Actual Cargo/Docker/Telegram checks remain unavailable; nested lock absent. [V.1 evidence](phase-v1-private-local-build.md), [two-lens self-review](reviews/phase-v1.1-runner-coverage.json), [phase state](phase-state.json).
+
+## V.1.1 CI provider result update
+
+The delayed provider status for exact code SHA `74c9cbcbbbc16dcb2fcc5646d117424cba6b1af2` is **failed before job execution**: [GitLab pipeline #3100184239](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3100184239) reports `The requested Git history did not pass the publication scan`; child #3100184258 is skipped/manual. `dispatch=success`, `provider_result=failed`, `jobs_verified=unknown`, `e2e_verified=unknown`. This is not evidence of a Rust compiler failure. Do not bypass the publication scan or expose private history.

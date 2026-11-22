@@ -68,3 +68,7 @@ Do not run this against production session or user data. No automated external G
 ### Next private operator action
 
 On the user's trusted private macOS/Linux checkout, install Rust 1.92 and generate/audit/commit `apps/tdrive-mtproto/Cargo.lock`; then run `bash scripts/verify_mtproto_local.sh` and optionally `TDRIVE_CHECK_DOCKER=1 bash scripts/verify_mtproto_local.sh`. Share sanitized command output and exact HEAD SHA so actual errors can be repaired. No public history publication or secret/mirror/runner change.
+
+### CI result update — pipeline #3100184239
+
+The asynchronous provider status is now available for exact code SHA `74c9cbcbbbc16dcb2fcc5646d117424cba6b1af2`: `dispatch_github_actions=success`, `github-actions/ci-hub-request=failed`, description **`The requested Git history did not pass the publication scan`**. Child pipeline #3100184258 remains `skipped`, with `github_actions_request=manual`; there are no actual Rust jobs or logs. Classify `dispatch=success`, `provider_result=failed (publication scan)`, `jobs_verified=unknown`, `e2e_verified=unknown`. This is not a Rust compile failure. Do not bypass the scanner or publish private history.

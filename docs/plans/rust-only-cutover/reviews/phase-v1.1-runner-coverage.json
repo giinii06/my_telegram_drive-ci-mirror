@@ -20,7 +20,8 @@
     "pipeline_id": 3100184239,
     "sha": "74c9cbcbbbc16dcb2fcc5646d117424cba6b1af2",
     "dispatch": "success",
-    "provider_result": "unknown",
+    "provider_result": "failed",
+    "provider_description": "The requested Git history did not pass the publication scan",
     "jobs_verified": "unknown",
     "e2e_verified": "unknown",
     "child_pipeline_id": 3100184258,
@@ -51,7 +52,7 @@
     {
       "severity": "important",
       "file": ".gitlab/ci-hub-request.yml@blond11qq/ci-hub-smoke",
-      "finding": "Exact-SHA pipeline #3100184239 only proves dispatch; downstream job remains manual/skipped, provider execution and logs unknown.",
+      "finding": "Exact-SHA pipeline #3100184239 reports provider failure `The requested Git history did not pass the publication scan`; child #3100184258 is skipped/manual, no Rust job execution or logs.",
       "disposition": "blocks-provider-verification"
     },
     {
