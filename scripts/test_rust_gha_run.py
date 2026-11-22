@@ -23,6 +23,7 @@ def sample():
     jobs = []
     for name in EXPECTED_JOBS:
         jobs.append({
+            "id": 1000 + len(jobs), "run_id": run["id"], "head_sha": SHA,
             "name": name, "status": "completed", "conclusion": "success",
             "steps": [
                 {"name": s, "status": "completed", "conclusion": "success"}
@@ -36,6 +37,31 @@ class EvidenceTests(unittest.TestCase):
     def test_exact_run_and_all_six_jobs_pass(self):
         run, jobs = sample()
         self.assertEqual(validate_run(run, jobs, REPO, SHA), [])
+
+    def test_job_from_another_run_rejected(self):
+        run, jobs = sample()
+        jobs[0]["run_id"] = 999
+        self.assertTrue(validate_run(run, jobs, REPO, SHA))
+
+    def test_job_from_different_commit_rejected(self):
+        run, jobs = sample()
+        jobs[1]["head_sha"] = "f" * 40
+        self.assertTrue(validate_run(run, jobs, REPO, SHA))
+
+    def test_job_without_id_rejected(self):
+        run, jobs = sample()
+        del jobs[0]["id"]
+        self.assertTrue(validate_run(run, jobs, REPO, SHA))
+
+    def test_duplicate_job_id_rejected(self):
+        run, jobs = sample()
+        jobs[1]["id"] = jobs[0]["id"]
+        self.assertTrue(validate_run(run, jobs, REPO, SHA))
+
+    def test_boolean_job_id_rejected(self):
+        run, jobs = sample()
+        jobs[0]["id"] = True
+        self.assertTrue(validate_run(run, jobs, REPO, SHA))
 
     def test_wrong_sha_rejected(self):
         run, jobs = sample()
