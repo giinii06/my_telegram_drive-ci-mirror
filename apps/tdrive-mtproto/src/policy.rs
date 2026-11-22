@@ -50,7 +50,8 @@ fn absolute_simple(path: &Path) -> bool {
 
 pub fn parse_action(args: &[String]) -> Result<CliAction, PolicyError> {
     match args {
-        [] | [cmd] if args.is_empty() || cmd == "--help" => Ok(CliAction::Help),
+        [] => Ok(CliAction::Help),
+        [cmd] if cmd == "--help" => Ok(CliAction::Help),
         [cmd] if cmd == "status" => Ok(CliAction::Status),
         [cmd] if cmd == "login" => Ok(CliAction::Login),
         [cmd] if cmd == "dialogs" => Ok(CliAction::Dialogs),
