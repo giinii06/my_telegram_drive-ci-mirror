@@ -92,9 +92,17 @@ fn loopback_health_requires_auth_and_offline_folder_reads_remain_readonly() {
     let guard = Cleanup { root, child };
     let mut ready = false;
     for _ in 0..100 {
-        if TcpStream::connect(("127.0.0.1", port)).is_ok() {
-            ready = true;
-            break;
+        if let Ok(mut probe) = TcpStream::connect(("127.0.0.1", port)) {
+            let _ = probe.set_read_timeout(Some(Duration::from_secs(3)));
+            if probe.write_all(b"GET /health HTTP/1.1\r\nHost: localhost\r\n\r\n").is_ok() {
+                let mut response = String::new();
+                if probe.read_to_string(&mut response).is_ok()
+                    && response.starts_with("HTTP/1.1 401 Unauthorized")
+                {
+                    ready = true;
+                    break;
+                }
+            }
         }
         std::thread::sleep(Duration::from_millis(30));
     }
