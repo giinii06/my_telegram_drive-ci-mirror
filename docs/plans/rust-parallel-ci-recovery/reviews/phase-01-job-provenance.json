@@ -1,0 +1,22 @@
+{
+  "phase_id": "01",
+  "base_sha": "10286b01b9e73e64a998b52f71c4d51e0e3f7840",
+  "head_sha": "d2cbd9f1eff29e21401cfc7d77cbcb54d68e2158",
+  "reviews": [
+    {
+      "lens": "requirements",
+      "head_sha": "d2cbd9f1eff29e21401cfc7d77cbcb54d68e2158",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy requirement self-review",
+      "evidence": "Exact GitLab code diff requires each actual GitHub job record to match run.id and candidate head_sha and rejects invalid/duplicate numeric job ids. Five new negative fixtures and positive baseline exist. Offline reproduction RED/GREEN only, no full exact-repo executable or provider CI jobs; no user-facing Telegram flow tested."
+    },
+    {
+      "lens": "quality_security",
+      "head_sha": "d2cbd9f1eff29e21401cfc7d77cbcb54d68e2158",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy security self-review",
+      "evidence": "Exact source adds a bounded set of observed positive numeric IDs and checks per-job provenance; rejects bool masquerading as int. No new privileges or secrets, network endpoints, mirror, runners, deployment or deletion. Independent GitHub run/job steps unavailable; synthetic data not authoritative and runtime authenticity remains provider-dependent."
+    }
+  ],
+  "findings": []
+}
