@@ -6,6 +6,7 @@ on:
       - "apps/tdrive-mtproto/**"
       - "Dockerfile.mtproto"
       - "docker-compose.rust.yml"
+      - "docker-compose.rust-watch.yml"
       - ".github/workflows/rust-mtproto-native.yml"
     branches:
       - "refactor/rust-only-*"
@@ -62,6 +63,15 @@ jobs:
           TDRIVE_RUST_GID: "10001"
           TDRIVE_RUST_DATA: "/tmp/tdrive-ci-private"
         run: docker compose -f docker-compose.rust.yml config --quiet
+      - name: Validate opt-in persistent private MTProto watch (no account)
+        env:
+          TG_API_ID: "12345"
+          TG_API_HASH: "00000000000000000000000000000000"
+          TDRIVE_RUST_UID: "10001"
+          TDRIVE_RUST_GID: "10001"
+          TDRIVE_RUST_DATA: "/tmp/tdrive-ci-private"
+          TDRIVE_RUST_PEER: "@test_account"
+        run: docker compose -f docker-compose.rust-watch.yml config --quiet
       - name: Build no-secret experimental image
         run: docker build --file Dockerfile.mtproto --tag tdrive-mtproto:ci .
       - name: Run no-secret help smoke
