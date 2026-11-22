@@ -40,7 +40,7 @@ fn read_token(path: &Path) -> Result<PrivateToken, &'static str> {
     {
         return Err("private bearer token permissions or size invalid");
     }
-    let mut file = File::open(path).map_err(|_| "private bearer token unavailable")?;
+    let file = File::open(path).map_err(|_| "private bearer token unavailable")?;
     let opened = file.metadata().map_err(|_| "bearer token metadata unavailable")?;
     if !opened.is_file()
         || before.dev() != opened.dev()
@@ -50,9 +50,7 @@ fn read_token(path: &Path) -> Result<PrivateToken, &'static str> {
         return Err("private bearer token changed during read");
     }
     let mut buffer = Vec::new();
-    file.by_ref()
-        .take(129)
-        .read_to_end(&mut buffer)
+    file.take(129).read_to_end(&mut buffer)
         .map_err(|_| "private bearer token unreadable")?;
     if !valid_token(&buffer) {
         buffer.fill(0);
