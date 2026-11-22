@@ -1,0 +1,33 @@
+# Opt-in Rust MTProto diagnostic: never replaces the Go production service.
+# One-shot only: docker compose -f docker-compose.rust.yml run --rm rust-mtproto inbox-stats
+services:
+  rust-mtproto:
+    profiles: [rust-experimental]
+    build:
+      context: .
+      dockerfile: Dockerfile.mtproto
+    image: tdrive-mtproto:local
+    pull_policy: never
+    restart: "no"
+    init: true
+    stdin_open: true
+    tty: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=0700
+    cap_drop:
+      - ALL
+    security_opt:
+      - "no-new-privileges:true"
+    user: "${TDRIVE_RUST_UID:?Set host UID}:${TDRIVE_RUST_GID:?Set host GID}"
+    volumes:
+      - type: bind
+        source: "${TDRIVE_RUST_DATA:?Set absolute private host directory}"
+        target: /private
+        read_only: false
+    environment:
+      TG_API_ID: "${TG_API_ID:?Set Telegram app ID}"
+      TG_API_HASH: "${TG_API_HASH:?Set Telegram app hash}"
+      TDRIVE_SESSION_PATH: /private/session.sqlite
+      TDRIVE_INBOX_PATH: /private/tdrive-inbox.sqlite
+    command: ["--help"]
