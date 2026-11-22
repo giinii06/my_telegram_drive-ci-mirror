@@ -4,7 +4,7 @@ use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
-use tdrive_mtproto::inbox::{Inbox, InboxError, InboxEvent, InboxOutcome};
+use tdrive_mtproto::inbox::{CatchupWindow, CatchupDecision, CatchupError, Inbox, InboxError, InboxEvent, InboxOutcome};
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
 const FIRST: &str = "TDX1|t=mkdir|obj=d:docs|p=|n=Docs";
@@ -182,4 +182,41 @@ fn legacy_native_v1_inbox_adds_cursor_without_losing_headers() {
     assert_eq!(reopened.high_watermark("-1001234567890").unwrap(), 0);
     reopened.mark_scanned("-1001234567890", 0, 42).unwrap();
     assert_eq!(reopened.original_header("-1001234567890",42).unwrap(),Some(FIRST.into()));
+}
+
+#[test]
+fn catchup_window_exhaustion_proves_newest_message_only_after_complete_scan() {
+    let mut window = CatchupWindow::new(50, 3).unwrap();
+    assert_eq!(window.observe(53).unwrap(), CatchupDecision::Append);
+    assert_eq!(window.observe(52).unwrap(), CatchupDecision::Append);
+    assert_eq!(window.observe(51).unwrap(), CatchupDecision::Append);
+    assert_eq!(window.observe(50).unwrap(), CatchupDecision::Complete);
+    assert_eq!(window.completed_newest(), Some(53));
+    assert_eq!(window.processed(), 3);
+}
+
+#[test]
+fn catchup_window_refuses_budget_truncation_and_out_of_order_messages() {
+    let mut window = CatchupWindow::new(20, 2).unwrap();
+    assert_eq!(window.observe(25).unwrap(), CatchupDecision::Append);
+    assert_eq!(window.observe(24).unwrap(), CatchupDecision::Append);
+    assert_eq!(window.observe(23), Err(CatchupError::BudgetExhausted));
+    assert_eq!(window.completed_newest(), None);
+    let mut window = CatchupWindow::new(0, 5).unwrap();
+    window.observe(100).unwrap();
+    assert_eq!(window.observe(100), Err(CatchupError::OutOfOrder));
+    assert_eq!(window.completed_newest(), None);
+}
+
+#[test]
+fn empty_history_and_unknown_first_cursor_are_not_accidental_success() {
+    let mut empty = CatchupWindow::new(0, 10).unwrap();
+    empty.exhaust();
+    assert_eq!(empty.completed_newest(), Some(0));
+    let mut partial = CatchupWindow::new(0, 2).unwrap();
+    partial.observe(101).unwrap();
+    partial.observe(100).unwrap();
+    assert_eq!(partial.completed_newest(), None);
+    partial.exhaust();
+    assert_eq!(partial.completed_newest(), Some(101));
 }
