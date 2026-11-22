@@ -362,6 +362,7 @@ dependencies = [
 name = "tdrive-inspect"
 version = "0.1.0"
 dependencies = [
+ "tdrive-crypto",
  "tdrive-projection",
  "tdrive-storage",
 ]
