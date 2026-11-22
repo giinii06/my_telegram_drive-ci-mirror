@@ -29,6 +29,7 @@ pub enum CliAction {
     Dialogs,
     InboxStats,
     Ingest { peer: String, limit: usize },
+    Catchup { peer: String, budget: usize },
     History { peer: String, limit: usize },
     Upload { peer: String, source: PathBuf },
     Download { peer: String, message_id: i32, destination: PathBuf },
@@ -64,6 +65,13 @@ pub fn parse_action(args: &[String]) -> Result<CliAction, PolicyError> {
                 return Err(PolicyError::InvalidArguments);
             }
             Ok(CliAction::Ingest { peer: peer.clone(), limit })
+        }
+        [cmd, peer, budget] if cmd == "catchup" && valid_peer(peer) => {
+            let budget = budget.parse::<usize>().map_err(|_| PolicyError::InvalidArguments)?;
+            if !(1..=10_000).contains(&budget) {
+                return Err(PolicyError::InvalidArguments);
+            }
+            Ok(CliAction::Catchup { peer: peer.clone(), budget })
         }
         [cmd, peer, limit] if cmd == "history" && valid_peer(peer) => {
             let limit = limit.parse::<usize>().map_err(|_| PolicyError::InvalidArguments)?;
