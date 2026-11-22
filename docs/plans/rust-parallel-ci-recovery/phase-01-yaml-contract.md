@@ -106,3 +106,13 @@ Before this change, the actual GitLab source for all six GitHub jobs lacked an e
 - Real `python3 scripts/verify_rust_gha_run.py --repo giinii06/my_telegram_drive-ci-mirror --run-id 44959273388 --sha 4017cab5c270b82d227c97b3ea459d42ae1454fc` exited **1** with `result=blocked` and `GitHub API request unavailable (network/permissions/status)`. This is correct fail-closed behavior, not a GitHub test failure.
 - [GitLab API pipeline 3098443401](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098443401) created on exact new code SHA `5aeb52a881616eb4f3eb1468198a01aece56be6d`; GitLab bridge downstream pipeline 3098443435 was `skipped` because it only provides a request/dispatch bridge. `github-actions/ci-hub-request` had only `pending` status at this checkpoint with [GitHub run 44962575820](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44962575820). Never infer Rust job success from that callback.
 - **Alchemy v2.2 Phase 01 remains tested, Phase 02 and future Phase 03 remain not_started. No jobs_verified, no E2E proof and no approval for changing mirror/secrets/runner.**
+
+## Continuation — bind each GitHub job to the requested run and source SHA
+
+The GitHub REST workflow-job schema supplies `run_id`, `head_sha` and a numeric job `id`. Prior verifier checks run-level identity and named steps, but omits *job-level* provenance. An unrelated successful job record must not satisfy the six-job proof even when it has the expected name and successful step names.
+
+**RED acceptance:** Synthetic successful run with one job's `run_id` changed, its `head_sha` changed, a missing job identifier, or a duplicate numeric job identifier must be rejected; the existing normal six-job fixture must remain accepted. These are offline regression tests only.
+
+**GREEN implementation:** In `scripts/verify_rust_gha_run.py`, bind each job's `run_id` to `run.id` and its `head_sha` to requested exact source `sha`; require unique positive numeric GitHub job IDs (excluding bool). Maintain current fail-closed JSON error reporting and no secrets. Preserve all existing CLI flags and workflow job contract names.
+
+**Evidence gate:** commit RED tests first, observe the failing test on exactly the saved scripts when a local executor is available, then implement and run existing/added Python tests. Matching-SHA real GitHub `rust-contracts`, Go fixtures and Bun jobs remain unverified until actual provider response data is accessible. No CI provider, secrets, visibility, or mirror mutations are authorized by this continuation.
