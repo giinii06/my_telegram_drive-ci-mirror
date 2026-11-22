@@ -30,7 +30,7 @@ BIN=apps/tdrive-mtproto/target/release/tdrive-mtproto
 
 ## Headless Docker image
 
-This image runs one-off manual CLI commands. It has **no exposed ports, no public API, no secret baked into layers and no background daemon**.
+This image defaults to one-off manual CLI commands, with **no exposed ports, no public API and no secrets baked into layers**. An optional separate headless watch Compose runs repeated metadata scans; it is **not** a full drive server or production cutover.
 
 ```sh
 docker build -f Dockerfile.mtproto -t tdrive-mtproto:local .
@@ -82,7 +82,7 @@ docker compose -f docker-compose.rust.yml run --rm rust-mtproto login
 docker compose -f docker-compose.rust.yml run --rm rust-mtproto ingest '@publicchannel' 100
 ```
 
-The container is non-root, read-only apart from the explicitly mounted private folder, has no published ports and runs **one command per invocation**, not a persistent headless service. Use only a disposable test account pending Cargo/Docker and live integration E2E validation.
+This one-shot Compose profile is non-root, read-only apart from the private folder and has no published ports. A separate opt-in watch Compose runs a supervised metadata-only polling service. Use only a disposable test account pending Cargo/Docker and live integration E2E validation.
 
 ## Safety and limitations
 
@@ -95,3 +95,30 @@ The container is non-root, read-only apart from the explicitly mounted private f
 - Preserve original Go code and operating data until the Rust implementation achieves full verified parity, migration, recovery and rollback. Do not deploy this diagnostic to production.
 
 See [C.1 migration phase](../../docs/plans/rust-only-cutover/phase-c1-user-mtproto.md) and [full Go-free cutover plan](../../docs/plans/rust-only-cutover/README.md).
+
+## Optional supervised headless watch (metadata only; unverified)
+
+After an **isolated test-account** login and while keeping Go production untouched, the Rust CLI supports:
+
+```sh
+export TDRIVE_INBOX_PATH="$HOME/.local/share/tdrive-mtproto/tdrive-inbox.sqlite"
+apps/tdrive-mtproto/target/release/tdrive-mtproto catchup '@test_channel' 1000
+apps/tdrive-mtproto/target/release/tdrive-mtproto watch '@test_channel' 1000 60
+```
+
+The `watch` command reads the same private SQLite per-peer high-watermark and checks for new messages immediately, then at each interval (15–3600 seconds). On incomplete history, invalid operation headers or transport errors it exits nonzero; a subsequent run retries from the old durable cursor. SIGINT/SIGTERM requests end the foreground worker. It is deliberately **not** Telegram getDifference, edited-message sync, Go 17-op apply, encrypted media or full user-facing drive.
+
+Optional private watch Compose on a disposable/test installation only:
+
+```sh
+export TDRIVE_RUST_UID="$(id -u)" TDRIVE_RUST_GID="$(id -g)"
+export TDRIVE_RUST_DATA="$HOME/.local/share/tdrive-mtproto"
+export TG_API_ID='YOUR_API_ID' TG_API_HASH='YOUR_32_CHARACTER_API_HASH'
+export TDRIVE_RUST_PEER='@test_channel'
+export TDRIVE_RUST_SCAN_BUDGET=1000 TDRIVE_RUST_POLL_SECONDS=60
+docker compose --profile rust-experimental -f docker-compose.rust-watch.yml config
+# Do not start this on a production account until Rust Cargo+Docker+E2E tests pass:
+# docker compose --profile rust-experimental -f docker-compose.rust-watch.yml up --build -d
+```
+
+The watch service is non-root with no published ports, strict private bind mount, read-only root and a capped restart-on-failure policy. It does not expose any HTTP/WebDAV endpoint. It does not replace the Go production container. The main Rust dependency lockfile and actual Cargo/Docker job evidence are still unavailable here.
