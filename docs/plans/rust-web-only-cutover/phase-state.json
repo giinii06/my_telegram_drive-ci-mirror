@@ -24,26 +24,33 @@
       "file": "phase-00-android-retirement.md",
       "title": "Android 제품·빌드 지원 완전 제거",
       "kind": "user_flow",
-      "status": "in_progress",
-      "implemented": false,
+      "status": "implemented",
+      "implemented": true,
       "tested": false,
       "verified": false,
       "completed": false,
-      "candidate_sha": null,
+      "candidate_sha": "361f88de27d02d88b113ee728b59ada1e101584c",
       "red_verified": false,
       "green_verified": false,
       "checks_evidenced": false,
-      "ci_level": "unknown",
+      "ci_level": "dispatch_only",
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
-      "review_report": null,
+      "review_report": "reviews/phase-00-android-retirement.json",
       "history": [
         {
           "from": "not_started",
           "to": "in_progress",
           "evidence": "Approved web-only plan committed at db3a79dc6fcbd5a45555004b5ce751caf3b70def; plan review/checkpoint at bddcf680949861b248316b37ccb465788ca5190f. Phase 00 test-only candidate is being prepared. Local reduced source-snapshot test observed the expected 3 failing assertions (Android package directory, APK docs, android-apk workflow); full repository CI evidence pending."
+        },
+        {
+          "from": "in_progress",
+          "to": "implemented",
+          "sha": "361f88de27d02d88b113ee728b59ada1e101584c",
+          "evidence": "Removed 12 tracked packaging/android files; removed android-apk installer job; updated current README and packaging guide; retained linux-deb, macos-dmg, windows-exe and windows-backup-exe. GitLab tree shows zero packaging/android files and source searches show no APK references in current install docs/workflow. Full checkout test/CI jobs remain unverified: GitLab pipeline #3100313264 only dispatched bridge #18261958038; downstream #3100313274 is skipped with manual github_actions_request. Local RED was reproduced only on a reduced source-snapshot fixture, not a full checkout."
         }
-      ]
+      ],
+      "red_snapshot_reproduced": true
     },
     {
       "id": "01",

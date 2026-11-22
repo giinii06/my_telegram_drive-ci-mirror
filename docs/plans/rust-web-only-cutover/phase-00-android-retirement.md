@@ -49,3 +49,13 @@ Revert only this phase's commit(s). Existing APK release files and local data re
 - [ ] No unresolved Critical/Important review finding
 - [ ] Phase-state history and review report are committed
 - [ ] Downstream consumer/user flow remains identified
+
+
+## Execution record — 2026-11-23
+
+- **Test-only candidate:** `d64de6c4c094bee751a1a39f1896fcbde1bf8c30`; corrected regex in `8d3454e87c97dbeabe65718ef84768696ab2fa43`.
+- **Local RED evidence:** the same 4-test contract was run against a reduced temporary source-snapshot fixture seeded with the current Android path/job/APK markers. Result: 3 expected failures and 1 pass. This is not a full repository checkout and is not recorded as full-checkout RED.
+- **Implementation:** `361f88de27d02d88b113ee728b59ada1e101584c` deletes 12 tracked `packaging/android/` files, removes the `android-apk` installer job, removes APK instructions from current user/package READMEs, and retains all four non-Android headless installer jobs.
+- **Source audit:** current tree contains zero `packaging/android/` files; current root/package README and installer workflow contain zero Android/APK references; remaining installer jobs are `linux-deb`, `macos-dmg`, `windows-exe`, `windows-backup-exe`.
+- **CI:** pipeline #3100313264 on the exact implementation SHA reports bridge success only. Downstream `ci-hub-smoke` pipeline #3100313274 is skipped and its `github_actions_request` job is manual. No actual GitHub Actions job logs were available. Therefore `tested`, `verified` and `completed` remain false.
+- **Safety:** no historical release artifact, device-local data, Telegram session, Telegram message, production service, or user data was modified.
