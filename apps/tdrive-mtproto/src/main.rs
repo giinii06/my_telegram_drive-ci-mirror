@@ -16,6 +16,7 @@ use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
+use tdrive_mtproto::inbox::{Inbox, InboxEvent, InboxOutcome};
 use tdrive_mtproto::policy::{
     CliAction, parse_action, validate_api_credentials, validate_download_path,
     validate_session_path, validate_source,
@@ -76,6 +77,51 @@ async fn resolve_peer(client: &Client, requested: &str) -> Result<Peer> {
             .ok_or_else(|| "Telegram peer is not reachable".into());
     }
     Err("peer not found in accessible dialogs (use the ID printed by dialogs)".into())
+}
+
+/// Bounded Telegram-to-Rust ingestion into an ISOLATED inbox. This does not
+/// mutate Go v16 projection tables and is not a complete history subscription.
+async fn ingest(client: &Client, name: &str, limit: usize) -> Result<()> {
+    let path = env::var_os("TDRIVE_INBOX_PATH")
+        .map(PathBuf::from)
+        .ok_or("TDRIVE_INBOX_PATH is required for ingest")?;
+    let peer = resolve_peer(client, name).await?;
+    let peer_kind = match &peer {
+        Peer::User(_) => "user",
+        Peer::Group(_) => "group",
+        Peer::Channel(_) => "channel",
+        Peer::Community(_) => "community",
+    };
+    let peer_key = format!("{peer_kind}:{}", peer.id().bare_id_unchecked());
+    let reference = peer.to_ref().await?
+        .ok_or("Telegram peer reference not available")?;
+    let mut inbox = Inbox::open(&path)?;
+    let mut messages = client.iter_messages(reference).limit(limit);
+
+    let (mut inserted, mut seen, mut tampered, mut skipped) = (0_u32, 0_u32, 0_u32, 0_u32);
+    while let Some(message) = messages.next().await? {
+        // Telegram captions may include user notes after the TDX1 header.
+        let header = message.text().split('\n').next().unwrap_or("");
+        if !header.starts_with("TDX1|") {
+            skipped += 1;
+            continue;
+        }
+        let event = InboxEvent {
+            peer_key: &peer_key,
+            msg_id: i64::from(message.id()),
+            raw_header: header,
+        };
+        match inbox.append(&event)? {
+            InboxOutcome::Inserted => inserted += 1,
+            InboxOutcome::AlreadySeen => seen += 1,
+            InboxOutcome::TamperRecorded => tampered += 1,
+        }
+    }
+    println!(
+        "Native Rust inbox ingest: inserted={inserted} seen={seen} tamper={tampered} skipped={skipped}"
+    );
+    println!("Bounded page only; this is not complete history/difference sync");
+    Ok(())
 }
 
 async fn login(client: &Client, api_hash: &str) -> Result<()> {
@@ -210,7 +256,21 @@ async fn run() -> Result<()> {
         println!("Commands: login | status | dialogs | history <@username|dialog-id> <1..100>");
         println!("          upload <@username|dialog-id> <absolute-source>");
         println!("          download <@username|dialog-id> <message-id> <absolute-target>");
+        println!("          ingest <@username|dialog-id> <1..100> | inbox-stats");
+        println!("Ingest/stats require TDRIVE_INBOX_PATH (private separate SQLite)");
         println!("Environment: TG_API_ID, TG_API_HASH, TDRIVE_SESSION_PATH (private 0700 parent)");
+        return Ok(());
+    }
+    if action == CliAction::InboxStats {
+        let path = env::var_os("TDRIVE_INBOX_PATH")
+            .map(PathBuf::from)
+            .ok_or("TDRIVE_INBOX_PATH is required")?;
+        let inbox = Inbox::open_existing(&path)?;
+        let stats = inbox.stats()?;
+        println!(
+            "Native Rust inbox: messages={} tampered={}",
+            stats.messages, stats.tampered
+        );
         return Ok(());
     }
     let api_id_raw = env::var("TG_API_ID").map_err(|_| "TG_API_ID is required")?;
@@ -241,11 +301,12 @@ async fn run() -> Result<()> {
                 Ok(())
             }
             CliAction::Dialogs => list_dialogs(&client).await,
+            CliAction::Ingest { peer, limit } => ingest(&client, &peer, limit).await,
             CliAction::History { peer, limit } => history(&client, &peer, limit).await,
             CliAction::Upload { peer, source } => upload(&client, &peer, &source).await,
             CliAction::Download { peer, message_id, destination } =>
                 download(&client, &peer, message_id, &destination).await,
-            CliAction::Help | CliAction::Login => unreachable!(),
+            CliAction::Help | CliAction::InboxStats | CliAction::Login => unreachable!(),
         }
     }.await;
 
