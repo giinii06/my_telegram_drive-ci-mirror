@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-11-23):** This earlier GPUI/Android-inclusive plan is historical evidence only. The current approved scope and execution ledger are [Rust Web-only migration](../rust-web-only-cutover/README.md). Do not execute its GPUI desktop or Android phases.
+
 # Rust-only migration and conditional Go removal
 
 ## Approved contract

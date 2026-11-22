@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-11-23):** This GPUI/Android-inclusive master plan is retained as historical repository analysis. The current approved plan is [Rust Web-only migration](../plans/rust-web-only-cutover/README.md). Follow that plan for scope, phases, support matrix and execution state. The legacy phase documents below are not the active implementation checklist.
+
 # TDrive Rust + GPUI + Docker 전환 마스터 플랜
 
 **최신 실행 추적:** [전체 이행 세부 Phase·커밋·CI 원장](phase-ledger.md) · [현재 구현 사실만 기록](implementation-status.md). 아래 내용은 최초 설계 문서이며 최초의 '문서 변경만' 문구는 역사적 배경으로 읽어야 한다.
