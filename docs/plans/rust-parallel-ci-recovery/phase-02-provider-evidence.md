@@ -43,3 +43,30 @@ For `4017cab5c270b82d227c97b3ea459d42ae1454fc`, GitLab pipeline [#3098379726](ht
 ## Evidence status for new testable source SHA
 
 GitLab [pipeline 3098443401](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098443401) targets `5aeb52a881616eb4f3eb1468198a01aece56be6d`. The GitHub run link [44962575820](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44962575820) is **not** verified to have run `.github/workflows/rust-migration-parallel.yml` or checked out this SHA. New `scripts/verify_rust_gha_run.py` uses GitHub's run/jobs REST API to make those independent assertions; from the current runtime, the real API call is blocked and returns nonzero. Therefore Stage 02 cannot advance, irrespective of generic provider callback outcome.
+
+## Source-bound provider audit — pipeline 3098797918 (2026-11-22)
+
+**Code candidate, not docs checkpoint:** `d2cbd9f1eff29e21401cfc7d77cbcb54d68e2158`; current review branch at audit start: `f88b663e6c92f56a823510cfb7ef5d0969911dc5`. Source MR !22 remains Draft targeting `refactor/rust-phase-07d-filename-crypto`; no merge or deployment.
+
+Observed directly with GitLab APIs:
+
+- Project `89276294` effective `ci_config_path=.gitlab/ci-hub-request.yml@blond11qq/ci-hub-smoke`. Local `.gitlab-ci.yml` in the Rust branch is not the effective pipeline config.
+- Pipeline [3098797918](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098797918) at the **exact code SHA** finished `success`; GitLab pipeline jobs list is empty.
+- At that pipeline/SHA, commit statuses `dispatch_github_actions=success` and `github-actions/ci-hub-request=success`. The latter links to [GitHub run 44980517253](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/44980517253). It is a provider **callback**, not six Rust migration job results.
+- Independently inspected `blond11qq/ci-hub-smoke` source: `.gitlab/ci-hub-request.yml` forwards to another GitLab project, while its GitHub `.github/workflows/gitlab-request.yml` dispatches `giinii06/ci-hub/.github/workflows/ci.yml@v1` with a caller-supplied `stack`. This is not the six-job `.github/workflows/rust-migration-parallel.yml` workflow that Stage 02 requires. No GitHub run-job payload confirming the latter was accessible.
+- Tried read-only GitHub public run and API URLs with the available web and container tools. Both were inaccessible (web cache/API error and local DNS failure). That is **unknown evidence**, not proof the CI code failed or passed.
+
+**Result:** `dispatch=success`, `provider_result=success`, `jobs_verified=unknown`, `e2e_verified=unknown`; Phase 01 still `tested` only, Phase 02 remains `not_started/blocked`, Phase 03 remains `not_started`. Neither the original Go application nor native Rust Telegram engine were cut over. The recent per-job provenance code is at `d2cbd9f1...`, but its full repository test suite was **not observed** on that SHA; earlier temporary reproduction 6/6 GREEN is explicitly not a GitHub jobs run.
+
+### Concrete completion check (existing approved tooling)
+
+When job-level GitHub REST access exists without changing repository privacy, mirror, secrets or CI provider, use the existing script against the **actual Rust workflow run ID** (not simply the callback's link) and its exact checked-out GitLab 40-character SHA:
+
+```sh
+python3 scripts/verify_rust_gha_run.py \\
+  --repo giinii06/my_telegram_drive-ci-mirror \\
+  --run-id ACTUAL_RUST_MIGRATION_RUN_ID \\
+  --sha d2cbd9f1eff29e21401cfc7d77cbcb54d68e2158
+```
+
+It must report `jobs_verified` only after GitHub's own run/job API confirms the correct Rust workflow path and all six named job results, including exact SHA checks, Cargo, Go and Bun steps. If no such Rust workflow run exists, **do not substitute** `gitlab-request.yml` or a fake local fixture. Creating new mirror, secret, runner or visibility changes requires separate authorization. Continue phase implementation only after the prior mandatory gate is verified or specifically waived; a waiver does not become a pass.
