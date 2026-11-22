@@ -51,6 +51,8 @@ jobs:
           persist-credentials: false
       - name: Verify checked-out commit
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Validate Docker build context and session privacy
+        run: python3 -m unittest scripts/test_mtproto_docker_contract.py
       - name: Build no-secret experimental image
         run: docker build --file Dockerfile.mtproto --tag tdrive-mtproto:ci .
       - name: Run no-secret help smoke

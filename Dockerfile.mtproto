@@ -1,6 +1,9 @@
 # Experimental Rust user-account MTProto CLI; no production Go backend.
 FROM rust:1.92-bookworm AS build
 WORKDIR /build
+COPY Cargo.toml Cargo.lock ./
+COPY crates/ ./crates/
+COPY apps/tdrive-inspect/ ./apps/tdrive-inspect/
 COPY apps/tdrive-mtproto/ ./apps/tdrive-mtproto/
 RUN cargo build --release --manifest-path apps/tdrive-mtproto/Cargo.toml
 

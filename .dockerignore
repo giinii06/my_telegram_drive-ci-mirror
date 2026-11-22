@@ -7,6 +7,9 @@
 **/secret.json
 **/imp_config.json
 **/session.json
+**/session.sqlite
+**/*.session
+**/tdrive-inbox.sqlite
 **/config.json
 **/cli.json
 **/vault.pass
