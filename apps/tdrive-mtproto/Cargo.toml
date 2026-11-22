@@ -1,0 +1,19 @@
+[package]
+name = "tdrive-mtproto"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+license = "MIT"
+publish = false
+
+# This is deliberately a nested workspace until an actual Cargo executor can
+# resolve its new dependency graph. Do NOT hand-edit the parent Cargo.lock.
+[workspace]
+resolver = "3"
+
+[dependencies]
+grammers-client = "=0.10.0"
+grammers-mtsender = "=0.10.0"
+grammers-session = { version = "=0.10.0", features = ["sqlite-storage"] }
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "time"] }
+rpassword = "=7.4.0"
