@@ -112,3 +112,21 @@ fn session_and_file_symlinks_are_rejected_without_telegrams() {
     std::os::unix::fs::symlink(&file, &session_link).unwrap();
     assert_eq!(validate_session_path(&session_link), Err(PolicyError::UnsafePath));
 }
+
+#[test]
+fn download_rejects_symlink_directory_and_missing_parent() {
+    let fixture = PrivateFixture::new();
+    let real_dir = fixture.path("destination");
+    fs::create_dir(&real_dir).unwrap();
+    let link_dir = fixture.path("linked-directory");
+    std::os::unix::fs::symlink(&real_dir, &link_dir).unwrap();
+    assert_eq!(
+        validate_download_path(&link_dir.join("file.bin")),
+        Err(PolicyError::UnsafePath),
+    );
+    assert_eq!(
+        validate_download_path(&fixture.path("missing-parent").join("file.bin")),
+        Err(PolicyError::UnsafePath),
+    );
+}
+
