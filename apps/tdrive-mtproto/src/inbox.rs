@@ -15,12 +15,19 @@ const MAX_HEADER_BYTES: usize = 16 * 1024;
 const MAX_PEER_BYTES: usize = 128;
 const INBOX_VERSION: i64 = 1;
 
+fn valid_peer_key(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= MAX_PEER_BYTES
+        && value.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b':')
+}
+
 #[derive(Debug)]
 pub enum InboxError {
     UnsafePath,
     InvalidEntry,
     InvalidWire,
     WrongSchema,
+    StaleCursor,
     Database(rusqlite::Error),
     Io(std::io::Error),
 }
@@ -32,6 +39,7 @@ impl fmt::Display for InboxError {
             Self::InvalidEntry => "invalid Telegram inbox event",
             Self::InvalidWire => "invalid TDX1 operation header",
             Self::WrongSchema => "unsupported native inbox schema version",
+            Self::StaleCursor => "native inbox catch-up cursor was changed by another writer",
             Self::Database(_) => "native inbox SQLite error",
             Self::Io(_) => "native inbox I/O error",
         })
@@ -91,6 +99,7 @@ impl Inbox {
         validate_session_path(path).map_err(|_| InboxError::UnsafePath)?;
         let mut inbox = Self { conn: Connection::open(path)? };
         inbox.initialize(new_file)?;
+        inbox.ensure_progress_table()?;
         Ok(inbox)
     }
 
@@ -132,6 +141,10 @@ impl Inbox {
                     FOREIGN KEY(peer_key,msg_id)
                       REFERENCES native_inbox_events(peer_key,msg_id)
                  );
+                 CREATE TABLE native_inbox_progress (
+                    peer_key TEXT PRIMARY KEY NOT NULL,
+                    max_seen_msg_id INTEGER NOT NULL CHECK(max_seen_msg_id > 0)
+                 );
                  PRAGMA user_version = 1;",
             )?;
             tx.commit()?;
@@ -148,12 +161,68 @@ impl Inbox {
         Ok(())
     }
 
+    /// Upgrade an earlier native (non-Go) v1 inbox without discarding its
+    /// canonical first-seen messages. Read-only opens never run this DDL.
+    fn ensure_progress_table(&mut self) -> Result<(), InboxError> {
+        self.conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS native_inbox_progress (
+                 peer_key TEXT PRIMARY KEY NOT NULL,
+                 max_seen_msg_id INTEGER NOT NULL CHECK(max_seen_msg_id > 0)
+             )"
+        )?;
+        Ok(())
+    }
+
+    /// Highest *fully scanned* Telegram message ID, never merely the highest
+    /// locally observed event. It is zero on first run.
+    pub fn high_watermark(&self, peer_key: &str) -> Result<i64, InboxError> {
+        if !valid_peer_key(peer_key) {
+            return Err(InboxError::InvalidEntry);
+        }
+        let current: Option<i64> = self.conn.query_row(
+            "SELECT max_seen_msg_id FROM native_inbox_progress WHERE peer_key=?1",
+            params![peer_key],
+            |row| row.get(0),
+        ).optional()?;
+        Ok(current.unwrap_or(0))
+    }
+
+    /// Commit a high-watermark ONLY after the caller has scanned the entire
+    /// interval (previous, newest]. A transport error / budget exhaustion
+    /// MUST skip this call. IMMEDIATE transaction + CAS prevents regressions.
+    pub fn mark_scanned(
+        &mut self,
+        peer_key: &str,
+        previous: i64,
+        newest: i64,
+    ) -> Result<(), InboxError> {
+        if !valid_peer_key(peer_key) || previous < 0 || newest < previous {
+            return Err(InboxError::InvalidEntry);
+        }
+        let transaction = self.conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let actual: Option<i64> = transaction.query_row(
+            "SELECT max_seen_msg_id FROM native_inbox_progress WHERE peer_key=?1",
+            params![peer_key],
+            |row| row.get(0),
+        ).optional()?;
+        if actual.unwrap_or(0) != previous {
+            return Err(InboxError::StaleCursor);
+        }
+        if newest > previous {
+            transaction.execute(
+                "INSERT INTO native_inbox_progress(peer_key,max_seen_msg_id) VALUES(?1,?2)
+                 ON CONFLICT(peer_key) DO UPDATE SET max_seen_msg_id=excluded.max_seen_msg_id",
+                params![peer_key, newest],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
     /// First seen event is canonical; edits create audit-only tamper entries.
     /// This is a metadata inbox and must not be used as an applied projection.
     pub fn append(&mut self, event: &InboxEvent<'_>) -> Result<InboxOutcome, InboxError> {
-        if event.peer_key.is_empty()
-            || event.peer_key.len() > MAX_PEER_BYTES
-            || !event.peer_key.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b':')
+        if !valid_peer_key(event.peer_key)
             || event.msg_id <= 0
             || !event.raw_header.starts_with("TDX1|")
             || event.raw_header.len() > MAX_HEADER_BYTES
