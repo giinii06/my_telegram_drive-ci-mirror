@@ -40,3 +40,7 @@ Native Grammers 0.10.0 user CLI + private session, interactive login/2FA, dialog
 ## Native MTProto inbox / Docker checkpoint (`c9bc5bb6`)
 
 Bounded read-only Telegram history ingestion into a separate private Rust SQLite inbox, idempotent/tamper records, credential-free offline stats, isolated nonroot Compose and repaired Docker path-crate context. Rust execution **unverified**; GitLab #3098911766 is dispatch-only. See [C.2 phase evidence](phase-c2-inbox-ingest.md), [C.2 self-review](reviews/phase-c2-inbox.json). Full 17-op projection, true incremental sync, vault/GPUI/headless server and Go deletion remain incomplete.
+
+## Native Telegram crash-safe catchup checkpoint (e2e0ecc3)
+
+Added persisted per-peer SQLite watermark, history interval scanning with a 10,000-message cap, strict descending order, stale cursor conflict rejection, and fail-closed no-cursor-advance on partial/transport errors. **Code exists but no cargo run/Telegram E2E**. GitLab #3098971908 failed; child GitLab ci-hub-smoke #3098971934 is skipped/manual, not Rust jobs. See [C.3 evidence](phase-c3-history-catchup.md) and [self-review](reviews/phase-c3-catchup.json). All Go parity/GPUI/Docker completion gates still blocked.

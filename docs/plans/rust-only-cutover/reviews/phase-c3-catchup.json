@@ -1,0 +1,41 @@
+{
+  "phase_id": "C.3",
+  "head_sha": "e2e0ecc3a09b7d644f320a87265406dbd8c9918a",
+  "base_sha": "6030ff6e858b1cb6128a993436fa898a80e79a2a",
+  "reviews": [
+    {
+      "lens": "requirements",
+      "head_sha": "e2e0ecc3a09b7d644f320a87265406dbd8c9918a",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy sequential functionality review",
+      "evidence": "Read exact source and tests on GitLab. Newly added catchup scans down to preexisting per-peer watermark; stores idempotent TDX1 observations and only commits new watermark on completed scan, with 10k hard budget and explicit failure on gaps/transport. Four cursor, three scan state-machine and CLI policy source tests authored, not run. Does not implement complete Telegram updates, all 17 Go projection operations or a daemon."
+    },
+    {
+      "lens": "quality_security",
+      "head_sha": "e2e0ecc3a09b7d644f320a87265406dbd8c9918a",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy sequential quality/security review",
+      "evidence": "Source has parameterized SQLITE IMMEDIATE transactions, compare-and-set cursor preventing regressions/stale concurrent writes, private native inbox migration without touching Go v16, no remote deletes or implicit writes, no progress on scan errors. Python SQL equivalent smoke passes, but real Rust binary/Grammers API behavior and CI jobs unverified. Remaining risks: no Telegram difference/edited older messages; first-run 10k bound; path TOCTOU, no durable full operation apply; external CI chain skipped/manual and provider callback failed."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "important",
+      "file": "apps/tdrive-mtproto/src/main.rs",
+      "finding": "Catchup by message ID misses edits/deletions of already checkpointed older messages; requires Telegram updates/difference sync before production.",
+      "disposition": "open-blocks-production"
+    },
+    {
+      "severity": "important",
+      "file": "crates/tdrive-storage/src/replay_writer.rs",
+      "finding": "Full 17-op SQLite projection+atomic replay is absent; native inbox cannot serve a complete drive.",
+      "disposition": "open-blocks-go-removal"
+    },
+    {
+      "severity": "important",
+      "file": ".gitlab/ci-hub-request.yml@blond11qq/ci-hub-smoke",
+      "finding": "CI forwarding child pipeline skipped, manual job; provider callback failed. No source-verified Rust job evidence.",
+      "disposition": "open-blocks-ci"
+    }
+  ]
+}
