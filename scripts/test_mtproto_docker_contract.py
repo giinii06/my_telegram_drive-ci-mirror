@@ -26,6 +26,18 @@ class MtprotoDockerContract(unittest.TestCase):
         self.assertNotIn("ENV TG_API_", docker)
         self.assertIn('ENTRYPOINT ["/usr/local/bin/tdrive-mtproto"]', docker)
 
+    def test_experimental_compose_does_not_replace_go_or_publish_ports(self):
+        compose = (ROOT / "docker-compose.rust.yml").read_text()
+        self.assertIn("rust-experimental", compose)
+        self.assertIn("Dockerfile.mtproto", compose)
+        self.assertIn("read_only: true", compose)
+        self.assertIn("cap_drop:", compose)
+        self.assertIn("no-new-privileges:true", compose)
+        self.assertNotIn("ports:", compose)
+        self.assertNotIn("network_mode: service:tailscale", compose)
+        self.assertIn("TDRIVE_INBOX_PATH: /private/tdrive-inbox.sqlite", compose)
+        self.assertIn("TDRIVE_SESSION_PATH: /private/session.sqlite", compose)
+
     def test_docker_context_excludes_session_secret_artifacts(self):
         ignore = (ROOT / ".dockerignore").read_text()
         for pattern in ("**/session.sqlite", "**/*.session", "**/tdrive-inbox.sqlite"):
