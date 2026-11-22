@@ -1,0 +1,57 @@
+name: Rust-only cutover verification
+
+on:
+  push:
+    branches:
+      - 'refactor/rust-only-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-native:
+    name: Rust native / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Verify checked-out Git commit
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.92.0 --profile minimal --component rustfmt,clippy
+      - name: Rust format
+        run: cargo +1.92.0 fmt --all --check
+      - name: Rust Clippy
+        run: cargo +1.92.0 clippy --workspace --all-targets --locked -- -D warnings
+      - name: Rust build
+        run: cargo +1.92.0 build --workspace --locked
+      - name: Rust unit and integration tests
+        run: cargo +1.92.0 test --workspace --locked
+      - name: Offline Rust CLI smoke
+        run: |
+          cargo +1.92.0 run -p tdrive-inspect --locked -- --version
+          cargo +1.92.0 run -p tdrive-inspect --locked -- --wire-version
+      - name: Count remaining Go files without executing Go
+        run: python3 scripts/audit_rust_cutover.py --report
+
+  static-cutover-contract:
+    name: Go deletion gate contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Verify checked-out Git commit
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Test cutover audit
+        run: python3 -m unittest scripts/test_audit_rust_cutover.py
+      - name: Report outstanding Go removal obligations
+        run: python3 scripts/audit_rust_cutover.py --report
