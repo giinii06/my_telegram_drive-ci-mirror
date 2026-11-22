@@ -11,9 +11,26 @@
       "id": "01",
       "kind": "user_flow",
       "entrypoint": "offline Rust CLI encrypt/decrypt TDE1 without Telegram",
-      "status": "not_started",
-      "implemented": false,
-      "history": []
+      "status": "implemented",
+      "implemented": true,
+      "history": [
+        {
+          "frm": "not_started",
+          "to": "in_progress",
+          "evidence": "Plan b3022ede4ffc2ca2d62623e0df05107eaa6f0445; tests committed 4d852d33331164f92bb09c08c160f3f317b14868, deterministic last-tag test adjustment 8ecf7c5f60221e634daa137388aeb1bfb0c8a47f. Rust RED test not executed (no toolchain)."
+        },
+        {
+          "frm": "in_progress",
+          "to": "implemented",
+          "evidence": "Unix CLI implementation 38f0e8f8a8f19fb1b2e1a4fe906c63095e35484d; Cargo.lock correction 970dafcc04a7f1e008bb5117ac5aff72b4a9ec7e; Go-compatible atomic TDE1 crate used; actual byte-level tests unexecuted."
+        }
+      ],
+      "candidate_sha": "970dafcc04a7f1e008bb5117ac5aff72b4a9ec7e",
+      "red_verified": false,
+      "green_verified": false,
+      "checks_evidenced": false,
+      "ci_level": "dispatch",
+      "blocker": "No Rust toolchain / private repo checkout in current runtime; GitLab pipeline 3098837254 is only dispatch success, GitHub job-level test results unavailable; actual encrypted file CLI not executed"
     },
     {
       "id": "02",
