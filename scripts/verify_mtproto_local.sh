@@ -18,6 +18,7 @@ fi
 step "private checkout SHA: $sha"
 
 [[ -f Cargo.toml && -f apps/tdrive-mtproto/Cargo.toml ]] || fail 'missing Rust workspace manifest'
+[[ -s Cargo.lock ]] || fail 'root Cargo.lock missing; resolve and review it on a trusted private checkout before retrying'
 if [[ ! -s apps/tdrive-mtproto/Cargo.lock ]]; then
   fail 'nested Cargo.lock missing; on a trusted machine generate it with: cargo +1.92.0 generate-lockfile --manifest-path apps/tdrive-mtproto/Cargo.toml; audit and commit before retrying'
 fi
@@ -28,6 +29,12 @@ rustc +1.92.0 --version >/dev/null || fail 'Rust 1.92 compiler not installed'
 
 step 'fmt root workspace (source only)'
 cargo +1.92.0 fmt --all --check
+step 'clippy root Rust workspace with locked deps'
+cargo +1.92.0 clippy --workspace --all-targets --locked -- -D warnings
+step 'test root Rust workspace with locked deps'
+cargo +1.92.0 test --workspace --all-targets --locked
+step 'build root Rust workspace release with locked deps'
+cargo +1.92.0 build --workspace --release --locked
 step 'fmt standalone Telegram workspace'
 cargo +1.92.0 fmt --manifest-path apps/tdrive-mtproto/Cargo.toml --check
 step 'clippy standalone Telegram workspace with locked deps'

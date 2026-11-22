@@ -24,6 +24,7 @@ class LocalGateTests(unittest.TestCase):
         if SCRIPT.exists():
             (self.root / "scripts" / SCRIPT.name).write_bytes(SCRIPT.read_bytes())
         (self.root / "Cargo.toml").write_text('[workspace]\nmembers = []\n')
+        (self.root / "Cargo.lock").write_text("# synthetic root lock\n")
         (self.root / "apps" / "tdrive-mtproto" / "Cargo.toml").write_text('[package]\nname="dummy"\nversion="0.1.0"\nedition="2024"\n')
         self.assertEqual(exec_(["git", "init", "-q"], cwd=self.root).returncode, 0)
         self.assertEqual(exec_(["git", "add", "."], cwd=self.root).returncode, 0)
@@ -71,6 +72,16 @@ class LocalGateTests(unittest.TestCase):
         self.assertNotEqual(got.returncode, 0)
         self.assertIn("checkout is dirty", got.stderr)
 
+    def test_missing_root_lockfile_fails_without_auto_generating(self):
+        self.add_lock()
+        self.assertEqual(exec_(["git", "rm", "-q", "Cargo.lock"], cwd=self.root).returncode, 0)
+        self.assertEqual(exec_(["git", "-c", "user.email=test@example.invalid", "-c", "user.name=Fixture", "commit", "-qm", "remove root lock"], cwd=self.root).returncode, 0)
+        self.mock_tools()
+        got = self.run_gate()
+        self.assertNotEqual(got.returncode, 0)
+        self.assertIn("root Cargo.lock missing", got.stderr)
+        self.assertFalse((self.root / "Cargo.lock").exists())
+
     def test_missing_lockfile_fails_without_auto_generating(self):
         got = self.run_gate()
         self.assertNotEqual(got.returncode, 0)
@@ -84,6 +95,10 @@ class LocalGateTests(unittest.TestCase):
         self.assertEqual(got.returncode, 0, got.stdout + got.stderr)
         lines = log.read_text().splitlines()
         self.assertTrue(any("fmt" in line for line in lines))
+        self.assertTrue(any("clippy --workspace --all-targets --locked -- -D warnings" in line for line in lines))
+        self.assertTrue(any("test --workspace --all-targets --locked" in line for line in lines))
+        self.assertTrue(any("build --workspace --release --locked" in line for line in lines))
+        self.assertTrue(any("clippy --manifest-path apps/tdrive-mtproto/Cargo.toml" in line for line in lines))
         self.assertTrue(any("clippy" in line and "--locked" in line for line in lines))
         self.assertTrue(any("test" in line and "--locked" in line for line in lines))
         self.assertTrue(any("build" in line and "--locked" in line for line in lines))
@@ -96,7 +111,8 @@ class LocalGateTests(unittest.TestCase):
         got = self.run_gate({"TDRIVE_CHECK_DOCKER": "1"})
         self.assertNotEqual(got.returncode, 0)
         lines = log.read_text().splitlines()
-        self.assertTrue(any("clippy" in line for line in lines))
+        self.assertTrue(any("clippy --workspace --all-targets --locked" in line for line in lines))
+        self.assertFalse(any("clippy --manifest-path apps/tdrive-mtproto/Cargo.toml" in line for line in lines))
         self.assertFalse(any(" test " in line or " build " in line for line in lines))
         self.assertFalse(any(line.startswith("docker ") for line in lines))
 
