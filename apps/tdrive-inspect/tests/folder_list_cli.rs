@@ -2,7 +2,7 @@
 //! Synthetic fixture tests do not establish real Telegram or production parity.
 use rusqlite::{Connection, params};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};

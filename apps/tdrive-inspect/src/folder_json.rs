@@ -1,7 +1,7 @@
 //! Emit read-only detached SQLite folder listings without requiring Go or a
 //! serializer dependency. All wide numbers are decimal strings for JS safety.
-use tdrive_storage::FolderListing;
 use std::fmt::Write;
+use tdrive_storage::FolderListing;
 
 fn string_json(into: &mut String, text: &str) {
     into.push('"');

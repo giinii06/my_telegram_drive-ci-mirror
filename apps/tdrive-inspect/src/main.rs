@@ -1,7 +1,7 @@
 //! Offline contract inspector. Never opens Telegram or production services.
+mod folder_json;
 #[cfg(unix)]
 mod offline_crypto;
-mod folder_json;
 
 use std::env;
 use std::io::{self, Read};
