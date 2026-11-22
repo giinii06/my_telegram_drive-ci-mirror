@@ -3,7 +3,7 @@
 //! This is NOT Go v16 replay_log, file/folder projection, or a full sync engine.
 //! Callers own the private database; only validated headers are accepted.
 use crate::policy::validate_session_path;
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use sha2::{Digest, Sha256};
 use std::fmt;
 use std::fs::{self, OpenOptions};
@@ -91,6 +91,21 @@ impl Inbox {
         validate_session_path(path).map_err(|_| InboxError::UnsafePath)?;
         let mut inbox = Self { conn: Connection::open(path)? };
         inbox.initialize(new_file)?;
+        Ok(inbox)
+    }
+
+    /// Read-only view for statistics: never creates an absent inbox or writes
+    /// a WAL/schema version. Required by the offline inbox-stats command.
+    pub fn open_existing(path: &Path) -> Result<Self, InboxError> {
+        validate_session_path(path).map_err(|_| InboxError::UnsafePath)?;
+        let metadata = fs::symlink_metadata(path).map_err(|_| InboxError::UnsafePath)?;
+        if !metadata.is_file() || metadata.file_type().is_symlink() {
+            return Err(InboxError::UnsafePath);
+        }
+        let mut inbox = Self {
+            conn: Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?,
+        };
+        inbox.initialize(false)?;
         Ok(inbox)
     }
 
