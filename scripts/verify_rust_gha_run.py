@@ -81,12 +81,28 @@ def validate_run(run: object, jobs: object, repo: str, sha: str) -> list[str]:
     if run.get("status") != "completed" or run.get("conclusion") != "success":
         errors.append("GitHub run has not completed successfully")
 
+    run_id = run.get("id")
+    if type(run_id) is not int or run_id <= 0:
+        errors.append("invalid GitHub run ID")
+
     found: dict[str, dict] = {}
+    seen_job_ids: set[int] = set()
     for i, job in enumerate(jobs):
         if not isinstance(job, dict) or not isinstance(job.get("name"), str):
             errors.append(f"job record {i + 1} is malformed")
             continue
         name = job["name"]
+        job_id = job.get("id")
+        if type(job_id) is not int or job_id <= 0:
+            errors.append(f"missing or invalid GitHub job ID: {name}")
+        elif job_id in seen_job_ids:
+            errors.append(f"duplicate GitHub job ID: {job_id}")
+        else:
+            seen_job_ids.add(job_id)
+        if job.get("run_id") != run_id:
+            errors.append(f"GitHub job belongs to another run: {name}")
+        if job.get("head_sha") != sha:
+            errors.append(f"GitHub job checked-out SHA mismatch: {name}")
         if name in found:
             errors.append(f"duplicate job: {name}")
         found[name] = job
