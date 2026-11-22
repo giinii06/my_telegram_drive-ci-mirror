@@ -93,6 +93,8 @@ fn bad_wire_type_and_payload_never_create_replay_records() {
         (HEADER, "rename", "{}"),
         ("TDX1|t=unknown", "mkdir", "{}"),
         (HEADER, "mkdir", "{invalid json}"),
+        (HEADER, "mkdir", r#"{"Type":"rename"}"#),
+        (HEADER, "mkdir", r#"{"Name":"missing operation type"}"#),
     ] {
         let mut input = event(header);
         input.op_type = op_type;
