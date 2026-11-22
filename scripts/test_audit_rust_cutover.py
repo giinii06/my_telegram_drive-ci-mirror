@@ -22,6 +22,11 @@ class RustCutoverAuditTests(unittest.TestCase):
         result = summarize(["go.mod", "Cargo.toml"])
         self.assertFalse(result["go_free"])
 
+    def test_top_level_and_unclassified_go_are_counted_in_other_area(self):
+        result = summarize(["smoke.go", "tools/legacy/main.go", "backend/crypto/vault.go"])
+        self.assertEqual(result["go_source_files"], 3)
+        self.assertEqual(result["remaining_go_by_area"]["other/"], 2)
+
     def test_go_oracles_count_until_removed(self):
         result = summarize(["backend/crypto/stream_test.go", "tests/fixture_oracle.go"])
         self.assertEqual(result["go_source_files"], 2)
