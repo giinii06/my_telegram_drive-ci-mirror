@@ -59,3 +59,8 @@ Revert only this phase's commit(s). Existing APK release files and local data re
 - **Source audit:** current tree contains zero `packaging/android/` files; current root/package README and installer workflow contain zero Android/APK references; remaining installer jobs are `linux-deb`, `macos-dmg`, `windows-exe`, `windows-backup-exe`.
 - **CI:** pipeline #3100313264 on the exact implementation SHA reports bridge success only. Downstream `ci-hub-smoke` pipeline #3100313274 is skipped and its `github_actions_request` job is manual. No actual GitHub Actions job logs were available. Therefore `tested`, `verified` and `completed` remain false.
 - **Safety:** no historical release artifact, device-local data, Telegram session, Telegram message, production service, or user data was modified.
+
+
+### Additional provider status update
+
+GitLab commit status for implementation SHA `361f88de27d02d88b113ee728b59ada1e101584c` includes `github-actions/ci-hub-request: success` with [GitHub Actions run 45065897228](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45065897228). This upgrades evidence from dispatch-only to **provider_result=success**. The run's individual job names/logs and test output are still unavailable here, so `jobs_verified` and `e2e_verified` remain unknown; Phase 00 stays implemented, not tested/verified/completed.

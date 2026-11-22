@@ -33,7 +33,7 @@
       "red_verified": false,
       "green_verified": false,
       "checks_evidenced": false,
-      "ci_level": "dispatch_only",
+      "ci_level": "provider_result",
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": "reviews/phase-00-android-retirement.json",
@@ -50,7 +50,14 @@
           "evidence": "Removed 12 tracked packaging/android files; removed android-apk installer job; updated current README and packaging guide; retained linux-deb, macos-dmg, windows-exe and windows-backup-exe. GitLab tree shows zero packaging/android files and source searches show no APK references in current install docs/workflow. Full checkout test/CI jobs remain unverified: GitLab pipeline #3100313264 only dispatched bridge #18261958038; downstream #3100313274 is skipped with manual github_actions_request. Local RED was reproduced only on a reduced source-snapshot fixture, not a full checkout."
         }
       ],
-      "red_snapshot_reproduced": true
+      "red_snapshot_reproduced": true,
+      "provider_result": "success",
+      "github_run_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45065897228",
+      "green_snapshot_reproduced": true,
+      "source_audit_evidenced": true,
+      "blockers": [
+        "Full-checkout test execution and per-job GitHub Actions logs are not accessible in this session; do not mark tested/verified/completed."
+      ]
     },
     {
       "id": "01",
@@ -346,8 +353,17 @@
     "provider_result": "success",
     "jobs_verified": "unknown",
     "e2e_verified": "unknown",
-    "note": "Bridge callback only; no actual Rust jobs or user-flow E2E logs inspected."
+    "note": "Bridge callback only; no actual Rust jobs or user-flow E2E logs inspected.",
+    "phase00_implementation_sha": "361f88de27d02d88b113ee728b59ada1e101584c",
+    "phase00_pipeline_id": 3100313264,
+    "phase00_bridge_job_id": 18261958038,
+    "phase00_downstream_pipeline_id": 3100313274,
+    "phase00_downstream_status": "skipped",
+    "phase00_github_status": "success",
+    "phase00_github_run_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45065897228",
+    "phase00_jobs_verified": "unknown"
   },
   "plan_review": "reviews/plan-review.json",
-  "plan_docs_checkpoint_sha": "bddcf680949861b248316b37ccb465788ca5190f"
+  "plan_docs_checkpoint_sha": "bddcf680949861b248316b37ccb465788ca5190f",
+  "latest_branch_head": "615db7719c8a1e76e8439d95bbaa599ec816e531"
 }

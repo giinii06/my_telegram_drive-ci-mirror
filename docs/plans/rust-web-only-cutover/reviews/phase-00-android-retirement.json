@@ -38,8 +38,8 @@
         },
         {
           "severity": "important",
-          "finding": "The GitLab pipeline does not execute project tests: it only starts a bridge; downstream ci-hub-smoke pipeline is skipped and its manual job is a placeholder.",
-          "resolution": "Do not mark Phase 00 tested/verified until exact-SHA GitHub Actions job logs are inspected or an authorized real executor is available."
+          "finding": "The GitLab pipeline bridge and GitHub Actions commit status are successful, but individual GitHub job names/logs and test output are not available in this session.",
+          "resolution": "Record provider_result=success and link run 45065897228, but keep jobs_verified/e2e_verified unknown until run details/logs are inspected."
         },
         {
           "severity": "low",
@@ -60,6 +60,8 @@
     "downstream_status": "skipped",
     "manual_job_status": "manual",
     "jobs_verified": "unknown",
-    "e2e_verified": "unknown"
+    "e2e_verified": "unknown",
+    "github_status": "success",
+    "github_run_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45065897228"
   }
 }
