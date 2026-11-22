@@ -1,0 +1,40 @@
+{
+  "phase_id": "C.4",
+  "head_sha": "fabd70670cc0c78615b074e74e902d59fdb94751",
+  "last_code_sha": "3c7c2956a40ce65b0b73de58f23531a6fa495f05",
+  "base_sha": "65e43da6813c3baff0accfdb71bbce3a8a3a04fc",
+  "reviews": [
+    {
+      "lens": "requirements",
+      "head_sha": "fabd70670cc0c78615b074e74e902d59fdb94751",
+      "reviewer_type": "self",
+      "evidence": "Read real GitLab main.rs, policy.rs, watch_policy.rs, Cargo.toml, docker-compose.rust-watch.yml and workflow. CLI watch loops over existing bounded catchup, exits on error, handles SIGTERM/SIGINT with tokio::select, per-peer cursor remains in isolated SQLite. New opt-in watch container and CI config source added. Actual Rust compiled/Telegram login/session/watch E2E not executed, no complete Go 17-op file service."
+    },
+    {
+      "lens": "quality_security",
+      "head_sha": "fabd70670cc0c78615b074e74e902d59fdb94751",
+      "reviewer_type": "self",
+      "evidence": "Source limits watch poll 15..3600 seconds and scan budget 1..10000, no public ports, nonroot read-only container, private bind, cap-drop, no-new-privileges, limited restart count. SIGTERM on an in-flight scan could leave idempotent inbox events but no new cursor if cancelled; this needs actual runtime testing. No Cargo.lock, no rustc/docker, remote CI provider failed, no GitHub job logs; not an independent security review."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "important",
+      "file": "apps/tdrive-mtproto/src/main.rs",
+      "finding": "Watch only records native TDX1 metadata and does not implement Telegram updates of older messages, file drive read/write or 17-op Go parity.",
+      "disposition": "open-blocks-production"
+    },
+    {
+      "severity": "important",
+      "file": "apps/tdrive-mtproto/Cargo.toml",
+      "finding": "Nested Cargo.lock has not been resolved; Grammers code/CI/Docker are uncompiled and may contain errors.",
+      "disposition": "open-blocks-build"
+    },
+    {
+      "severity": "important",
+      "file": ".github/workflows/rust-mtproto-native.yml",
+      "finding": "Effective GitLab-to-GitHub bridge #3099037733 failed with child skipped; no native Rust jobs/e2e evidence.",
+      "disposition": "open-blocks-CI"
+    }
+  ]
+}

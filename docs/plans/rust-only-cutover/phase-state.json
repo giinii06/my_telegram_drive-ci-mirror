@@ -77,13 +77,18 @@
           "frm": "in_progress",
           "to": "in_progress",
           "evidence": "C.3 code e2e0ecc3a09b7d644f320a87265406dbd8c9918a implemented native history cursor/partial-scan abort; Rust test execution blocked, GitLab CI #3098971908 failed and child #3098971934 skipped manual; no waiver or phase transition."
+        },
+        {
+          "frm": "in_progress",
+          "to": "in_progress",
+          "evidence": "C.4 supervised Rust MTProto metadata watch source through 3c7c2956a40ce65b0b73de58f23531a6fa495f05 and operator docs fabd70670cc0c78615b074e74e902d59fdb94751; 2 RED-intent tests not executed; 15/15 static assertions; CI #3099037733 failed through skipped child; still no Rust compiled E2E; no waiver."
         }
       ],
-      "candidate_sha": "e2e0ecc3a09b7d644f320a87265406dbd8c9918a",
+      "candidate_sha": "3c7c2956a40ce65b0b73de58f23531a6fa495f05",
       "red_verified": false,
       "green_verified": false,
       "checks_evidenced": false,
-      "blocker": "C.3 native catchup source present but cargo/real E2E unavailable; CI #3098971908 failed because external provider reported failure, child request pipeline skipped/manual; no actual native Rust job proof. No getDifference 17-op projection, vault, media, GPUI or production server. Go authoritative."
+      "blocker": "C.4 watch CLI+private Compose source uncompiled/no native jobs, #3099037733 bridge failed/skipped child. Existing Go 17-op projection, real Telegram difference sync, vault/HLS/WebDAV, GPUI, 24x7 full file server and Go removal incomplete. Go remains authoritative."
     },
     {
       "id": "D",

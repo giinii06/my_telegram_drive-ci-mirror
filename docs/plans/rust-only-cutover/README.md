@@ -44,3 +44,7 @@ Bounded read-only Telegram history ingestion into a separate private Rust SQLite
 ## Native Telegram crash-safe catchup checkpoint (e2e0ecc3)
 
 Added persisted per-peer SQLite watermark, history interval scanning with a 10,000-message cap, strict descending order, stale cursor conflict rejection, and fail-closed no-cursor-advance on partial/transport errors. **Code exists but no cargo run/Telegram E2E**. GitLab #3098971908 failed; child GitLab ci-hub-smoke #3098971934 is skipped/manual, not Rust jobs. See [C.3 evidence](phase-c3-history-catchup.md) and [self-review](reviews/phase-c3-catchup.json). All Go parity/GPUI/Docker completion gates still blocked.
+
+## Native Rust supervised watch checkpoint (3c7c2956)
+
+Added experimental MTProto `watch` command with SIGINT/SIGTERM, private opt-in Docker Compose, Linux/macOS CI contract; source SHA `3c7c2956a40ce65b0b73de58f23531a6fa495f05`. **Not compiled or validated in a running Telegram/Docker environment.** Static source review 15/15 only. [GitLab CI #3099037733](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3099037733) failed after dispatch; child CI skipped. See [C.4 phase](phase-c4-headless-watch.md), [self-reviews](reviews/phase-c4-watch.json) and [phase state](phase-state.json). Full Go parity/GPUI/headless drive remains blocked.
