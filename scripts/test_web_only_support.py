@@ -12,7 +12,7 @@ class WebOnlySupportTests(unittest.TestCase):
 
     def test_release_workflow_has_no_android_apk_job_or_build_path(self):
         workflow = (ROOT / ".github" / "workflows" / "installers.yml").read_text()
-        self.assertNotRegex(workflow, r"(?m)^\\s*android-apk:")
+        self.assertNotRegex(workflow, r"(?m)^\s*android-apk:")
         self.assertNotIn("packaging/android", workflow)
 
     def test_current_install_docs_do_not_advertise_android_apk(self):
