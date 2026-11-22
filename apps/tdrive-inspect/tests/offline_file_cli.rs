@@ -2,8 +2,8 @@
 
 // These tests invoke the actual diagnostic binary; a crypto crate unit test
 // alone cannot prove CLI wiring or rejection semantics.
-use std::fs::{self, DirBuilder, File, OpenOptions};
-use std::io::{Seek, SeekFrom, Write};
+use std::fs::{self, DirBuilder, OpenOptions};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -111,7 +111,10 @@ fn offline_cli_rejects_wrong_key_and_corrupted_last_tag_without_plaintext() {
     assert!(!rejected.exists());
     let mut handle = OpenOptions::new().read(true).write(true).open(&encrypted).unwrap();
     handle.seek(SeekFrom::End(-1)).unwrap();
-    handle.write_all(&[0xff]).unwrap();
+    let mut last = [0_u8; 1];
+    handle.read_exact(&mut last).unwrap();
+    handle.seek(SeekFrom::End(-1)).unwrap();
+    handle.write_all(&[last[0] ^ 0x80]).unwrap();
     handle.sync_all().unwrap();
     assert!(!command("--decrypt-file", &encrypted, &rejected, &key).status.success());
     assert!(!rejected.exists());
