@@ -53,5 +53,7 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Test cutover audit
         run: python3 -m unittest scripts/test_audit_rust_cutover.py
+      - name: Test web-only support boundary
+        run: python3 -m unittest scripts/test_web_only_support.py
       - name: Report outstanding Go removal obligations
         run: python3 scripts/audit_rust_cutover.py --report

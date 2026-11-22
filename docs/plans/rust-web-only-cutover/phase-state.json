@@ -24,7 +24,7 @@
       "file": "phase-00-android-retirement.md",
       "title": "Android 제품·빌드 지원 완전 제거",
       "kind": "user_flow",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -37,7 +37,13 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Approved web-only plan committed at db3a79dc6fcbd5a45555004b5ce751caf3b70def; plan review/checkpoint at bddcf680949861b248316b37ccb465788ca5190f. Phase 00 test-only candidate is being prepared. Local reduced source-snapshot test observed the expected 3 failing assertions (Android package directory, APK docs, android-apk workflow); full repository CI evidence pending."
+        }
+      ]
     },
     {
       "id": "01",
@@ -335,5 +341,6 @@
     "e2e_verified": "unknown",
     "note": "Bridge callback only; no actual Rust jobs or user-flow E2E logs inspected."
   },
-  "plan_review": "reviews/plan-review.json"
+  "plan_review": "reviews/plan-review.json",
+  "plan_docs_checkpoint_sha": "bddcf680949861b248316b37ccb465788ca5190f"
 }
