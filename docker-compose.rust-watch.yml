@@ -1,0 +1,38 @@
+# Opt-in Rust MTProto metadata watch. Does not replace the Go drive.
+# Login manually first with docker-compose.rust.yml; no network ports exposed.
+# Usage:
+# docker compose --profile rust-experimental -f docker-compose.rust-watch.yml up -d
+services:
+  rust-mtproto-watch:
+    profiles: [rust-experimental]
+    build:
+      context: .
+      dockerfile: Dockerfile.mtproto
+    image: tdrive-mtproto:local
+    pull_policy: never
+    restart: on-failure:5
+    stop_grace_period: 30s
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=0700
+    cap_drop:
+      - ALL
+    security_opt:
+      - 'no-new-privileges:true'
+    user: '${TDRIVE_RUST_UID:?Set host UID}:${TDRIVE_RUST_GID:?Set host GID}'
+    volumes:
+      - type: bind
+        source: '${TDRIVE_RUST_DATA:?Set absolute private host directory}'
+        target: /private
+        read_only: false
+    environment:
+      TG_API_ID: '${TG_API_ID:?Set Telegram developer API ID}'
+      TG_API_HASH: '${TG_API_HASH:?Set Telegram developer API hash}'
+      TDRIVE_SESSION_PATH: /private/session.sqlite
+      TDRIVE_INBOX_PATH: /private/tdrive-inbox.sqlite
+    command:
+      - watch
+      - '${TDRIVE_RUST_PEER:?Set accessible Telegram peer}'
+      - '${TDRIVE_RUST_SCAN_BUDGET:-1000}'
+      - '${TDRIVE_RUST_POLL_SECONDS:-60}'
