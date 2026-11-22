@@ -63,9 +63,9 @@ Observed directly with GitLab APIs:
 When job-level GitHub REST access exists without changing repository privacy, mirror, secrets or CI provider, use the existing script against the **actual Rust workflow run ID** (not simply the callback's link) and its exact checked-out GitLab 40-character SHA:
 
 ```sh
-python3 scripts/verify_rust_gha_run.py \\
-  --repo giinii06/my_telegram_drive-ci-mirror \\
-  --run-id ACTUAL_RUST_MIGRATION_RUN_ID \\
+python3 scripts/verify_rust_gha_run.py \
+  --repo giinii06/my_telegram_drive-ci-mirror \
+  --run-id ACTUAL_RUST_MIGRATION_RUN_ID \
   --sha d2cbd9f1eff29e21401cfc7d77cbcb54d68e2158
 ```
 
