@@ -1,7 +1,11 @@
 //! Offline contract inspector. Never opens Telegram or production services.
 mod folder_json;
 #[cfg(unix)]
+mod http_contract;
+#[cfg(unix)]
 mod offline_crypto;
+#[cfg(unix)]
+mod offline_http;
 
 use std::env;
 use std::io::{self, Read};
@@ -62,9 +66,27 @@ fn main() -> ExitCode {
         [option, path, channel, parent] if option == "--list-folder" => {
             list_folder(path, channel, parent)
         }
+        #[cfg(unix)]
+        [option, snapshot, token, port] if option == "--serve-readonly" => {
+            match port.parse::<u16>() {
+                Ok(port) if port != 0 => {
+                    match offline_http::serve(Path::new(snapshot), Path::new(token), port) {
+                        Ok(()) => ExitCode::SUCCESS,
+                        Err(message) => {
+                            eprintln!("read-only API failed: {message}");
+                            ExitCode::FAILURE
+                        }
+                    }
+                }
+                _ => {
+                    eprintln!("invalid loopback port");
+                    ExitCode::FAILURE
+                }
+            }
+        }
         _ => {
             eprintln!(
-                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id>"
+                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id> | --serve-readonly <detached-snapshot.sqlite> <private-token-file> <loopback-port>"
             );
             ExitCode::FAILURE
         }
