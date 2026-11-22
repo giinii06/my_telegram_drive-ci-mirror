@@ -47,7 +47,7 @@ class LocalGateTests(unittest.TestCase):
         (self.root / ".gitignore").write_text("mockbin/\nfake-exec.log\n")
         for name in ("cargo", "rustc", "docker"):
             binary = bindir / name
-            binary.write_text(f'#!/bin/sh\nprintf "%s\\n" "{name} $*" >> "$TDRIVE_FAKE_LOG"\ncase "$*" in *" {fail_step} "*) exit 23;; esac\nexit 0\n')
+            binary.write_text(f'#!/bin/sh\nprintf "%s\\n" "{name} $*" >> "$TDRIVE_FAKE_LOG"\ncase "$*" in *" {fail_step} "*) exit 23;; esac\ncase "{name} $*" in *" build "*) mkdir -p apps/tdrive-mtproto/target/release; printf "#!/bin/sh\\nexit 0\\n" > apps/tdrive-mtproto/target/release/tdrive-mtproto; chmod +x apps/tdrive-mtproto/target/release/tdrive-mtproto;; esac\nexit 0\n')
             binary.chmod(0o755)
         exec_(["git", "add", ".gitignore"], cwd=self.root)
         exec_(["git", "-c", "user.email=test@example.invalid", "-c", "user.name=Fixture", "commit", "-qm", "ignore test harness"], cwd=self.root)
