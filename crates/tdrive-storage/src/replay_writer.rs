@@ -109,7 +109,7 @@ pub fn append_replay_event(
     // JSON1 is included in bundled SQLite. No user input enters SQL syntax.
     let payload_matches_wire: i64 = transaction.query_row(
         "SELECT CASE WHEN json_valid(?1)
-          THEN json_type(?1) = 'object' AND json_extract(?1, '$.Type') = ?2
+          THEN COALESCE(json_type(?1) = 'object' AND json_extract(?1, '$.Type') = ?2, 0)
           ELSE 0 END",
         params![event.op_payload_json, event.op_type],
         |row| row.get(0),
