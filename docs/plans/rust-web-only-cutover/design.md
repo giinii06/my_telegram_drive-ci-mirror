@@ -33,4 +33,4 @@ GPUI/native desktop client; Android APK/WebView app; GUI-specific packaging; fro
 
 ## Deferred inventory gate
 
-WebDAV wire compatibility remains required. Whether OS-specific FUSE/GVfs/WinFsp adapters must be ported is decided only after Phase 00 maps real existing user flows. Do not remove a Go feature solely because it lacks a GPUI screen.
+WebDAV wire compatibility remains required. Whether OS-specific FUSE/GVfs/WinFsp adapters must be ported is decided only after Phase 01 maps real existing user flows. Do not remove a Go feature solely because it lacks a GPUI screen.

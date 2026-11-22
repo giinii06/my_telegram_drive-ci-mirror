@@ -7,7 +7,7 @@
   "project_id": "89276294",
   "branch": "refactor/rust-only-cutover-20261122",
   "source_head_before_plan": "2397b683c275b504541eebdd5d5556e9e0a79f74",
-  "plan_commit_sha": null,
+  "plan_commit_sha": "db3a79dc6fcbd5a45555004b5ce751caf3b70def",
   "plan_name": "rust-web-only-cutover",
   "decisions": {
     "client_ui": "responsive browser web UI only",
@@ -57,7 +57,8 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [],
+      "inventory_gate": "Inventory current user flows and classify preserve/optional/retire before deciding OS mount adapter parity."
     },
     {
       "id": "02",
@@ -333,5 +334,6 @@
     "jobs_verified": "unknown",
     "e2e_verified": "unknown",
     "note": "Bridge callback only; no actual Rust jobs or user-flow E2E logs inspected."
-  }
+  },
+  "plan_review": "reviews/plan-review.json"
 }

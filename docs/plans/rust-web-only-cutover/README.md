@@ -51,6 +51,8 @@ flowchart LR
 
 The web UI is the only supported interactive TDrive client. Server owns one SQLite writer and Telegram session. CLI is operational only. Docker contains no GUI/display server.
 
+Plan self-review: [two-lens plan review](reviews/plan-review.json). The plan review is self-review, not an independent external review.
+
 ## Phase sequence
 
 | Phase | Outcome | Kind | File |

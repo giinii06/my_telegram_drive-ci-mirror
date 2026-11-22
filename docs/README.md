@@ -1,14 +1,17 @@
 # TDrive 기술 문서
 
-이 디렉터리에는 설계 및 변경 계획을 보관합니다.
+## 현재 승인된 실행 계획
 
-## Rust + GPUI + Docker 전환
+- [Rust Web-only migration](plans/rust-web-only-cutover/README.md) — 브라우저 UI만 지원, Android·GPUI 제외, Rust backend 완전 전환
+- [Design](plans/rust-web-only-cutover/design.md)
+- [Decisions](plans/rust-web-only-cutover/decisions.md)
+- [Phase state](plans/rust-web-only-cutover/phase-state.json)
+- [Plan review](plans/rust-web-only-cutover/reviews/plan-review.json)
 
-- [마이그레이션 전체 계획](migration/README.md)
-- [현재 구조 및 근거](migration/current-state.md)
-- [목표 아키텍처](migration/architecture.md)
-- [호환성 매트릭스](migration/compatibility-matrix.md)
-- [결정 기록 및 미해결 질문](migration/decision-log.md)
-- [Phase 00 ~ 15 실행 문서](migration/README.md#phase-별-문서)
+## 기존 조사 자료
 
-> **이 문서 묶음은 실행 계획이며 구현 완료 보고서가 아니다.** 이 MR에서는 기존 Go, Svelte, Docker, 모바일 패키징 코드를 변경하지 않는다. 각 Phase는 후속 MR에서 따로 구현하고 테스트한 뒤 다음 단계로 진행한다.
+- [기존 Go/Rust 구조 및 근거](migration/current-state.md)
+- [기존 호환성 매트릭스](migration/compatibility-matrix.md)
+- [기존 Phase 문서 아카이브](migration/README.md)
+
+> 현재 실행 기준은 위 Rust Web-only plan이다. 과거 GPUI/Android 계획은 역사적 조사 기록으로만 참고한다.

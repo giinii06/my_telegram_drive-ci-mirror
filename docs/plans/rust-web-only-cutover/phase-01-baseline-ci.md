@@ -2,7 +2,7 @@
 
 **Kind:** foundation  
 **Initial status:** not_started  
-**Goal:** All Rust work is compared against deterministic Go behavior without using private production data.
+**Goal:** All Rust work is compared against deterministic Go behavior without using private production data; inventory every current user flow and classify it preserve/optional/retire, including OS mount adapters.
 
 ## Repository surface
 
