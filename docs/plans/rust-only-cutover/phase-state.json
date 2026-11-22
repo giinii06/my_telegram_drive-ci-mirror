@@ -36,9 +36,20 @@
       "id": "B",
       "kind": "user_flow",
       "entrypoint": "Rust transactional 17-op projection and sync",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
-      "history": []
+      "history": [
+        {
+          "frm": "not_started",
+          "to": "in_progress",
+          "evidence": "Only subphase B.0 replay journal planned 99dbaac13fad641ef5e8d1333d556ccb87ec25fb. Tests a91038f7f5d4b33971fa58f688dd79588220ee11 + 3d1c5a62e8041383b85749b4c67a466baa2c2dd0. Code candidate 5ccd6291f74815cad775ccb6491e4e295cbd77e2, JSON consistency fix ee27100817e5048b3474b6aa6ab0b0430883120a and normalization 0571e0527231d9b0c04292b148cd49228f8e1f66. Rust tests/formatter not executed; previous A still unverified, cannot claim B tested/complete."
+        }
+      ],
+      "candidate_sha": "0571e0527231d9b0c04292b148cd49228f8e1f66",
+      "red_verified": false,
+      "green_verified": false,
+      "checks_evidenced": false,
+      "blocker": "Only Go-v16 replay log metadata journal has Rust code; actual 17-op apply, Telegram sync, live DB lock and Rust build/CI job proofs absent. Previous Phase A also not verified."
     },
     {
       "id": "C",

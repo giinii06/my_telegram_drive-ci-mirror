@@ -24,3 +24,7 @@ For each code change: test-first behavior + RED when runnable; implementation; C
 ## Work checkpoint at 12a39ccd
 
 Phase A Rust CLI + Go-free Rust CI source has been committed, but **not executed** by cargo. Python Go-deletion audit 5/5 tests are locally verified with exact GitLab file hashes; YAML structure parsed. GitLab #3098859551 only confirms dispatch. Go removal Phase E remains **blocked** with 517 Go files and missing Rust parity. See [Phase A evidence](phase-a-native-read-and-ci.md), the [phase state](phase-state.json), and [two-lens self-review](reviews/phase-a.json). This is **not** the completed Rust migration.
+
+## Rust replay journal code checkpoint (0571e052)
+
+Phase B.0 implementation is a transaction-safe replay metadata increment and **not** the 17-op projector or live Telegram sync. Source SHA `0571e0527231d9b0c04292b148cd49228f8e1f66`, GitLab dispatch #3098872773, Rust compilation/job verification unknown. Details and two-lens self-review under [phase B.0](phase-b0-replay-journal.md) and [review](reviews/phase-b0-replay.json). Phase B remains in progress, not tested/verified; full Go deletion blocked.

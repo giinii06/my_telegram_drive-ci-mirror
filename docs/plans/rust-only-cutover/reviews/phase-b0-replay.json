@@ -1,0 +1,35 @@
+{
+  "phase_id": "B.0",
+  "base_sha": "a91038f7f5d4b33971fa58f688dd79588220ee11",
+  "head_sha": "0571e0527231d9b0c04292b148cd49228f8e1f66",
+  "reviews": [
+    {
+      "lens": "requirements",
+      "head_sha": "0571e0527231d9b0c04292b148cd49228f8e1f66",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy sequential functional review",
+      "evidence": "Read Go backend/projection/log.go Go v16 journal behavior, Go schema and actual Rust source/diffs. Rust API inserts immutable first-seen replay_log, returns duplicate status, logs changed SHA to replay_log_tamper within IMMEDIATE transaction, validates TDX1 and JSON Type, with 5+ test assertions. The Go ApplyOp 17-op projection mutation is NOT implemented; no live sync, Telegram auth or user flow delivered. Rust tests NOT executed."
+    },
+    {
+      "lens": "security_quality",
+      "head_sha": "0571e0527231d9b0c04292b148cd49228f8e1f66",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy sequential security review",
+      "evidence": "No file path open, no new SQLite schema, only parameterized SQL, bounded header/payload, JSON1 object validation and no user secrets in Display errors. Existing DB handle must be owner-controlled under a backend lock; caller requirement unverified. Separate SQL smoke passed, but Rust compiler unavailable; no independent reviewer, no actual provider job logs. Replay insertion without operation projection cannot safely be connected to live sync."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "important",
+      "file": "crates/tdrive-storage/src/replay_writer.rs",
+      "finding": "Writer only records replay_log; Go's ProjectFromOp applies all 17 operations atomically alongside log. Must not use as a complete or production sync engine.",
+      "disposition": "open-blocks-full-cutover"
+    },
+    {
+      "severity": "important",
+      "file": "crates/tdrive-storage/src/replay_writer.rs",
+      "finding": "Caller-owned connection does not prove exclusive backend lock or detached clone; integration must enforce this before live DB use.",
+      "disposition": "open-blocks-live-integration"
+    }
+  ]
+}
