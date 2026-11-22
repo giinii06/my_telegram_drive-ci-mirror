@@ -92,3 +92,18 @@ fn wrong_schema_and_untrusted_symlinks_fail_closed() {
     std::os::unix::fs::symlink(&db, &link).unwrap();
     assert!(matches!(Inbox::open(&link), Err(InboxError::UnsafePath)));
 }
+
+#[test]
+fn offline_stats_never_creates_missing_database() {
+    let dir = PrivateDir::new();
+    let db = dir.db();
+    assert!(matches!(Inbox::open_existing(&db), Err(InboxError::UnsafePath)));
+    assert!(!db.exists());
+    {
+        let mut writer = Inbox::open(&db).unwrap();
+        writer.append(&event(FIRST)).unwrap();
+    }
+    let readonly = Inbox::open_existing(&db).unwrap();
+    assert_eq!(readonly.stats().unwrap().messages, 1);
+    assert_eq!(readonly.stats().unwrap().tampered, 0);
+}
