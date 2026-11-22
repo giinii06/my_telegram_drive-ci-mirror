@@ -36,3 +36,7 @@ C.0 source code adds authenticated loopback-only read-only HTTP to the existing 
 ## C.1 standalone Rust MTProto checkpoint (3a9a8656)
 
 Native Grammers 0.10.0 user CLI + private session, interactive login/2FA, dialogs/history, explicit-confirm upload, no-clobber download, Ubuntu/macOS workflow and separate headless Dockerfile were committed. **Not compiled/tested**, no real user-account E2E or 17-op/vault/Go integration. Matching GitLab CI #3098891720 only proves dispatch. See [C.1 plan and evidence](phase-c1-user-mtproto.md), [self-review](reviews/phase-c1-mtproto.json), and [state ledger](phase-state.json). No Go deletion.
+
+## Native MTProto inbox / Docker checkpoint (`c9bc5bb6`)
+
+Bounded read-only Telegram history ingestion into a separate private Rust SQLite inbox, idempotent/tamper records, credential-free offline stats, isolated nonroot Compose and repaired Docker path-crate context. Rust execution **unverified**; GitLab #3098911766 is dispatch-only. See [C.2 phase evidence](phase-c2-inbox-ingest.md), [C.2 self-review](reviews/phase-c2-inbox.json). Full 17-op projection, true incremental sync, vault/GPUI/headless server and Go deletion remain incomplete.

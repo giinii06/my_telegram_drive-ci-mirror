@@ -67,13 +67,18 @@
           "frm": "in_progress",
           "to": "in_progress",
           "evidence": "C.1 standalone experimental user MTProto CLI source and Docker/CI code at 3a9a86568a3d61c176d180ece1866c459c0302f2; five policy source tests, no Cargo/GH job E2E; remains in_progress. Existing C.0 source similarly not verified."
+        },
+        {
+          "frm": "in_progress",
+          "to": "in_progress",
+          "evidence": "C.2 native Grammers history→isolated SQLite inbox committed: plan a8354403, 5 Rust test definitions 001ea131 and 459d63f, native SQLite inbox 0adb1a42 and read-only open e5f23ace, policy/CLI 829abf62 + 6ef58e89. Docker path dependencies fixed 51bd6636, optional isolated Compose fed9978c, offline credentials fix dc567ba1 and docs c9bc5bb6. Ruby? None. Python static 4/4 and exact GitLab source static predicates 17/17, but cargo/docker/real Telegram E2E never executed. CI #3098911766 dispatch success only. No production cutover."
         }
       ],
-      "candidate_sha": "3a9a86568a3d61c176d180ece1866c459c0302f2",
+      "candidate_sha": "c9bc5bb68708738d344ff0f9cbc03ffab27626fe",
       "red_verified": false,
       "green_verified": false,
       "checks_evidenced": false,
-      "blocker": "C.1 user MTProto CLI/CI/Docker code uncompiled; nested dependency graph/lockfile unresolved, real Telegram E2E not run, not integrated with full v16 17-op sync, vault, HTTP/WebDAV/media, GPUI. Go authoritative."
+      "blocker": "Native C.2 inbox source added, but no compiled Cargo tests or actual GitHub jobs; only bounded 100-history read, not gapless difference sync/17-op projection/vault/media/WebDAV/GPUI. Standalone Docker Compose one-shot diagnostics, not production daemon. Legacy Go remains authoritative."
     },
     {
       "id": "D",
