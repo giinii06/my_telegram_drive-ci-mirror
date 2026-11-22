@@ -132,8 +132,8 @@ pub fn validate_download_path(path: &Path) -> Result<(), PolicyError> {
     if !directory.is_dir() || directory.file_type().is_symlink() {
         return Err(PolicyError::UnsafePath);
     }
-    if fs::symlink_metadata(path).is_ok() {
-        return Err(PolicyError::UnsafePath);
+    match fs::symlink_metadata(path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        _ => Err(PolicyError::UnsafePath),
     }
-    Ok(())
 }
