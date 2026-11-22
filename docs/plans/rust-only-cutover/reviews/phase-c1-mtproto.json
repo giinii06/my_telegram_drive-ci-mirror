@@ -1,0 +1,41 @@
+{
+  "phase_id": "C.1",
+  "base_sha": "f2cda87565f654ce1e803d46c272e861d7fa8c0e",
+  "head_sha": "3a9a86568a3d61c176d180ece1866c459c0302f2",
+  "reviews": [
+    {
+      "lens": "requirements",
+      "head_sha": "3a9a86568a3d61c176d180ece1866c459c0302f2",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy sequential functionality self-review",
+      "evidence": "Read actual GitLab files at candidate code SHA. Standalone nested grammers-user-API CLI implements interactive phone/code/2FA, persisted SqliteSession, status, dialogs, bounded history, user-confirmed upload and staged no-clobber media download; separate headless Dockerfile and macOS/Linux Cargo CI. Five path/CLI tests added; NONE compiled/run. Existing Rust TelegramReadPort/WritePort and v16 full projector are not wired. Full Go parity and 24/7 server unmet."
+    },
+    {
+      "lens": "security_quality",
+      "head_sha": "3a9a86568a3d61c176d180ece1866c459c0302f2",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy sequential security self-review",
+      "evidence": "Checked no Bot API, no credentials argv/repository/images, owner-only session parent and file checks, non-root Docker, explicit upload confirmation, temp 0600 no-clobber link. Updated vulnerable rpassword 7.4.0 to 7.5.4, fixed non-ENOENT download destination fail-open. Remaining path ancestor and TOCTOU races, insecure transitive dependency resolution without Cargo.lock, upload idempotency and password zeroization, no Rust runtime/CI evidence. No independent reviewer."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "important",
+      "file": "apps/tdrive-mtproto/src/main.rs",
+      "finding": "CLI is standalone; no signed-in Telegram port adapter, full 17-op projection, vault, sync and production daemon integration, so not Go replacement.",
+      "disposition": "open-blocks-cutover"
+    },
+    {
+      "severity": "important",
+      "file": "apps/tdrive-mtproto/Cargo.toml",
+      "finding": "Nested Rust workspace has no resolved/committed lockfile; direct pins do not establish reproducible transitive dependencies or verified build.",
+      "disposition": "open-blocks-ci"
+    },
+    {
+      "severity": "important",
+      "file": "apps/tdrive-mtproto/src/main.rs",
+      "finding": "Session file, upload source, destination directory checks are path-based with TOCTOU/ancestor symlink risks. Real account credential and floodwait/idempotency lifecycle untested.",
+      "disposition": "open-blocks-production"
+    }
+  ]
+}

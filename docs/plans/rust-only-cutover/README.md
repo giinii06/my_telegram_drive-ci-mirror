@@ -32,3 +32,7 @@ Phase B.0 implementation is a transaction-safe replay metadata increment and **n
 ## Local Rust HTTP API checkpoint (6756046e)
 
 C.0 source code adds authenticated loopback-only read-only HTTP to the existing offline SQLite inspector, plus 5 parser tests and 1 socket integration test **not executed**. Code SHA `6756046e3d7a6fdefb7c458f9f859ab26778ec13`, matching GitLab dispatch #3098880127. This is **not** a Telegram user login/server/media backend or Go-parity completion. See [C.0 evidence](phase-c0-readonly-http.md), the [review](reviews/phase-c0-http.json) and [phase ledger](phase-state.json). No Go code deleted.
+
+## C.1 standalone Rust MTProto checkpoint (3a9a8656)
+
+Native Grammers 0.10.0 user CLI + private session, interactive login/2FA, dialogs/history, explicit-confirm upload, no-clobber download, Ubuntu/macOS workflow and separate headless Dockerfile were committed. **Not compiled/tested**, no real user-account E2E or 17-op/vault/Go integration. Matching GitLab CI #3098891720 only proves dispatch. See [C.1 plan and evidence](phase-c1-user-mtproto.md), [self-review](reviews/phase-c1-mtproto.json), and [state ledger](phase-state.json). No Go deletion.

@@ -62,13 +62,18 @@
           "frm": "not_started",
           "to": "in_progress",
           "evidence": "Subphase C.0 planned 66eede481caffdee5026bd2b74088963bf80c376, tests 214ffa56730f990d2dafdccea92cdcb33e138658, parser 2a5cb12893311a6dc44fb91b6805c25b78841476 with fix 762f4c26ede1c3824e6beb413b5a17ac77d36f7c, HTTP server 466d0e1bc55850f6a13cb741403a85c799af83ce, socket test 0ae1e2acf6bfa67a4bc81bb4ac5fe24904c41918 with correction 765cc9fa6343c1f33f3278df63636e246217ea00, token loader source fix 6756046e3d7a6fdefb7c458f9f859ab26778ec13. No Rust compiler/tests."
+        },
+        {
+          "frm": "in_progress",
+          "to": "in_progress",
+          "evidence": "C.1 standalone experimental user MTProto CLI source and Docker/CI code at 3a9a86568a3d61c176d180ece1866c459c0302f2; five policy source tests, no Cargo/GH job E2E; remains in_progress. Existing C.0 source similarly not verified."
         }
       ],
-      "candidate_sha": "6756046e3d7a6fdefb7c458f9f859ab26778ec13",
+      "candidate_sha": "3a9a86568a3d61c176d180ece1866c459c0302f2",
       "red_verified": false,
       "green_verified": false,
       "checks_evidenced": false,
-      "blocker": "Only Unix loopback read-only SQLite HTTP diagnostic written. No compiled socket/auth tests, real network MTProto, file transfer, public/API full parity or TLS. Code not production ready."
+      "blocker": "C.1 user MTProto CLI/CI/Docker code uncompiled; nested dependency graph/lockfile unresolved, real Telegram E2E not run, not integrated with full v16 17-op sync, vault, HTTP/WebDAV/media, GPUI. Go authoritative."
     },
     {
       "id": "D",
