@@ -72,6 +72,98 @@ pub struct InboxStats {
     pub tampered: i64,
 }
 
+/// One descending Telegram history scan, bounded and fail-closed.
+/// Successful progress is publishable only after the known old watermark is
+/// reached or the Telegram iterator is observed exhausted. A partial scan
+/// MUST NOT call Inbox::mark_scanned.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CatchupDecision {
+    Append,
+    Complete,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CatchupError {
+    InvalidBounds,
+    OutOfOrder,
+    BudgetExhausted,
+}
+
+impl fmt::Display for CatchupError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::InvalidBounds => "invalid Telegram catch-up bounds",
+            Self::OutOfOrder => "Telegram history not strictly descending",
+            Self::BudgetExhausted => "Telegram history interval exceeds the scan budget",
+        })
+    }
+}
+
+impl std::error::Error for CatchupError {}
+
+pub struct CatchupWindow {
+    baseline: i64,
+    newest: i64,
+    last: Option<i64>,
+    processed: usize,
+    budget: usize,
+    complete: bool,
+}
+
+impl CatchupWindow {
+    pub fn new(baseline: i64, budget: usize) -> Result<Self, CatchupError> {
+        if baseline < 0 || !(1..=10_000).contains(&budget) {
+            return Err(CatchupError::InvalidBounds);
+        }
+        Ok(Self {
+            baseline,
+            newest: baseline,
+            last: None,
+            processed: 0,
+            budget,
+            complete: false,
+        })
+    }
+
+    pub fn observe(&mut self, id: i64) -> Result<CatchupDecision, CatchupError> {
+        if self.complete || id <= 0 {
+            return Err(CatchupError::OutOfOrder);
+        }
+        if let Some(last) = self.last {
+            if id >= last {
+                return Err(CatchupError::OutOfOrder);
+            }
+        }
+        if id <= self.baseline {
+            self.complete = true;
+            return Ok(CatchupDecision::Complete);
+        }
+        if self.processed >= self.budget {
+            return Err(CatchupError::BudgetExhausted);
+        }
+        if self.last.is_none() {
+            self.newest = id;
+        }
+        self.last = Some(id);
+        self.processed += 1;
+        Ok(CatchupDecision::Append)
+    }
+
+    /// Caller must call this only after receiving None from the Telegram
+    /// history iterator (not after a timeout, FloodWait, or network error).
+    pub fn exhaust(&mut self) {
+        self.complete = true;
+    }
+
+    pub fn completed_newest(&self) -> Option<i64> {
+        self.complete.then_some(self.newest)
+    }
+
+    pub fn processed(&self) -> usize {
+        self.processed
+    }
+}
+
 pub struct Inbox {
     conn: Connection,
 }
