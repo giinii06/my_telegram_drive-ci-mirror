@@ -16,4 +16,4 @@ grammers-client = "=0.10.0"
 grammers-mtsender = "=0.10.0"
 grammers-session = { version = "=0.10.0", features = ["sqlite-storage"] }
 tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "time"] }
-rpassword = "=7.4.0"
+rpassword = "=7.5.4"
