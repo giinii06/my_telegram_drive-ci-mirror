@@ -82,13 +82,18 @@
           "frm": "in_progress",
           "to": "in_progress",
           "evidence": "C.4 supervised Rust MTProto metadata watch source through 3c7c2956a40ce65b0b73de58f23531a6fa495f05 and operator docs fabd70670cc0c78615b074e74e902d59fdb94751; 2 RED-intent tests not executed; 15/15 static assertions; CI #3099037733 failed through skipped child; still no Rust compiled E2E; no waiver."
+        },
+        {
+          "frm": "in_progress",
+          "to": "in_progress",
+          "evidence": "CI publication scan diagnosis as of pipeline 3099037733: external provider failed with exact description 'The requested Git history did not pass the publication scan'; downstream child skipped/manual no-op, real Rust jobs unknown; safe CI path needs reviewed authorization. No tests run or phase advance."
         }
       ],
       "candidate_sha": "3c7c2956a40ce65b0b73de58f23531a6fa495f05",
       "red_verified": false,
       "green_verified": false,
       "checks_evidenced": false,
-      "blocker": "C.4 watch CLI+private Compose source uncompiled/no native jobs, #3099037733 bridge failed/skipped child. Existing Go 17-op projection, real Telegram difference sync, vault/HLS/WebDAV, GPUI, 24x7 full file server and Go removal incomplete. Go remains authoritative."
+      "blocker": "External GitHub CI publication scan rejected Git history at pipelines #3098971908 and #3099037733; no Rust fmt/build/test/E2E job evidence. Do not publish private history or bypass scan. Metadata-only native MTProto incomplete; full Go 17-op projector, vault, media/WebDAV/GPUI and Go removal still missing."
     },
     {
       "id": "D",

@@ -48,3 +48,7 @@ Added persisted per-peer SQLite watermark, history interval scanning with a 10,0
 ## Native Rust supervised watch checkpoint (3c7c2956)
 
 Added experimental MTProto `watch` command with SIGINT/SIGTERM, private opt-in Docker Compose, Linux/macOS CI contract; source SHA `3c7c2956a40ce65b0b73de58f23531a6fa495f05`. **Not compiled or validated in a running Telegram/Docker environment.** Static source review 15/15 only. [GitLab CI #3099037733](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3099037733) failed after dispatch; child CI skipped. See [C.4 phase](phase-c4-headless-watch.md), [self-reviews](reviews/phase-c4-watch.json) and [phase state](phase-state.json). Full Go parity/GPUI/headless drive remains blocked.
+
+## CI publication scan incident (2026-11-22)
+
+Exact provider failure text is **`The requested Git history did not pass the publication scan`**, not a proven Rust compilation failure. GitLab #3099037733 dispatched successfully but provider failed; ci-hub-smoke child #3099037748 was skipped with an echo-only manual job. No actual Cargo job logs available. Public-history scanner must not be bypassed. See [CI root-cause evidence](ci-publication-scan-blocker.md); phase status remains unverified, Go is preserved.

@@ -1,0 +1,24 @@
+# CI root-cause checkpoint: public-history publication scan (2026-11-22)
+
+## Exact observed evidence
+
+- Authoritative private project `blond11qq/my_telegram_drive` (`89276294`), Draft MR !24, source branch `refactor/rust-only-cutover-20261122` at initial checkpoint HEAD `78709069b30deb26edbc0e26004eff668e498773`.
+- Effective GitLab CI: `.gitlab/ci-hub-request.yml@blond11qq/ci-hub-smoke`. GitLab-to-child bridge `dispatch_github_actions` only triggers a second GitLab project, whose `.gitlab/ci-hub-request.yml` defines a MANUAL, `allow_failure: true` `github_actions_request` **echo-only** job for pipeline triggers. The child being `skipped` is not a Rust build result.
+- [Pipeline #3098859551](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098859551) on `12a39ccd07d79c64a8413083c858b520728c82f8`: provider status `success`, description `GitHub Actions success` (generic callback; Rust job proof unknown).
+- [Pipeline #3098872773](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098872773) on `0571e0527231d9b0c04292b148cd49228f8e1f66`: provider status `success`, description `GitHub Actions success` (generic callback; Rust job proof unknown).
+- [Pipeline #3098880127](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098880127) on `6756046e3d7a6fdefb7c458f9f859ab26778ec13`: provider status `failed`, description `GitHub Actions failed` (no command logs; source failure cannot be established).
+- [Pipeline #3098891720](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098891720) on `3a9a86568a3d61c176d180ece1866c459c0302f2` and #3098911766 on `c9bc5bb68708738d344ff0f9cbc03ffab27626fe`: generic provider `failed` (actual Rust jobs unknown).
+- [Pipeline #3098971908](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3098971908) on `e2e0ecc3a09b7d644f320a87265406dbd8c9918a` and [#3099037733](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3099037733) on `fabd70670cc0c78615b074e74e902d59fdb94751`: **external provider status `failed`, exact description `The requested Git history did not pass the publication scan`**. Source dispatch jobs report `success`, and downstream #3099037748 reports `skipped`. This is a publication gate BEFORE successful native job evidence; it is not a demonstrated Rust compiler or test failure.
+- Re-read complete current GitLab repo tree (749 blob filenames, 517 Go sources): filename-only scan found no obvious `.env`, `.pem`, `.key`, `.session`, `.sqlite`, credentials or secret-file candidate; this is **not** a content scan, full Git history audit or security clearance. The gate does not expose a specific refused object/commit/path in accessible GitLab status. No secret values were fetched or logged. No GitHub source mirror or job API was accessible from this execution environment.
+
+## Safety / necessary next action
+
+- Preserve the history-publication scan; **do not bypass it**, force-push rewritten history, publish private repository contents, change GitLab/GitHub visibility or CI token privileges as an improvised fix.
+- Obtain the **scanner's private report** identifying refused Git object/path/category from the authorized publication workflow, with secrets redacted. Check whether the previous commits contain sensitive material; if any real credential is found, rotate it without pasting it into chat or CI logs. A clean current tree does not prove clean history.
+- Preferred GitHub Actions route for full private-repo code, subject to explicit source/secret authorization: keep public GitHub repo as **workflow harness only**; use short-lived read-only GitLab access scoped to CI to fetch an approved private source snapshot directly in the ephemeral job, without publishing its Git commit history in the public repository. Do not silently install/configure a token, bypass scanning, or upload private source without permission. Alternative: an explicitly approved private runner, not the existing echo-only bridge.
+- After a safe runner is available, resolve pinned nested Cargo.lock with actual Cargo, execute Rust fmt/clippy/test/build and Docker build+offline smoke, then isolated Telegram account positive/negative/restart E2E. Capture exact GitLab source SHA plus actual provider checked-out SHA and per-job logs. Only then can A/B/C tests and Phase D/E be considered.
+- No product completion claim: Rust MTProto inbox/watch is metadata-only; Go 17-op projector, vault key lifecycle, authenticated encrypted file transfers, HLS/WebDAV/media, GPUI/headless file server, migration and rollback still missing. 517 Go sources are intentionally retained.
+
+## Status classification
+
+`dispatch=success`, `provider_result=failed (publication scan)`, `jobs_verified=unknown`, `e2e_verified=unknown`. No branch merge, deployment, source-history rewrite, secret/runner/mirror/visibility change. This checkpoint is investigative only and cannot move any phase to tested or verified.
