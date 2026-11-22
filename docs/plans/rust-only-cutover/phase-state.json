@@ -1,0 +1,51 @@
+{
+  "gate_version": "2.2",
+  "grill_cleared": true,
+  "poteto_entered": true,
+  "plan_committed": true,
+  "pending_user_decisions": 0,
+  "project_id": "89276294",
+  "branch": "refactor/rust-only-cutover-20261122",
+  "phases": [
+    {
+      "id": "A",
+      "kind": "user_flow",
+      "entrypoint": "Rust CLI read-only folder listing + Rust-only CI",
+      "status": "not_started",
+      "implemented": false,
+      "history": []
+    },
+    {
+      "id": "B",
+      "kind": "user_flow",
+      "entrypoint": "Rust transactional 17-op projection and sync",
+      "status": "not_started",
+      "implemented": false,
+      "history": []
+    },
+    {
+      "id": "C",
+      "kind": "user_flow",
+      "entrypoint": "Rust MTProto account, vault, transfers, daemon/media/webdav",
+      "status": "not_started",
+      "implemented": false,
+      "history": []
+    },
+    {
+      "id": "D",
+      "kind": "user_flow",
+      "entrypoint": "GPUI desktop, Rust Docker/headless, platform E2E",
+      "status": "not_started",
+      "implemented": false,
+      "history": []
+    },
+    {
+      "id": "E",
+      "kind": "user_flow",
+      "entrypoint": "Go source removal and Go-free CI/E2E after full parity",
+      "status": "not_started",
+      "implemented": false,
+      "history": []
+    }
+  ]
+}

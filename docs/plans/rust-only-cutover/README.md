@@ -1,0 +1,22 @@
+# Rust-only migration and conditional Go removal
+
+## Approved contract
+- GitLab source of truth: `blond11qq/my_telegram_drive` (project 89276294). Start from previous cumulative Draft MR !23 HEAD `17df07d389fe317b645b4f9ef9bf5bc0d1fe857c`; work branch `refactor/rust-only-cutover-20261122` targeting `feat/rust-offline-tde1-cli-20261122`.
+- User's latest instruction supersedes the old *design-time* prohibition on deleting Go source: replace **all** Go backend code with Rust and remove Go sources, Go module/build dependencies and Go CI **only after** each existing Go-owned user flow has a Rust replacement. The source remains private. No merge, deployment, force push, production account/data edits, mirror/secret/runner setting edits.
+- Required product: MTProto signed-in user session, vault/crypto, SQLite full mutation/replay, sync, file transfer/backup, media/HLS/WebDAV, local daemon/HTTP/CLI, native GPUI desktop, headless Docker, installers/platform parity. Preserve data and recovery.
+- Existing [full-parity ledger](../../migration/phase-ledger.md) and [migration master](../my-telegram-drive-rust-migration/README.md) own 00–15 subphases. Those remain the complete implementation scope, not a new shorter substitute.
+
+## Evidence at start
+GitLab tree on `17df07d389fe317b645b4f9ef9bf5bc0d1fe857c`: **517** tracked `.go` files and **35** tracked `.rs` files, including tests (numbers not functionality percentages). The only Rust executable is `tdrive-inspect`, an offline inspector/crypto diagnostic. The authoritative Go main remains operational. Rust MTProto user sessions and sync writer do not exist. Running Go deletion **now** would intentionally break the application and invalidates the requested functionality. Treat that as a failed migration, not a completed Go removal.
+
+**CI:** effective project `ci_config_path=.gitlab/ci-hub-request.yml@blond11qq/ci-hub-smoke`, not local `.gitlab-ci.yml`. GitLab pipeline 3098837254 on `970dafcc04a7f1e008bb5117ac5aff72b4a9ec7e` returns `dispatch_github_actions` and `github-actions/ci-hub-request` success but no actual six-job Rust build logs. This does not verify any Cargo command. Container has Go, git but **no Rust toolchain** and cannot resolve private GitLab DNS; GitLab connector can write tracked source but cannot perform local Cargo build or access GitHub Actions job details. No waiver has been approved.
+
+## Current execution sequence
+1. [Phase A](phase-a-native-read-and-ci.md), executable Rust read-only folder browsing from detached Go v16 SQLite, with synthetic SQLite fixtures and Rust-only (no Go commands) smoke workflow. This is a **user-flow diagnostic increment** consumed later by the Rust API/GUI, not a replacement of Go sync/backend. Positive, invalid input, no-writes; separately test CLI output.
+2. Phase B: direct Rust DB single-writer and full 17-op replay/sync parity, with explicit transaction/rollback and Go DB fixtures. Must retain Go reference/oracles until equivalent cases are verified.
+3. Phase C: Rust real user-account MTProto auth/upload/download, encryption vault lifecycle, file recovery, media/HLS/WebDAV and daemon APIs.
+4. Phase D: GPUI and headless Docker, cross-platform build and representative end-to-end test.
+5. [Phase E](phase-e-remove-go.md): delete Go production sources, go.mod/go.sum and Go-specific workflows/install steps only **after** replacement checklist and exact SHA job evidence; build/test a clean Go-free checkout. Keep migration comparison fixtures in language-neutral format as needed; never remove a working backend before replacement.
+
+## CI and phase-state gates
+For each code change: test-first behavior + RED when runnable; implementation; Cargo fmt/clippy/build/test and backend integration on exact code SHA; original Go parity while it exists; two-lens review with actual source SHA; append checkpoint; Draft MR. A generic bridge callback is `provider_result` at most, not `jobs_verified`. No production cutover without separate authorization. This plan cannot make the entire 517-Go-file conversion fit into a single unverified code commit.
