@@ -30,6 +30,7 @@ pub enum CliAction {
     InboxStats,
     Ingest { peer: String, limit: usize },
     Catchup { peer: String, budget: usize },
+    Watch { peer: String, budget: usize, poll_seconds: u64 },
     History { peer: String, limit: usize },
     Upload { peer: String, source: PathBuf },
     Download { peer: String, message_id: i32, destination: PathBuf },
@@ -65,6 +66,14 @@ pub fn parse_action(args: &[String]) -> Result<CliAction, PolicyError> {
                 return Err(PolicyError::InvalidArguments);
             }
             Ok(CliAction::Ingest { peer: peer.clone(), limit })
+        }
+        [cmd, peer, budget, poll] if cmd == "watch" && valid_peer(peer) => {
+            let budget = budget.parse::<usize>().map_err(|_| PolicyError::InvalidArguments)?;
+            let poll_seconds = poll.parse::<u64>().map_err(|_| PolicyError::InvalidArguments)?;
+            if !(1..=10_000).contains(&budget) || !(15..=3600).contains(&poll_seconds) {
+                return Err(PolicyError::InvalidArguments);
+            }
+            Ok(CliAction::Watch { peer: peer.clone(), budget, poll_seconds })
         }
         [cmd, peer, budget] if cmd == "catchup" && valid_peer(peer) => {
             let budget = budget.parse::<usize>().map_err(|_| PolicyError::InvalidArguments)?;
