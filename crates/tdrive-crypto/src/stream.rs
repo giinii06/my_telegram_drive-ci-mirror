@@ -137,11 +137,11 @@ fn encrypt_with_material<R: Read, W: Write>(
         }
         remaining -= amount as u64;
         let is_final = remaining == 0 && amount < CHUNK_SIZE;
-        if is_final {
-            if let Err(error) = assert_no_trailing_plaintext(source) {
-                chunk.fill(0);
-                return Err(error);
-            }
+        if is_final
+            && let Err(error) = assert_no_trailing_plaintext(source)
+        {
+            chunk.fill(0);
+            return Err(error);
         }
         let result = seal_chunk(&cipher, output, &prefix, counter, is_final, &chunk[..amount]);
         chunk[..amount].fill(0);

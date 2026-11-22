@@ -130,10 +130,8 @@ pub fn serve(snapshot: &Path, key: &Path, port: u16) -> Result<(), &'static str>
     tdrive_storage::inspect_snapshot(snapshot).map_err(|_| "invalid detached SQLite snapshot")?;
     let listener = TcpListener::bind(("127.0.0.1", port)).map_err(|_| "cannot bind loopback socket")?;
     println!("Rust read-only snapshot API listening on 127.0.0.1:{port}");
-    for client in listener.incoming() {
-        if let Ok(mut socket) = client {
-            handle(&mut socket, snapshot, &secret.0);
-        }
+    for mut socket in listener.incoming().flatten() {
+        handle(&mut socket, snapshot, &secret.0);
     }
     Ok(())
 }

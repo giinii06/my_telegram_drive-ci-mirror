@@ -303,7 +303,7 @@ fn prepare_private_dir(path: &Path) -> Result<PathBuf, ConfigError> {
 pub fn user_config_base() -> Result<PathBuf, ConfigError> {
     #[cfg(target_os = "macos")]
     {
-        return Ok(home_dir()?.join("Library/Application Support"));
+        Ok(home_dir()?.join("Library/Application Support"))
     }
     #[cfg(target_os = "windows")]
     {
@@ -325,7 +325,7 @@ pub fn user_config_base() -> Result<PathBuf, ConfigError> {
 pub fn user_cache_base() -> Result<PathBuf, ConfigError> {
     #[cfg(target_os = "macos")]
     {
-        return Ok(home_dir()?.join("Library/Caches"));
+        Ok(home_dir()?.join("Library/Caches"))
     }
     #[cfg(target_os = "windows")]
     {
