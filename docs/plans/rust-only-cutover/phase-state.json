@@ -55,9 +55,20 @@
       "id": "C",
       "kind": "user_flow",
       "entrypoint": "Rust MTProto account, vault, transfers, daemon/media/webdav",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
-      "history": []
+      "history": [
+        {
+          "frm": "not_started",
+          "to": "in_progress",
+          "evidence": "Subphase C.0 planned 66eede481caffdee5026bd2b74088963bf80c376, tests 214ffa56730f990d2dafdccea92cdcb33e138658, parser 2a5cb12893311a6dc44fb91b6805c25b78841476 with fix 762f4c26ede1c3824e6beb413b5a17ac77d36f7c, HTTP server 466d0e1bc55850f6a13cb741403a85c799af83ce, socket test 0ae1e2acf6bfa67a4bc81bb4ac5fe24904c41918 with correction 765cc9fa6343c1f33f3278df63636e246217ea00, token loader source fix 6756046e3d7a6fdefb7c458f9f859ab26778ec13. No Rust compiler/tests."
+        }
+      ],
+      "candidate_sha": "6756046e3d7a6fdefb7c458f9f859ab26778ec13",
+      "red_verified": false,
+      "green_verified": false,
+      "checks_evidenced": false,
+      "blocker": "Only Unix loopback read-only SQLite HTTP diagnostic written. No compiled socket/auth tests, real network MTProto, file transfer, public/API full parity or TLS. Code not production ready."
     },
     {
       "id": "D",

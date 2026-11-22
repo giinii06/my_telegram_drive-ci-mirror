@@ -1,0 +1,35 @@
+{
+  "phase_id": "C.0",
+  "base_sha": "214ffa56730f990d2dafdccea92cdcb33e138658",
+  "head_sha": "6756046e3d7a6fdefb7c458f9f859ab26778ec13",
+  "reviews": [
+    {
+      "lens": "requirements",
+      "head_sha": "6756046e3d7a6fdefb7c458f9f859ab26778ec13",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy sequential requirements review",
+      "evidence": "Reviewed actual GitLab source (http_contract.rs, offline_http.rs, main.rs) and 5 parser + 1 binary integration test definitions. Rust --serve-readonly binds only 127.0.0.1, validates snapshot and owner-only bearer file, supports GET /health and /v1/folders without Go backend, returns non-cacheable JSON. No compiled actual HTTP request observed. Does not implement signed-in MTProto, uploads/downloads, API parity or GPUI, and user requested complete Go replacement remains unmet."
+    },
+    {
+      "lens": "quality_security",
+      "head_sha": "6756046e3d7a6fdefb7c458f9f859ab26778ec13",
+      "reviewer_type": "self",
+      "reviewer_id": "Alchemy sequential quality/security review",
+      "evidence": "Static inspection of bounded 8192-byte headers, 3-second socket timeouts, closed connection per request, constant-time bearer comparison, token inode/permission checks, server read-only fixed loopback, no token logs, and explicit no-store/nosniff. Corrected ambiguous File::by_ref().take in 6756046e. No Cargo compiler or actual provider job traces. Production blockers: no TLS, no bounded DB row query/pagination, snapshot path reopened, sequential listener DoS potential, only parent symlink check."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "important",
+      "file": "apps/tdrive-inspect/src/offline_http.rs",
+      "finding": "Custom HTTP/1.1 server is only valid as Unix loopback diagnostic; no TLS/public bind, request load/backpressure, filesystem path pinning and paging; do not deploy.",
+      "disposition": "open-blocks-public-api"
+    },
+    {
+      "severity": "important",
+      "file": "apps/tdrive-inspect/src/offline_http.rs",
+      "finding": "Snapshot path reopened each request; huge SQLite results are materialized before response size guard. Must add pinned immutable snapshot and bounded paging before production.",
+      "disposition": "open-blocks-production"
+    }
+  ]
+}

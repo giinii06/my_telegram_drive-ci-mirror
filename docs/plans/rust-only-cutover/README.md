@@ -28,3 +28,7 @@ Phase A Rust CLI + Go-free Rust CI source has been committed, but **not executed
 ## Rust replay journal code checkpoint (0571e052)
 
 Phase B.0 implementation is a transaction-safe replay metadata increment and **not** the 17-op projector or live Telegram sync. Source SHA `0571e0527231d9b0c04292b148cd49228f8e1f66`, GitLab dispatch #3098872773, Rust compilation/job verification unknown. Details and two-lens self-review under [phase B.0](phase-b0-replay-journal.md) and [review](reviews/phase-b0-replay.json). Phase B remains in progress, not tested/verified; full Go deletion blocked.
+
+## Local Rust HTTP API checkpoint (6756046e)
+
+C.0 source code adds authenticated loopback-only read-only HTTP to the existing offline SQLite inspector, plus 5 parser tests and 1 socket integration test **not executed**. Code SHA `6756046e3d7a6fdefb7c458f9f859ab26778ec13`, matching GitLab dispatch #3098880127. This is **not** a Telegram user login/server/media backend or Go-parity completion. See [C.0 evidence](phase-c0-readonly-http.md), the [review](reviews/phase-c0-http.json) and [phase ledger](phase-state.json). No Go code deleted.
