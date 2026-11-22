@@ -1,4 +1,7 @@
 //! Offline contract inspector. Never opens Telegram or production services.
+#[cfg(unix)]
+mod offline_crypto;
+
 use std::env;
 use std::io::{self, Read};
 use std::path::Path;
@@ -47,10 +50,32 @@ fn main() -> ExitCode {
                 }
             }
         }
+        #[cfg(unix)]
+        [option, source, destination, key] if option == "--encrypt-file" => {
+            offline_file(offline_crypto::Mode::Encrypt, source, destination, key)
+        }
+        #[cfg(unix)]
+        [option, source, destination, key] if option == "--decrypt-file" => {
+            offline_file(offline_crypto::Mode::Decrypt, source, destination, key)
+        }
         _ => {
             eprintln!(
-                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite>"
+                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file>"
             );
+            ExitCode::FAILURE
+        }
+    }
+}
+
+#[cfg(unix)]
+fn offline_file(mode: offline_crypto::Mode, source: &str, destination: &str, key: &str) -> ExitCode {
+    match offline_crypto::run(mode, Path::new(source), Path::new(destination), Path::new(key)) {
+        Ok(()) => {
+            println!("TDE1 offline file created");
+            ExitCode::SUCCESS
+        }
+        Err(message) => {
+            eprintln!("TDE1 offline file failed: {message}");
             ExitCode::FAILURE
         }
     }
