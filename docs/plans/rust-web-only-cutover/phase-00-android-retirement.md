@@ -64,3 +64,13 @@ Revert only this phase's commit(s). Existing APK release files and local data re
 ### Additional provider status update
 
 GitLab commit status for implementation SHA `361f88de27d02d88b113ee728b59ada1e101584c` includes `github-actions/ci-hub-request: success` with [GitHub Actions run 45065897228](https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45065897228). This upgrades evidence from dispatch-only to **provider_result=success**. The run's individual job names/logs and test output are still unavailable here, so `jobs_verified` and `e2e_verified` remain unknown; Phase 00 stays implemented, not tested/verified/completed.
+
+### 2026-11-23 — APK regression contract hardening (same Phase 00)
+
+- **RED fixture commit:** `7bd21aaad9a611d55fcd2700449d74db42b3b405`. On a local reduced-source fixture, two adversarial cases failed as expected: renamed `mobile-release` running `gradlew assembleRelease` bypassed the old Android check, and four installer names in comments falsely satisfied the old retention check.
+- **GREEN implementation commit:** `fea5200033b62b8b6bfe9a350073ac254ccea4e6`. Hardened the static Android job/build path checks, anchored real installer job declarations, and included the adversarial unit-test file in the existing GitHub static-cutover workflow.
+- **Local run:** `python3 -m unittest -v scripts/test_web_only_support.py scripts/test_web_only_support_robustness.py` — 6/6 PASS on a reduced local fixture representing current source interfaces; `python3 -m py_compile` passed. **Not** an actual full-checkout run, not Rust/Go/Bun test evidence.
+- **Live GitLab source audit:** `.github/workflows/installers.yml` at code SHA above still declares `linux-deb`, `macos-dmg`, `windows-exe`, and `windows-backup-exe` as actual jobs and has no APK/Gradle build marker.
+- **CI:** [GitLab pipeline #3101014028](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3101014028), exact code SHA `fea5200033b62b8b6bfe9a350073ac254ccea4e6`, reports `dispatch_github_actions=success`. At inspection, **no matching provider callback or GitHub per-job logs** were accessible. `provider_result=unknown`, `jobs_verified=unknown`, `e2e_verified=unknown`.
+- **Two-lens self-review:** requirements tests directly cover the two discovered false negatives/positives; security/quality confirms no app runtime, secrets, installers or release artifacts were modified, but real CI execution is still unverified. Both reviews were self-review, not independent.
+- **Gate:** Phase 00 remains `implemented` only. Do not advance to Phase 01 or call Phase 00 completed without actual full-repository and provider job evidence (or a separately approved scoped waiver, which would not count as passed).

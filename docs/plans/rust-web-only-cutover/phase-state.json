@@ -29,11 +29,11 @@
       "tested": false,
       "verified": false,
       "completed": false,
-      "candidate_sha": "361f88de27d02d88b113ee728b59ada1e101584c",
+      "candidate_sha": "fea5200033b62b8b6bfe9a350073ac254ccea4e6",
       "red_verified": false,
       "green_verified": false,
       "checks_evidenced": false,
-      "ci_level": "provider_result",
+      "ci_level": "dispatch",
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": "reviews/phase-00-android-retirement.json",
@@ -51,12 +51,30 @@
         }
       ],
       "red_snapshot_reproduced": true,
-      "provider_result": "success",
-      "github_run_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45065897228",
+      "provider_result": "unknown",
+      "github_run_url": null,
       "green_snapshot_reproduced": true,
       "source_audit_evidenced": true,
       "blockers": [
-        "Full-checkout test execution and per-job GitHub Actions logs are not accessible in this session; do not mark tested/verified/completed."
+        "Full-checkout CI tests and per-job GitHub Actions logs for current code SHA fea5200033b62b8b6bfe9a350073ac254ccea4e6 are not verifiable; local 6/6 covers a reduced fixture only."
+      ],
+      "evidence_updates": [
+        {
+          "kind": "corrective_test_and_code",
+          "test_only_sha": "7bd21aaad9a611d55fcd2700449d74db42b3b405",
+          "candidate_sha": "fea5200033b62b8b6bfe9a350073ac254ccea4e6",
+          "scope": "Phase 00 APK retirement regression contract hardening",
+          "red": "2 expected adversarial robustness failures on local reduced-source snapshot before code change",
+          "green": "6/6 Python unittest cases passed on local reduced-source snapshot after code change; py_compile passed",
+          "source_audit": "GitLab live installers.yml preserves four named non-Android installer jobs; no gradlew, APK or Android packaging path",
+          "pipeline_id": 3101014028,
+          "ci_config_path": ".gitlab/ci-hub-request.yml@blond11qq/ci-hub-smoke",
+          "dispatch": "success",
+          "provider_result": "unknown",
+          "jobs_verified": "unknown",
+          "e2e_verified": "unknown",
+          "blocker": "No externally verifiable GitHub Actions per-job logs and no full-checkout test run"
+        }
       ]
     },
     {
@@ -361,9 +379,14 @@
     "phase00_downstream_status": "skipped",
     "phase00_github_status": "success",
     "phase00_github_run_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45065897228",
-    "phase00_jobs_verified": "unknown"
+    "phase00_jobs_verified": "unknown",
+    "phase00_latest_code_sha": "fea5200033b62b8b6bfe9a350073ac254ccea4e6",
+    "phase00_latest_pipeline_id": 3101014028,
+    "phase00_latest_dispatch": "success",
+    "phase00_latest_provider_result": "unknown",
+    "phase00_latest_jobs_verified": "unknown"
   },
   "plan_review": "reviews/plan-review.json",
   "plan_docs_checkpoint_sha": "bddcf680949861b248316b37ccb465788ca5190f",
-  "latest_branch_head": "615db7719c8a1e76e8439d95bbaa599ec816e531"
+  "latest_branch_head": "fea5200033b62b8b6bfe9a350073ac254ccea4e6"
 }
