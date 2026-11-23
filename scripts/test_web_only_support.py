@@ -12,8 +12,8 @@ class WebOnlySupportTests(unittest.TestCase):
 
     def test_release_workflow_has_no_android_apk_job_or_build_path(self):
         workflow = (ROOT / ".github" / "workflows" / "installers.yml").read_text()
-        self.assertNotRegex(workflow, r"(?m)^\s*android-apk:")
-        self.assertNotIn("packaging/android", workflow)
+        self.assertNotRegex(workflow, r"(?im)^  [a-z0-9_-]*(?:android|apk)[a-z0-9_-]*:")
+        self.assertNotRegex(workflow, r"(?i)(?:\bgradlew\b|assemble(?:debug|release)\b|\.apk\b|packaging[/\\]android\b)")
 
     def test_current_install_docs_do_not_advertise_android_apk(self):
         for relative in ("README.md", "packaging/README.md"):
@@ -24,7 +24,7 @@ class WebOnlySupportTests(unittest.TestCase):
     def test_headless_host_installers_are_retained(self):
         workflow = (ROOT / ".github" / "workflows" / "installers.yml").read_text()
         for job in ("linux-deb:", "macos-dmg:", "windows-exe:", "windows-backup-exe:"):
-            self.assertIn(job, workflow)
+            self.assertRegex(workflow, rf"(?m)^  {job}[ \t]*(?:#.*)?$")
 
 
 if __name__ == "__main__":
