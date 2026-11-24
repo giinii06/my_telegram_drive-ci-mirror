@@ -7,6 +7,8 @@ use crate::{
 };
 use std::{error::Error, fmt};
 use zeroize::Zeroizing;
+#[cfg(unix)]
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VaultSessionError {
@@ -26,6 +28,26 @@ impl fmt::Display for VaultSessionError {
 }
 
 impl Error for VaultSessionError {}
+
+#[cfg(unix)]
+#[derive(Debug)]
+pub enum VaultFileError {
+    Locked,
+    File(crate::FileCryptoError),
+}
+
+#[cfg(unix)]
+impl fmt::Display for VaultFileError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Locked => f.write_str("vault is locked"),
+            Self::File(error) => write!(f, "{error}"),
+        }
+    }
+}
+
+#[cfg(unix)]
+impl Error for VaultFileError {}
 
 #[derive(Default)]
 pub struct VaultSession {
@@ -68,6 +90,26 @@ impl VaultSession {
     /// guarantee erasure of every compiler temporary or OS memory copy.
     pub fn lock(&mut self) {
         drop(self.master.take());
+    }
+
+    #[cfg(unix)]
+    pub fn encrypt_file(
+        &self,
+        source: &Path,
+        destination: &Path,
+    ) -> Result<PathBuf, VaultFileError> {
+        let key = self.master.as_ref().ok_or(VaultFileError::Locked)?;
+        crate::encrypt_file_atomic(source, destination, &key[..]).map_err(VaultFileError::File)
+    }
+
+    #[cfg(unix)]
+    pub fn decrypt_file(
+        &self,
+        source: &Path,
+        destination: &Path,
+    ) -> Result<PathBuf, VaultFileError> {
+        let key = self.master.as_ref().ok_or(VaultFileError::Locked)?;
+        crate::decrypt_file_atomic(source, destination, &key[..]).map_err(VaultFileError::File)
     }
 
     pub fn encrypt_name(&self, name: &str) -> Result<String, VaultSessionError> {

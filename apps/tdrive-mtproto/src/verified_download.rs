@@ -17,6 +17,10 @@ fn invalid() -> io::Error {
 }
 
 impl ExpectedContent {
+    pub fn size(self) -> u64 {
+        self.size
+    }
+
     pub fn parse(size: &str, digest: &str) -> io::Result<Self> {
         if size.is_empty() || !size.bytes().all(|b| b.is_ascii_digit())
             || digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_hexdigit())
