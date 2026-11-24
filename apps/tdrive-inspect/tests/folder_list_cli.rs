@@ -238,3 +238,38 @@ fn offline_assembly_publishes_only_verified_complete_bytes() {
     assert_eq!(fs::read(&fixture.db).unwrap(), before);
     assert!(fs::read_dir(&fixture.dir).unwrap().all(|entry| !entry.unwrap().file_name().to_string_lossy().starts_with(".tdrive-assembly-")));
 }
+
+#[cfg(unix)]
+#[test]
+fn backup_cli_creates_verifies_and_restores_without_overwriting() {
+    use std::os::unix::fs::PermissionsExt;
+    let fixture = Fixture::new();
+    fs::set_permissions(&fixture.dir, fs::Permissions::from_mode(0o700)).unwrap();
+    let backup = fixture.dir.join("backup.sqlite");
+    let manifest = fixture.dir.join("backup.sqlite.manifest");
+    let restored = fixture.dir.join("restored.sqlite");
+    let run = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_tdrive-inspect"))
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    let source = fixture.db.to_str().unwrap();
+    let dest = backup.to_str().unwrap();
+    let clone = restored.to_str().unwrap();
+    let before = fs::read(&fixture.db).unwrap();
+    assert!(run(&["--create-backup", source, dest]).status.success());
+    assert!(manifest.exists());
+    assert_eq!(fs::metadata(&backup).unwrap().permissions().mode() & 0o077, 0);
+    assert!(run(&["--verify-backup", dest]).status.success());
+    assert!(run(&["--restore-clone", dest, clone]).status.success());
+    assert_eq!(fs::read(&backup).unwrap(), fs::read(&restored).unwrap());
+    assert!(!run(&["--restore-clone", dest, clone]).status.success());
+    assert!(!run(&["--create-backup", source, dest]).status.success());
+    assert_eq!(fs::read(&fixture.db).unwrap(), before);
+    fs::remove_file(&restored).unwrap();
+    fs::write(&manifest, b"corrupt").unwrap();
+    assert!(!run(&["--verify-backup", dest]).status.success());
+    assert!(!run(&["--restore-clone", dest, clone]).status.success());
+    assert!(!restored.exists());
+}
