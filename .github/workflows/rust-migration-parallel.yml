@@ -24,6 +24,8 @@ jobs:
         run: python3 scripts/test_rust_ci_workflow.py
       - name: GitHub evidence verifier regression tests
         run: python3 scripts/test_rust_gha_run.py
+      - name: CI evidence boundary regression tests
+        run: python3 scripts/test_ci_evidence_required.py
 
   rust-style:
     runs-on: ubuntu-24.04
