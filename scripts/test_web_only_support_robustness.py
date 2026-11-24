@@ -31,3 +31,20 @@ class WebOnlySupportRobustnessTests(TestCase):
             "# linux-deb:\n# macos-dmg:\n# windows-exe:\n# windows-backup-exe:\n",
             "test_headless_host_installers_are_retained",
         )
+
+    def test_apk_build_in_another_workflow_is_rejected(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            workflows = root / ".github" / "workflows"
+            workflows.mkdir(parents=True)
+            (workflows / "installers.yml").write_text("jobs: {}\n", encoding="utf-8")
+            (workflows / "mobile.yaml").write_text(
+                "jobs:\n  mobile-release:\n    steps:\n      - run: ./gradlew assembleRelease\n",
+                encoding="utf-8",
+            )
+            with patch.object(web_only, "ROOT", root):
+                case = web_only.WebOnlySupportTests(
+                    "test_release_workflow_has_no_android_apk_job_or_build_path"
+                )
+                with self.assertRaises(AssertionError):
+                    case.test_release_workflow_has_no_android_apk_job_or_build_path()
