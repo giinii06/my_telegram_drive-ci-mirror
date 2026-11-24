@@ -10,6 +10,8 @@ mod file_io;
 mod name;
 mod stream;
 mod vault;
+mod vault_material;
+pub use vault_material::{VaultKdfParams, VaultMaterialError, validate_vault_material};
 mod vault_session;
 pub use vault_session::{VaultSession, VaultSessionError};
 pub use vault::{
