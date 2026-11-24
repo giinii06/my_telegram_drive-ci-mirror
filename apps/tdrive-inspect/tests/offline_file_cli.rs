@@ -160,3 +160,19 @@ fn offline_cli_rejects_insecure_short_and_symlinked_keys() {
     assert!(!target.exists());
     assert_no_temporary_files(&sandbox);
 }
+
+#[test]
+fn offline_cli_rejects_multiply_linked_keys_before_output() {
+    let sandbox = PrivateSandbox::new();
+    let key = sandbox.key("private.key", 0x42);
+    let linked = sandbox.path("linked.key");
+    let source = sandbox.path("plain");
+    let output = sandbox.path("sealed");
+    fs::write(&source, b"secret").unwrap();
+    fs::hard_link(&key, &linked).unwrap();
+    assert!(!command("--encrypt-file", &source, &output, &key).status.success());
+    assert!(!command("--encrypt-file", &source, &output, &linked).status.success());
+    assert!(!output.exists());
+    assert_eq!(fs::read(&key).unwrap(), [0x42; 32]);
+    assert_no_temporary_files(&sandbox);
+}
