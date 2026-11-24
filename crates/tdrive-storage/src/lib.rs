@@ -253,16 +253,7 @@ pub fn inspect_connection(conn: &Connection) -> Result<SnapshotReport, SnapshotE
         }
     }
 
-    let exists: Option<i64> = conn
-        .query_row(
-            "SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_dirents_live_sibling_name'",
-            [],
-            |row| row.get(0),
-        )
-        .optional()?;
-    if exists.is_none() {
-        return Err(SnapshotError::InvalidIndex);
-    }
+    validate_live_name_index(conn)?;
 
     let result: String = conn.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
     if result != "ok" {
@@ -295,6 +286,60 @@ pub fn inspect_connection(conn: &Connection) -> Result<SnapshotReport, SnapshotE
         schema_version: version,
         table_counts,
     })
+}
+
+fn validate_live_name_index(conn: &Connection) -> Result<(), SnapshotError> {
+    let index: Option<(i64, i64)> = conn
+        .query_row(
+            "SELECT [unique], partial FROM pragma_index_list('dirents')
+             WHERE name='idx_dirents_live_sibling_name'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()?;
+    if index != Some((1, 1)) {
+        return Err(SnapshotError::InvalidIndex);
+    }
+
+    let mut statement = conn.prepare(
+        "SELECT name, coll FROM pragma_index_xinfo('idx_dirents_live_sibling_name')
+         WHERE key=1 ORDER BY seqno",
+    )?;
+    let columns = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, Option<String>>(0)?, row.get::<_, String>(1)?))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    if columns.len() != 3
+        || !columns.iter().zip(["channel_id", "parent_id", "name_key"]).all(
+            |((name, collation), expected)| {
+                name.as_deref() == Some(expected) && collation.eq_ignore_ascii_case("BINARY")
+            },
+        )
+    {
+        return Err(SnapshotError::InvalidIndex);
+    }
+
+    // Require the exact Go-v16 active-row predicate, ignoring whitespace,
+    // case and one enclosing pair of parentheses. Reject unfamiliar schemas.
+    let sql: String = conn.query_row(
+        "SELECT sql FROM sqlite_master WHERE type='index'
+         AND name='idx_dirents_live_sibling_name' AND tbl_name='dirents'",
+        [],
+        |row| row.get(0),
+    )?;
+    let normalized: String = sql
+        .chars()
+        .filter(|character| !character.is_ascii_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect();
+    let predicate = normalized
+        .strip_prefix("createuniqueindexidx_dirents_live_sibling_nameondirents(channel_id,parent_id,name_key)where")
+        .map(|predicate| predicate.trim_end_matches(';'));
+    if !matches!(predicate, Some("tombstoned=0" | "(tombstoned=0)")) {
+        return Err(SnapshotError::InvalidIndex);
+    }
+    Ok(())
 }
 
 fn has_table(conn: &Connection, name: &str) -> Result<bool, SnapshotError> {
@@ -339,5 +384,50 @@ mod tests {
             inspect_connection(&conn),
             Err(SnapshotError::UnsupportedSchema(17))
         ));
+    }
+}
+
+#[cfg(test)]
+mod index_integrity_tests {
+    use super::*;
+
+    fn fixture() -> Connection {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(
+            "CREATE TABLE schema_version(version INTEGER PRIMARY KEY);
+             INSERT INTO schema_version VALUES(16);
+             CREATE TABLE files(channel_id INTEGER,msg_id INTEGER,parent_id TEXT,
+                content_msg_id INTEGER,revision INTEGER,encrypted INTEGER,upload_uuid TEXT);
+             CREATE TABLE folders(channel_id INTEGER,id TEXT,parent_id TEXT,revision INTEGER,tombstoned INTEGER);
+             CREATE TABLE replay_log(channel_id INTEGER,msg_id INTEGER,raw_header TEXT,first_seen_hash TEXT);
+             CREATE TABLE dirents(channel_id INTEGER,object_id TEXT,parent_id TEXT,name_key TEXT,
+                revision INTEGER,tombstoned INTEGER,object_kind TEXT);
+             CREATE TABLE file_revisions(channel_id INTEGER,file_msg_id INTEGER,revision INTEGER,content_msg_id INTEGER);",
+        ).unwrap();
+        for &table in REQUIRED_TABLES {
+            if !has_table(&db, table).unwrap() {
+                db.execute(&format!("CREATE TABLE {table}(dummy INTEGER)"), []).unwrap();
+            }
+        }
+        db
+    }
+
+    #[test]
+    fn index_name_alone_cannot_attest_live_sibling_uniqueness() {
+        for definition in [
+            "CREATE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key)",
+            "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key)",
+            "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,object_id) WHERE tombstoned=0",
+            "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key) WHERE tombstoned=1",
+            "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key) WHERE tombstoned=1 --where tombstoned=0",
+            "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON files(channel_id,parent_id,msg_id) WHERE revision=1",
+        ] {
+            let db = fixture();
+            db.execute_batch(definition).unwrap();
+            assert!(matches!(inspect_connection(&db), Err(SnapshotError::InvalidIndex)), "{definition}");
+        }
+        let db = fixture();
+        db.execute_batch("CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key) WHERE tombstoned = 0").unwrap();
+        assert_eq!(inspect_connection(&db).unwrap().schema_version, 16);
     }
 }
