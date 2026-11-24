@@ -13,7 +13,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[cfg(unix)]
-use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 
 static SNAPSHOT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
@@ -196,6 +196,25 @@ pub fn create_consistent_snapshot(
     })
 }
 
+#[cfg(unix)]
+fn private_backup_input(metadata: &fs::Metadata) -> bool {
+    metadata.is_file()
+        && metadata.nlink() == 1
+        && metadata.permissions().mode() & 0o077 == 0
+}
+
+#[cfg(unix)]
+fn unchanged_backup_input(before: &fs::Metadata, after: &fs::Metadata) -> bool {
+    private_backup_input(after)
+        && before.dev() == after.dev()
+        && before.ino() == after.ino()
+        && before.len() == after.len()
+        && before.mtime() == after.mtime()
+        && before.mtime_nsec() == after.mtime_nsec()
+        && before.ctime() == after.ctime()
+        && before.ctime_nsec() == after.ctime_nsec()
+}
+
 /// Reads the persisted manifest and verifies it against the actual standalone
 /// SQLite file. A changed byte, extra field, unsupported schema, bad row count
 /// or missing manifest is an error. No in-memory receipt is trusted.
@@ -205,7 +224,7 @@ pub fn verify_snapshot(snapshot: &Path) -> Result<BackupReceipt, SnapshotError> 
         return Err(SnapshotError::UnsafePath);
     }
     #[cfg(unix)]
-    if metadata.permissions().mode() & 0o077 != 0 {
+    if !private_backup_input(&metadata) {
         return Err(SnapshotError::UnsafeBackupDestination);
     }
 
@@ -220,10 +239,29 @@ pub fn verify_snapshot(snapshot: &Path) -> Result<BackupReceipt, SnapshotError> 
     if !manifest_metadata.is_file() || manifest_metadata.file_type().is_symlink() {
         return Err(SnapshotError::UnsafePath);
     }
+    #[cfg(unix)]
+    if !private_backup_input(&manifest_metadata) {
+        return Err(SnapshotError::UnsafeBackupDestination);
+    }
     if manifest_metadata.len() > 8192 {
         return Err(SnapshotError::InvalidBackupManifest);
     }
-    let content = fs::read_to_string(&manifest)?;
+    let mut manifest_file = File::open(&manifest)?;
+    #[cfg(unix)]
+    if !unchanged_backup_input(&manifest_metadata, &manifest_file.metadata()?) {
+        return Err(SnapshotError::InvalidBackupManifest);
+    }
+    let mut content = String::new();
+    (&mut manifest_file).take(8193).read_to_string(&mut content)?;
+    if content.len() > 8192 || content.len() as u64 != manifest_metadata.len() {
+        return Err(SnapshotError::InvalidBackupManifest);
+    }
+    #[cfg(unix)]
+    if !unchanged_backup_input(&manifest_metadata, &manifest_file.metadata()?)
+        || !unchanged_backup_input(&manifest_metadata, &fs::symlink_metadata(&manifest)?)
+    {
+        return Err(SnapshotError::InvalidBackupManifest);
+    }
     let mut lines = content.lines();
     if lines.next() != Some("tdrive-snapshot-v1") {
         return Err(SnapshotError::InvalidBackupManifest);
@@ -244,6 +282,10 @@ pub fn verify_snapshot(snapshot: &Path) -> Result<BackupReceipt, SnapshotError> 
     }
     let current = inspect_snapshot(snapshot)?;
     let (hash, actual_size) = digest_file(snapshot)?;
+    #[cfg(unix)]
+    if !unchanged_backup_input(&metadata, &fs::symlink_metadata(snapshot)?) {
+        return Err(SnapshotError::InvalidBackupManifest);
+    }
     if schema != current.schema_version || size != actual_size || expected_hash != hash {
         return Err(SnapshotError::InvalidBackupManifest);
     }
