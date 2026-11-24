@@ -161,3 +161,25 @@ pub fn serve(snapshot: &Path, key: &Path, port: u16) -> Result<(), &'static str>
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod token_tests {
+    use super::*;
+    use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
+
+    #[test]
+    fn token_metadata_comparison_rejects_same_inode_permission_changes() {
+        let root = std::env::temp_dir().join(format!(
+            "tdrive-token-{}-{:?}", std::process::id(), Instant::now()
+        ));
+        fs::DirBuilder::new().mode(0o700).create(&root).unwrap();
+        let path = root.join("token");
+        let mut file = fs::OpenOptions::new().create_new(true).write(true).mode(0o600).open(&path).unwrap();
+        file.write_all(b"0123456789abcdefghijklmnopqrstuvwxyz").unwrap();
+        let before = file.metadata().unwrap();
+        assert!(same_private_token(&before, &file.metadata().unwrap()));
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+        assert!(!same_private_token(&before, &file.metadata().unwrap()));
+        fs::remove_dir_all(root).unwrap();
+    }
+}
