@@ -30,6 +30,7 @@ REQUIRED_STEPS = {
         "Rust workflow contract check",
         "Rust workflow regression tests",
         "GitHub evidence verifier regression tests",
+        "CI evidence boundary regression tests",
     ),
     "rust-style": ("Verify checkout SHA", "Rust format"),
     "go-fixtures": (
