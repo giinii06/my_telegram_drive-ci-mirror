@@ -83,3 +83,10 @@ Independent candidate source commits and test-only commits, not integrated into 
 | 13 | 5092d29695d49e985530d261b1594c490d70124f | 3106102564 | pending | Read-only offline compare CLI for detached Go v16 core table digests; exit failure on invalid snapshot or changed content, fixture-based tests. Full shadow/canary/recovery not performed. |
 
 Previous candidates 02,03,06 now returned provider success; 04 pending at inspection, 08 failure unchanged. None is phase-complete. Phase 14 remains not_started and Go remains intact.
+
+## Wave 5: connect existing Rust components
+
+- Phase 04 continuation, isolated existing wire-payload candidate: apply ordinary multipart part metadata and replay journal together in one SQLite transaction on an explicitly caller-owned disposable clone. First-write wins; reject out-of-order unseen operations and unsupported renditions; do not use as full sync, do not touch a live database. Test duplicate, tamper, rollback, and non-part rejection. Consumer: future history synchronizer.
+- Phase 06 continuation, isolated existing multipart-read candidate: expose complete multipart metadata via actual tdrive-inspect CLI --list-parts, lossless decimal-string IDs, no partial output for incomplete data, no DB writes. Consumer: later download service. Test actual binary with detached synthetic snapshot.
+
+These scopes reuse existing approved phases and branch histories. No integration into Draft MR, Go removal, remote account access or deployment. Existing provider callbacks do not establish full test evidence. Workstreams have separate branches; no independent agent claim.
