@@ -139,6 +139,13 @@ class EvidenceTests(unittest.TestCase):
         j["steps"][-1]["conclusion"] = "failure"
         self.assertTrue(validate_run(run, jobs, REPO, SHA))
 
+    def test_missing_boundary_regression_step_rejected(self):
+        run, jobs = sample()
+        job = next(j for j in jobs if j["name"] == "legacy-contracts")
+        job["steps"] = [s for s in job["steps"]
+                        if s["name"] != "CI evidence boundary regression tests"]
+        self.assertTrue(validate_run(run, jobs, REPO, SHA))
+
     def test_no_steps_is_not_success(self):
         run, jobs = sample()
         jobs[2]["steps"] = []
