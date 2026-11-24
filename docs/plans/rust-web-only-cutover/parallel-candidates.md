@@ -70,3 +70,16 @@ Provider callback is not actual job evidence. Failed candidates remain blocked f
 - Phase 13: offline CLI compares all existing core-table digests on two detached v16 snapshots, reports only changed table names and exit status. No production data, no writes or actual canary claim.
 
 Each candidate gets an isolated branch and own CI. Phase 08 provider failure remains unresolved because the external job trace is not available; do not infer a source error from callback alone. No phase advancement, integration, deployment or Go deletion.
+
+### Wave 4 checkpoint
+
+Independent candidate source commits and test-only commits, not integrated into the Draft MR. Requirements and quality/security self-review of source paths only: no production network/data, provider settings, live Compose, or public bind modified. Actual RED/GREEN, full Cargo, Docker build, and browser/E2E execution unavailable here. Phase 12 and 13 both modify main.rs in separate branches: reconcile explicitly at integration. Phase 08 downstream GitLab bridge pipeline #3106077998 is skipped/manual; this is not the failed GitHub job log. Root cause remains unknown.
+
+| Phase | SHA | Pipeline | Provider result | Scope |
+|---|---|---|---|---|
+| 01 | 6652c8ad5564c26d3ca27004a524607e6081ecd3 | 3106102426 | unknown | CI verifier checks requested run ID and mandatory Go auth/data/lock test step, with synthetic tests invoked by workflow. Actual external job proof remains unavailable. |
+| 11 | 4c5e971d4d9b3d3118c42f34fbcf2180d67b5fa4 | 3106102473 | unknown | Experimental separate nonroot locked Rust inspector Dockerfile; no production server/Compose change. Build and standalone Dockerfile contract test not observed. |
+| 12 | c2f88167d02113b366b4315c1317facdc65bfa17 | 3106102519 | unknown | Total header deadline for offline loopback HTTP, reject hardlinked bearer token; deadline helper regression test. Socket E2E and release hardening outstanding. |
+| 13 | 5092d29695d49e985530d261b1594c490d70124f | 3106102564 | pending | Read-only offline compare CLI for detached Go v16 core table digests; exit failure on invalid snapshot or changed content, fixture-based tests. Full shadow/canary/recovery not performed. |
+
+Previous candidates 02,03,06 now returned provider success; 04 pending at inspection, 08 failure unchanged. None is phase-complete. Phase 14 remains not_started and Go remains intact.

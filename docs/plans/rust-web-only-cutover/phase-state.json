@@ -102,7 +102,7 @@
       "file": "phase-01-baseline-ci.md",
       "title": "Go 기준선·호환성 oracle·실제 CI 증거",
       "kind": "foundation",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -115,8 +115,30 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": [],
-      "inventory_gate": "Inventory current user flows and classify preserve/optional/retire before deciding OS mount adapter parity."
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated candidate refactor/rust-only-parallel-01-ci-evidence; CI verifier checks requested run ID and mandatory Go auth/data/lock test step, with synthetic tests invoked by workflow. Actual external job proof remains unavailable."
+        }
+      ],
+      "inventory_gate": "Inventory current user flows and classify preserve/optional/retire before deciding OS mount adapter parity.",
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-01-ci-evidence",
+        "base_sha": "6140bb8712511544f25eaec833d9188dab1d874d",
+        "test_only_sha": "a3fcf29e91fdc073f565500413a44f41ba003619",
+        "code_sha": "6652c8ad5564c26d3ca27004a524607e6081ecd3",
+        "pipeline_id": 3106102426,
+        "dispatch": "success",
+        "provider_result": "unknown",
+        "provider_url": null,
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "CI verifier checks requested run ID and mandatory Go auth/data/lock test step, with synthetic tests invoked by workflow. Actual external job proof remains unavailable."
+      }
     },
     {
       "id": "02",
@@ -150,7 +172,7 @@
         "code_sha": "22ccc86ebad673d6d4f9b10eda3247f90b33cbc7",
         "pipeline_id": 3106090923,
         "dispatch": "success",
-        "provider_result": "pending",
+        "provider_result": "success",
         "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297183601",
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
@@ -196,7 +218,7 @@
         "code_sha": "84f8d4c846b7b3d4f13ec8e4de501b982d8624de",
         "pipeline_id": 3106090987,
         "dispatch": "success",
-        "provider_result": "pending",
+        "provider_result": "success",
         "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297158374",
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
@@ -331,7 +353,7 @@
         "code_sha": "cc4cb1683ac7cc9b6ff714a0a48b43655b834edc",
         "pipeline_id": 3106091059,
         "dispatch": "success",
-        "provider_result": "pending",
+        "provider_result": "success",
         "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297140349",
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
@@ -523,7 +545,7 @@
       "file": "phase-11-headless-runtime-docker.md",
       "title": "Headless Rust server·Docker Compose·Tailscale",
       "kind": "user_flow",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -536,14 +558,36 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated candidate refactor/rust-only-parallel-11-inspector-container; Experimental separate nonroot locked Rust inspector Dockerfile; no production server/Compose change. Build and standalone Dockerfile contract test not observed."
+        }
+      ],
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-11-inspector-container",
+        "base_sha": "6140bb8712511544f25eaec833d9188dab1d874d",
+        "test_only_sha": "0c6f9193345e1e9669d7699f91ded2145ab7202a",
+        "code_sha": "4c5e971d4d9b3d3118c42f34fbcf2180d67b5fa4",
+        "pipeline_id": 3106102473,
+        "dispatch": "success",
+        "provider_result": "unknown",
+        "provider_url": null,
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "Experimental separate nonroot locked Rust inspector Dockerfile; no production server/Compose change. Build and standalone Dockerfile contract test not observed."
+      }
     },
     {
       "id": "12",
       "file": "phase-12-hardening-release.md",
       "title": "보안·성능·운영·패키징·릴리스",
       "kind": "foundation",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -556,14 +600,36 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated candidate refactor/rust-only-parallel-12-http-deadline; Total header deadline for offline loopback HTTP, reject hardlinked bearer token; deadline helper regression test. Socket E2E and release hardening outstanding."
+        }
+      ],
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-12-http-deadline",
+        "base_sha": "6140bb8712511544f25eaec833d9188dab1d874d",
+        "test_only_sha": "833953359551e0a56938c7a66b50a331cf275d4d",
+        "code_sha": "c2f88167d02113b366b4315c1317facdc65bfa17",
+        "pipeline_id": 3106102519,
+        "dispatch": "success",
+        "provider_result": "unknown",
+        "provider_url": null,
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "Total header deadline for offline loopback HTTP, reject hardlinked bearer token; deadline helper regression test. Socket E2E and release hardening outstanding."
+      }
     },
     {
       "id": "13",
       "file": "phase-13-shadow-cutover.md",
       "title": "비파괴 Shadow·격리 Canary·복구 리허설",
       "kind": "user_flow",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -576,7 +642,29 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated candidate refactor/rust-only-parallel-13-snapshot-comparison; Read-only offline compare CLI for detached Go v16 core table digests; exit failure on invalid snapshot or changed content, fixture-based tests. Full shadow/canary/recovery not performed."
+        }
+      ],
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-13-snapshot-comparison",
+        "base_sha": "6140bb8712511544f25eaec833d9188dab1d874d",
+        "test_only_sha": "678b212cafb4ff8d3f4c88903e0d80a9f44c2806",
+        "code_sha": "5092d29695d49e985530d261b1594c490d70124f",
+        "pipeline_id": 3106102564,
+        "dispatch": "success",
+        "provider_result": "pending",
+        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297809978",
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "Read-only offline compare CLI for detached Go v16 core table digests; exit failure on invalid snapshot or changed content, fixture-based tests. Full shadow/canary/recovery not performed."
+      }
     },
     {
       "id": "14",
