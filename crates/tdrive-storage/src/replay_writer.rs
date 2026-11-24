@@ -132,6 +132,28 @@ pub fn project_plain_part(
     append_replay_event_inner(connection, &event, Some((uuid, op.part_index, op.file_size)))
 }
 
+fn require_projected_part(
+    transaction: &rusqlite::Transaction<'_>,
+    event: &IncomingReplayEvent<'_>,
+    uuid: &str,
+    index: i64,
+    size: i64,
+) -> Result<(), ReplayWriteError> {
+    let projected: Option<(i64, i64)> = transaction
+        .query_row(
+            "SELECT msg_id,size FROM file_parts
+             WHERE channel_id=?1 AND upload_uuid=?2 AND part_index=?3",
+            params![event.channel_id, uuid, index],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()?;
+    match projected {
+        Some((id, stored_size)) if id > 0 && id < event.msg_id && stored_size >= 0 => Ok(()),
+        Some((id, stored_size)) if id == event.msg_id && stored_size == size => Ok(()),
+        _ => Err(ReplayWriteError::UnappliedReplay),
+    }
+}
+
 fn append_replay_event_inner(
     connection: &mut Connection,
     event: &IncomingReplayEvent<'_>,
@@ -190,19 +212,7 @@ fn append_replay_event_inner(
     let outcome = match existing {
         Some(hash) if hash == incoming_hash => {
             if let Some((uuid, index, size)) = part {
-                let projected: Option<(i64, i64)> = transaction
-                    .query_row(
-                        "SELECT msg_id,size FROM file_parts
-                         WHERE channel_id=?1 AND upload_uuid=?2 AND part_index=?3",
-                        params![event.channel_id, uuid, index],
-                        |row| Ok((row.get(0)?, row.get(1)?)),
-                    )
-                    .optional()?;
-                match projected {
-                    Some((id, _)) if id > 0 && id < event.msg_id => {}
-                    Some((id, stored_size)) if id == event.msg_id && stored_size == size => {}
-                    _ => return Err(ReplayWriteError::UnappliedReplay),
-                }
+                require_projected_part(&transaction, event, uuid, index, size)?;
             }
             ReplayWriteOutcome::AlreadySeen
         }
@@ -258,6 +268,7 @@ fn append_replay_event_inner(
                      ON CONFLICT(channel_id,upload_uuid,part_index) DO NOTHING",
                     params![event.channel_id, uuid, index, event.msg_id, size],
                 )?;
+                require_projected_part(&transaction, event, uuid, index, size)?;
             }
             ReplayWriteOutcome::Inserted
         }
