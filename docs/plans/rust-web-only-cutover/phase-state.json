@@ -130,8 +130,8 @@
         "code_sha": "6652c8ad5564c26d3ca27004a524607e6081ecd3",
         "pipeline_id": 3106102426,
         "dispatch": "success",
-        "provider_result": "unknown",
-        "provider_url": null,
+        "provider_result": "success",
+        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297872862",
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
         "red_verified": false,
@@ -259,24 +259,42 @@
       ],
       "parallel_candidate": {
         "branch": "refactor/rust-only-parallel-04-wire-payload",
-        "base_sha": "c9e16150ce3cb236c8d68273b3f57605f3f210ba",
-        "test_only_sha": "dd50c496808dc60085b093027eeeb9e331e83f13",
-        "code_sha": "dff9179e6a893248a97d7efd115cfc18124fdcb3",
-        "pipeline_id": 3106095246,
-        "scope": "Retain 14 previously discarded wire payload fields (multipart identity/index, revision, overwrite, retention and crypto metadata), prevent simple formatter from discarding these fields. Vault material, renditions, full projection transactions and E2E still outstanding.",
-        "red_verified": false,
-        "green_verified": false,
-        "reviewer_type": "self",
-        "changed_paths": [
-          "crates/tdrive-projection/src/wire.rs",
-          "crates/tdrive-projection/tests/write_payload.rs"
-        ],
+        "base_sha": "dff9179e6a893248a97d7efd115cfc18124fdcb3",
+        "test_only_sha": "517f1e2bada3a59ab50fd4f9d578aede3b94c169",
+        "code_sha": "66ca7485da68c0db466513ca95656f2b88b1a457",
+        "pipeline_id": 3106109598,
         "dispatch": "success",
         "provider_result": "unknown",
         "provider_url": null,
         "jobs_verified": "unknown",
-        "e2e_verified": "unknown"
-      }
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "Ordinary multipart part projection and replay journal committed in the same SQLite transaction on caller-owned disposable clones. Derives canonical subset JSON from wire; first-write-wins, same-message duplicate, tamper, ordering and rollback cases. No full 17-op projector, production sync or rendition support."
+      },
+      "parallel_candidate_history": [
+        {
+          "branch": "refactor/rust-only-parallel-04-wire-payload",
+          "base_sha": "c9e16150ce3cb236c8d68273b3f57605f3f210ba",
+          "test_only_sha": "dd50c496808dc60085b093027eeeb9e331e83f13",
+          "code_sha": "dff9179e6a893248a97d7efd115cfc18124fdcb3",
+          "pipeline_id": 3106095246,
+          "scope": "Retain 14 previously discarded wire payload fields (multipart identity/index, revision, overwrite, retention and crypto metadata), prevent simple formatter from discarding these fields. Vault material, renditions, full projection transactions and E2E still outstanding.",
+          "red_verified": false,
+          "green_verified": false,
+          "reviewer_type": "self",
+          "changed_paths": [
+            "crates/tdrive-projection/src/wire.rs",
+            "crates/tdrive-projection/tests/write_payload.rs"
+          ],
+          "dispatch": "success",
+          "provider_result": "success",
+          "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297353581",
+          "jobs_verified": "unknown",
+          "e2e_verified": "unknown"
+        }
+      ]
     },
     {
       "id": "05",
@@ -348,25 +366,43 @@
       ],
       "parallel_candidate": {
         "branch": "refactor/rust-only-parallel-06-multipart-read",
-        "base_sha": "7fc6f84927df7aeb09d2167a5b64a8f94e8e265e",
-        "test_only_sha": "0496b1058562b985ae83b9c7c15800885e955bf0",
-        "code_sha": "cc4cb1683ac7cc9b6ff714a0a48b43655b834edc",
-        "pipeline_id": 3106091059,
+        "base_sha": "cc4cb1683ac7cc9b6ff714a0a48b43655b834edc",
+        "test_only_sha": "91376e2a0ca904af98a86d4ed514318410cda620",
+        "code_sha": "041b6b2e7a38b460ddf0ead29e573ea5bbcc91cb",
+        "pipeline_id": 3106109754,
         "dispatch": "success",
-        "provider_result": "success",
-        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297140349",
+        "provider_result": "unknown",
+        "provider_url": null,
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
         "red_verified": false,
         "green_verified": false,
         "reviewer_type": "self",
-        "scope": "Detached read-only ordered multipart lookup, channel scope, count/size/index/overflow checks. Transfer service, revisions and real remote reads still outstanding.",
-        "changed_paths": [
-          "crates/tdrive-storage/src/lib.rs",
-          "crates/tdrive-storage/src/multipart.rs",
-          "crates/tdrive-storage/tests/multipart_manifest.rs"
-        ]
-      }
+        "scope": "Actual tdrive-inspect --list-parts CLI connects detached multipart lookup with lossless JSON output; invalid/missing/incomplete returns failure with no partial stdout. No remote byte download or production service."
+      },
+      "parallel_candidate_history": [
+        {
+          "branch": "refactor/rust-only-parallel-06-multipart-read",
+          "base_sha": "7fc6f84927df7aeb09d2167a5b64a8f94e8e265e",
+          "test_only_sha": "0496b1058562b985ae83b9c7c15800885e955bf0",
+          "code_sha": "cc4cb1683ac7cc9b6ff714a0a48b43655b834edc",
+          "pipeline_id": 3106091059,
+          "dispatch": "success",
+          "provider_result": "success",
+          "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297140349",
+          "jobs_verified": "unknown",
+          "e2e_verified": "unknown",
+          "red_verified": false,
+          "green_verified": false,
+          "reviewer_type": "self",
+          "scope": "Detached read-only ordered multipart lookup, channel scope, count/size/index/overflow checks. Transfer service, revisions and real remote reads still outstanding.",
+          "changed_paths": [
+            "crates/tdrive-storage/src/lib.rs",
+            "crates/tdrive-storage/src/multipart.rs",
+            "crates/tdrive-storage/tests/multipart_manifest.rs"
+          ]
+        }
+      ]
     },
     {
       "id": "07",
@@ -572,8 +608,8 @@
         "code_sha": "4c5e971d4d9b3d3118c42f34fbcf2180d67b5fa4",
         "pipeline_id": 3106102473,
         "dispatch": "success",
-        "provider_result": "unknown",
-        "provider_url": null,
+        "provider_result": "success",
+        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297854288",
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
         "red_verified": false,
@@ -614,8 +650,8 @@
         "code_sha": "c2f88167d02113b366b4315c1317facdc65bfa17",
         "pipeline_id": 3106102519,
         "dispatch": "success",
-        "provider_result": "unknown",
-        "provider_url": null,
+        "provider_result": "success",
+        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297831930",
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
         "red_verified": false,
@@ -656,7 +692,7 @@
         "code_sha": "5092d29695d49e985530d261b1594c490d70124f",
         "pipeline_id": 3106102564,
         "dispatch": "success",
-        "provider_result": "pending",
+        "provider_result": "success",
         "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297809978",
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",

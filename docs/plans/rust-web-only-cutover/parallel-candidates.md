@@ -90,3 +90,14 @@ Previous candidates 02,03,06 now returned provider success; 04 pending at inspec
 - Phase 06 continuation, isolated existing multipart-read candidate: expose complete multipart metadata via actual tdrive-inspect CLI --list-parts, lossless decimal-string IDs, no partial output for incomplete data, no DB writes. Consumer: later download service. Test actual binary with detached synthetic snapshot.
 
 These scopes reuse existing approved phases and branch histories. No integration into Draft MR, Go removal, remote account access or deployment. Existing provider callbacks do not establish full test evidence. Workstreams have separate branches; no independent agent claim.
+
+### Wave 5 checkpoint
+
+Both workstreams continue existing isolated branches, not new disconnected crates. Requirements self-review: part write and replay are in the same transaction; CLI directly consumes prior storage lookup. Security/quality self-review: no remote or live DB writes, rejects unsupported part attributes, no partial JSON output on invalid snapshot. Risks: canonical payload currently a supported subset, not full Go JSON digest equivalence; all 17 operations, full integration, real Rust tests and exact provider job proof still outstanding. Phase 04 and 06 modify storage lib exports in their separate branches and require reconciliation at integration. RED/GREEN not executed locally; no rustc/cargo in current container. No independent reviewers. No waiver, merge or deployment.
+
+| Phase | Implementation SHA | Pipeline | Provider |
+|---|---|---|---|
+| 04 | 66ca7485da68c0db466513ca95656f2b88b1a457 | 3106109598 | unknown |
+| 06 | 041b6b2e7a38b460ddf0ead29e573ea5bbcc91cb | 3106109754 | unknown |
+
+Previous Wave 4 (01,11,12,13) exact candidate provider callbacks now success; no per-job evidence. Phase 08 failed callback unchanged; actual failing GitHub job log unavailable, so no speculative CI repair. Phase 14 remains gated. Go production untouched.
