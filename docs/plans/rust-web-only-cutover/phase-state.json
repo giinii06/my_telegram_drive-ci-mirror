@@ -29,7 +29,7 @@
       "tested": false,
       "verified": false,
       "completed": false,
-      "candidate_sha": "fea5200033b62b8b6bfe9a350073ac254ccea4e6",
+      "candidate_sha": "62610d3bda9c42f74c3a375d04b5a51c38a21bc7",
       "red_verified": false,
       "green_verified": false,
       "checks_evidenced": false,
@@ -56,7 +56,7 @@
       "green_snapshot_reproduced": true,
       "source_audit_evidenced": true,
       "blockers": [
-        "Full-checkout CI tests and per-job GitHub Actions logs for current code SHA fea5200033b62b8b6bfe9a350073ac254ccea4e6 are not verifiable; local 6/6 covers a reduced fixture only."
+        "Current exact-SHA pipeline dispatch succeeded; external job and full-checkout/E2E evidence unknown. Local adversarial test scope only."
       ],
       "evidence_updates": [
         {
@@ -74,6 +74,26 @@
           "jobs_verified": "unknown",
           "e2e_verified": "unknown",
           "blocker": "No externally verifiable GitHub Actions per-job logs and no full-checkout test run"
+        },
+        {
+          "kind": "corrective_test_and_code",
+          "scope": "Phase 00 all GitHub workflow files",
+          "test_only_sha": "b9f3b0a8d7f1b6690229e7f3795de465ed7d68ef",
+          "candidate_sha": "62610d3bda9c42f74c3a375d04b5a51c38a21bc7",
+          "red": "1 expected failure, 2 pass, local exact-source Python adversarial fixtures",
+          "green": "3/3 pass, py_compile pass; local source Git blob IDs match GitLab for both files",
+          "pipeline_id": 3106069231,
+          "dispatch": "success",
+          "provider_result": "unknown",
+          "jobs_verified": "unknown",
+          "e2e_verified": "unknown",
+          "previous_candidate_provider_update": {
+            "sha": "fea5200033b62b8b6bfe9a350073ac254ccea4e6",
+            "pipeline_id": 3101014028,
+            "provider_result": "success",
+            "github_run_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45103871574",
+            "jobs_verified": "unknown"
+          }
         }
       ]
     },
@@ -388,5 +408,5 @@
   },
   "plan_review": "reviews/plan-review.json",
   "plan_docs_checkpoint_sha": "bddcf680949861b248316b37ccb465788ca5190f",
-  "latest_branch_head": "fea5200033b62b8b6bfe9a350073ac254ccea4e6"
+  "latest_branch_head": "62610d3bda9c42f74c3a375d04b5a51c38a21bc7"
 }

@@ -74,3 +74,11 @@ GitLab commit status for implementation SHA `361f88de27d02d88b113ee728b59ada1e10
 - **CI:** [GitLab pipeline #3101014028](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3101014028), exact code SHA `fea5200033b62b8b6bfe9a350073ac254ccea4e6`, reports `dispatch_github_actions=success`. At inspection, **no matching provider callback or GitHub per-job logs** were accessible. `provider_result=unknown`, `jobs_verified=unknown`, `e2e_verified=unknown`.
 - **Two-lens self-review:** requirements tests directly cover the two discovered false negatives/positives; security/quality confirms no app runtime, secrets, installers or release artifacts were modified, but real CI execution is still unverified. Both reviews were self-review, not independent.
 - **Gate:** Phase 00 remains `implemented` only. Do not advance to Phase 01 or call Phase 00 completed without actual full-repository and provider job evidence (or a separately approved scoped waiver, which would not count as passed).
+
+### All-workflow regression coverage
+
+- RED commit `b9f3b0a8d7f1b6690229e7f3795de465ed7d68ef`: local exact-source adversarial Python suite 1 expected failure / 2 pass; APK build in another workflow was accepted incorrectly.
+- GREEN commit `62610d3bda9c42f74c3a375d04b5a51c38a21bc7`: scan all .yml/.yaml GitHub workflow files; require existing installers.yml. Local adversarial suite 3/3 passed and py_compile passed; both executed Python source blob IDs match GitLab. No full checkout or Rust/Bun tests executed.
+- Two-lens self-review: actual diff covers the observed false negative, retains the existing installer check and does not touch production data, releases or runtime. External job evidence remains unavailable.
+- [Pipeline #3106069231](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3106069231) exact candidate: dispatch success, provider result/jobs/E2E unknown at inspection. Previous candidate #3101014028 later returned provider success (run 45103871574), not per-job proof.
+- Phase 00 remains implemented; Phase 01 is not advanced. No merge/deploy or provider changes.

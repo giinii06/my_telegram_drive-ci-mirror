@@ -1,7 +1,7 @@
 {
   "gate_version": "2.2",
   "phase_id": "00",
-  "candidate_sha": "fea5200033b62b8b6bfe9a350073ac254ccea4e6",
+  "candidate_sha": "62610d3bda9c42f74c3a375d04b5a51c38a21bc7",
   "reviewer_type": "self",
   "independent": false,
   "overall": "implemented_with_verification_blocker",
@@ -29,6 +29,11 @@
           "severity": "low",
           "finding": "Renamed Gradle Android job and installer names in YAML comments bypassed the original simplistic contract tests.",
           "resolution": "Two failing adversarial fixtures committed at 7bd21aaad9a611d55fcd2700449d74db42b3b405; strengthened workflow build markers and anchored job declarations in fea5200033b62b8b6bfe9a350073ac254ccea4e6; local reduced fixture 6/6 passed."
+        },
+        {
+          "severity": "low",
+          "finding": "APK build in a different workflow bypassed installer-only scan.",
+          "resolution": "Scan both supported YAML extensions; require installer workflow; adversarial fixture RED then GREEN on exact-source files."
         }
       ]
     },
@@ -55,6 +60,11 @@
           "severity": "important",
           "finding": "The updated Python contract has only reduced-fixture local execution; GitHub Actions per-job logs and exact-SHA full-checkout checks cannot be inspected.",
           "resolution": "Gate remains blocked, jobs_verified/e2e_verified unknown. GitLab #3101014028 confirms dispatch only."
+        },
+        {
+          "severity": "important",
+          "finding": "Provider per-job evidence and full-checkout execution remain unavailable for current candidate.",
+          "resolution": "Dispatch only at pipeline 3106069231; no phase advance or verification claim."
         }
       ]
     }
@@ -74,15 +84,35 @@
     "github_status": "success",
     "github_run_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45065897228",
     "adversarial_red_sha": "7bd21aaad9a611d55fcd2700449d74db42b3b405",
-    "latest_code_sha": "fea5200033b62b8b6bfe9a350073ac254ccea4e6",
+    "latest_code_sha": "62610d3bda9c42f74c3a375d04b5a51c38a21bc7",
     "local_fixture_red": "2/2 negative robustness cases failed on old code, expected",
     "local_fixture_green": "6/6 tests pass on reduced source fixture with new code; py_compile pass",
-    "current_pipeline": 3101014028,
+    "current_pipeline": 3106069231,
     "current_provider_result": "unknown",
     "current_dispatch": "success",
     "current_jobs_verified": "unknown",
     "current_e2e_verified": "unknown",
-    "full_repository_test": "not executed"
+    "full_repository_test": "not executed",
+    "additional_workflow_scope": {
+      "kind": "corrective_test_and_code",
+      "scope": "Phase 00 all GitHub workflow files",
+      "test_only_sha": "b9f3b0a8d7f1b6690229e7f3795de465ed7d68ef",
+      "candidate_sha": "62610d3bda9c42f74c3a375d04b5a51c38a21bc7",
+      "red": "1 expected failure, 2 pass, local exact-source Python adversarial fixtures",
+      "green": "3/3 pass, py_compile pass; local source Git blob IDs match GitLab for both files",
+      "pipeline_id": 3106069231,
+      "dispatch": "success",
+      "provider_result": "unknown",
+      "jobs_verified": "unknown",
+      "e2e_verified": "unknown",
+      "previous_candidate_provider_update": {
+        "sha": "fea5200033b62b8b6bfe9a350073ac254ccea4e6",
+        "pipeline_id": 3101014028,
+        "provider_result": "success",
+        "github_run_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45103871574",
+        "jobs_verified": "unknown"
+      }
+    }
   },
-  "prior_candidate_sha": "361f88de27d02d88b113ee728b59ada1e101584c"
+  "prior_candidate_sha": "fea5200033b62b8b6bfe9a350073ac254ccea4e6"
 }
