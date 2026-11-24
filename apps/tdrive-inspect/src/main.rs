@@ -3,6 +3,8 @@ mod folder_json;
 #[cfg(unix)]
 mod http_contract;
 #[cfg(unix)]
+mod http_deadline;
+#[cfg(unix)]
 mod offline_crypto;
 #[cfg(unix)]
 mod offline_http;
