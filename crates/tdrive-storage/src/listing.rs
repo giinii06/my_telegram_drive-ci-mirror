@@ -115,3 +115,31 @@ fn list_folder_contents_connection(
     }
     Ok(FolderListing { folders, files })
 }
+
+#[cfg(test)]
+mod budget_tests {
+    use super::*;
+
+    #[test]
+    fn bounded_listing_rejects_excess_rows_or_text_without_truncation() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(
+            "CREATE TABLE folders(channel_id INTEGER,id TEXT,parent_id TEXT,tombstoned INTEGER);
+             CREATE TABLE dirents(channel_id INTEGER,object_id TEXT,parent_id TEXT,object_kind TEXT,display_name TEXT,revision INTEGER,tombstoned INTEGER);
+             CREATE TABLE files(channel_id INTEGER,msg_id INTEGER,content_msg_id INTEGER,content_hash TEXT,revision INTEGER,upload_uuid TEXT,part_count INTEGER,size INTEGER,parent_id TEXT,upload_time INTEGER,uploader_user_id INTEGER,encrypted INTEGER,plaintext_size INTEGER,tombstoned INTEGER);
+             INSERT INTO folders VALUES(1,'d:a','',0),(1,'d:b','',0);
+             INSERT INTO dirents VALUES(1,'d:a','','folder','alpha',1,0),(1,'d:b','','folder','beta',1,0);",
+        ).unwrap();
+        assert!(matches!(
+            list_folder_contents_bounded_connection(&db, 1, "", 1, 100),
+            Err(SnapshotError::SnapshotTooLarge)
+        ));
+        assert!(matches!(
+            list_folder_contents_bounded_connection(&db, 1, "", 3, 5),
+            Err(SnapshotError::SnapshotTooLarge)
+        ));
+        let listing = list_folder_contents_bounded_connection(&db, 1, "", 2, 100).unwrap();
+        assert_eq!(listing.folders.len(), 2);
+        assert!(listing.files.is_empty());
+    }
+}
