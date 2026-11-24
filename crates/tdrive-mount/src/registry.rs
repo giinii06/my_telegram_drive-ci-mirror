@@ -134,6 +134,19 @@ impl LockRegistry {
         Ok(())
     }
 
+    pub(crate) fn token_applies(
+        &mut self,
+        now: Instant,
+        path: &str,
+        token: &str,
+    ) -> Result<bool, LockError> {
+        validate_path(path)?;
+        self.expire(now);
+        Ok(self.active.iter().any(|entry| {
+            entry.token == token && covers(&entry.root, entry.depth, path)
+        }))
+    }
+
     /// Check all affected paths against one lock state, then run a synchronous
     /// mutation while the registry remains exclusively borrowed. An outer
     /// service must serialize this call with every other namespace mutation.

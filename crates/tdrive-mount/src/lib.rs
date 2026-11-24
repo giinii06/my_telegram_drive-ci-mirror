@@ -1,6 +1,8 @@
 //! Offline WebDAV protocol boundaries and exclusive lock registry.
 //! No listener or live mutation handler is created here.
 mod registry;
+mod request;
+pub use request::{DavRequestError, parse_lock_token_header};
 pub use registry::{LockError, LockRegistry};
 use std::time::Duration;
 
