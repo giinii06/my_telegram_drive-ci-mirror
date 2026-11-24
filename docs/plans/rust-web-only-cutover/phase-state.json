@@ -183,7 +183,7 @@
       "file": "phase-05-crypto-vault.md",
       "title": "TDE1·vault·파일명 암호화",
       "kind": "user_flow",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -196,7 +196,28 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated parallel candidate branch refactor/rust-only-parallel-vault-envelope; not integrated into Draft MR. Go-compatible XChaCha20-Poly1305 master-key wrap/unwrap and key-check envelopes; Argon2id, JSON metadata, key ownership and Go golden vectors still outstanding."
+        }
+      ],
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-vault-envelope",
+        "base_sha": "16dfe94646c81bc55d5d9ecbb94fe38ca36672a2",
+        "test_only_sha": "37b218c8061b614efcb26a7b3de3323ad730a75d",
+        "code_sha": "a08a20c112464adeb47126f4be451d1573309674",
+        "pipeline_id": 3106080986,
+        "dispatch": "success",
+        "provider_result": "unknown",
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "Go-compatible XChaCha20-Poly1305 master-key wrap/unwrap and key-check envelopes; Argon2id, JSON metadata, key ownership and Go golden vectors still outstanding."
+      }
     },
     {
       "id": "06",
@@ -223,7 +244,7 @@
       "file": "phase-07-backup-recovery.md",
       "title": "자동 백업·복구·원본 삭제 안전성",
       "kind": "user_flow",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -236,14 +257,35 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated parallel candidate branch refactor/rust-only-parallel-backup-digest; not integrated into Draft MR. Require matching SHA-256 in deletion guard and re-observed original metadata; trusted digest measurement, journal persistence and real backup/restore still outstanding."
+        }
+      ],
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-backup-digest",
+        "base_sha": "16dfe94646c81bc55d5d9ecbb94fe38ca36672a2",
+        "test_only_sha": "4cdd9cff47d473f272508eacd46aa5a0e6ae9683",
+        "code_sha": "ec075b06cdbfa97584f0319a9c19b60599060d22",
+        "pipeline_id": 3106077901,
+        "dispatch": "success",
+        "provider_result": "pending",
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "Require matching SHA-256 in deletion guard and re-observed original metadata; trusted digest measurement, journal persistence and real backup/restore still outstanding."
+      }
     },
     {
       "id": "08",
       "file": "phase-08-media-preview.md",
       "title": "미디어 Range·썸네일·HLS·remux",
       "kind": "user_flow",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -256,14 +298,35 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated parallel candidate branch refactor/rust-only-parallel-bounded-media; not integrated into Draft MR. Bounded range copy from seekable source, invalid-range no read, short source rejected; actual media endpoint/auth/cache/cancellation/HLS still outstanding."
+        }
+      ],
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-bounded-media",
+        "base_sha": "16dfe94646c81bc55d5d9ecbb94fe38ca36672a2",
+        "test_only_sha": "b31c11598e1818da9486c8c6f22e56c460d5a9d1",
+        "code_sha": "962f47e126dd871f5d6611e2d6f6d7e271198353",
+        "pipeline_id": 3106077952,
+        "dispatch": "success",
+        "provider_result": "pending",
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "Bounded range copy from seekable source, invalid-range no read, short source rejected; actual media endpoint/auth/cache/cancellation/HLS still outstanding."
+      }
     },
     {
       "id": "09",
       "file": "phase-09-webdav-mount.md",
       "title": "WebDAV·마운트·외부 파일 프로토콜",
       "kind": "user_flow",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -276,14 +339,35 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated parallel candidate branch refactor/rust-only-parallel-webdav-lock; not integrated into Draft MR. Rust mount crate with Go-compatible LOCK Depth and Timeout parse rules; lock state, DAV handlers, auth, path normalization and integration still outstanding."
+        }
+      ],
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-webdav-lock",
+        "base_sha": "16dfe94646c81bc55d5d9ecbb94fe38ca36672a2",
+        "test_only_sha": "830851a92f7540287597f684c5b3b969f5addecc",
+        "code_sha": "1bce87324055616c566e0079f42dd9d997c7be28",
+        "pipeline_id": 3106078024,
+        "dispatch": "success",
+        "provider_result": "pending",
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "Rust mount crate with Go-compatible LOCK Depth and Timeout parse rules; lock state, DAV handlers, auth, path normalization and integration still outstanding."
+      }
     },
     {
       "id": "10",
       "file": "phase-10-http-api-web-ui.md",
       "title": "Rust HTTP API와 브라우저 웹 UI 완전 연결",
       "kind": "user_flow",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -296,7 +380,28 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated parallel candidate branch refactor/rust-only-parallel-http-boundary; not integrated into Draft MR. Harden existing read-only HTTP parser for missing/duplicate/empty Host, control bytes in header values and invalid configured bearer token; full API parity/browser integration still outstanding."
+        }
+      ],
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-http-boundary",
+        "base_sha": "16dfe94646c81bc55d5d9ecbb94fe38ca36672a2",
+        "test_only_sha": "c8764c362df946803d8987559d15bf8b8d5ca29c",
+        "code_sha": "fa493346fac7a22664eadfd470982c94ab61a9d6",
+        "pipeline_id": 3106081056,
+        "dispatch": "success",
+        "provider_result": "unknown",
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "Harden existing read-only HTTP parser for missing/duplicate/empty Host, control bytes in header values and invalid configured bearer token; full API parity/browser integration still outstanding."
+      }
     },
     {
       "id": "11",
@@ -408,5 +513,7 @@
   },
   "plan_review": "reviews/plan-review.json",
   "plan_docs_checkpoint_sha": "bddcf680949861b248316b37ccb465788ca5190f",
-  "latest_branch_head": "62610d3bda9c42f74c3a375d04b5a51c38a21bc7"
+  "latest_branch_head": "62610d3bda9c42f74c3a375d04b5a51c38a21bc7",
+  "parallel_candidates_base": "16dfe94646c81bc55d5d9ecbb94fe38ca36672a2",
+  "parallel_execution_policy": "Independent candidate branches; no phase completion or integration waiver."
 }
