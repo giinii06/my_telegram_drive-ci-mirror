@@ -24,6 +24,12 @@ fn invalid_range_does_not_read_or_write() {
 fn truncated_and_negative_sources_fail() {
     let mut source = Cursor::new(b"abc".to_vec());
     let mut body = Vec::new();
-    assert_eq!(copy_range(&mut source, &mut body, "", 4).unwrap_err().kind(), ErrorKind::UnexpectedEof);
-    assert_eq!(copy_range(&mut source, &mut body, "", -1).unwrap_err().kind(), ErrorKind::InvalidInput);
+    assert_eq!(
+        copy_range(&mut source, &mut body, "", 4).unwrap_err().kind(),
+        ErrorKind::UnexpectedEof
+    );
+    assert_eq!(
+        copy_range(&mut source, &mut body, "", -1).unwrap_err().kind(),
+        ErrorKind::InvalidInput
+    );
 }
