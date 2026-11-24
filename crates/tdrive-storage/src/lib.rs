@@ -12,6 +12,8 @@ pub use backup::{
 mod listing;
 mod multipart;
 mod multipart_assembly;
+mod upload_preparation;
+pub use upload_preparation::{PreparedPart, UploadPart, UploadReceipt, plan_upload_parts, prepare_upload};
 pub use multipart_assembly::{assemble_multipart, copy_exact_part};
 pub use multipart::{FilePart, MultipartError, resolve_multipart_snapshot, validate_multipart_parts};
 mod replay;
