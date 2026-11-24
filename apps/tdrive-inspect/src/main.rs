@@ -68,6 +68,18 @@ fn main() -> ExitCode {
         [option, source, destination, key] if option == "--decrypt-file" => {
             offline_file(offline_crypto::Mode::Decrypt, source, destination, key)
         }
+        #[cfg(unix)]
+        [option, source, destination] if option == "--create-backup" => {
+            backup_command(BackupAction::Create, source, Some(destination))
+        }
+        #[cfg(unix)]
+        [option, source] if option == "--verify-backup" => {
+            backup_command(BackupAction::Verify, source, None)
+        }
+        #[cfg(unix)]
+        [option, source, destination] if option == "--restore-clone" => {
+            backup_command(BackupAction::Restore, source, Some(destination))
+        }
         [option, baseline, candidate] if option == "--compare-snapshots" => {
             compare_snapshots(Path::new(baseline), Path::new(candidate))
         }
@@ -112,7 +124,7 @@ fn main() -> ExitCode {
         }
         _ => {
             eprintln!(
-                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --compare-snapshots <baseline.sqlite> <candidate.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id> | --list-parts <detached-snapshot.sqlite> <channel-id> <file-message-id> | --assemble-parts <snapshot> <channel-id> <file-message-id> <private-parts-dir> <private-target> <sha256> | --serve-readonly <detached-snapshot.sqlite> <private-token-file> <loopback-port>"
+                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --compare-snapshots <baseline.sqlite> <candidate.sqlite> | --create-backup <source.sqlite> <new-backup.sqlite> | --verify-backup <backup.sqlite> | --restore-clone <backup.sqlite> <new-clone.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id> | --list-parts <detached-snapshot.sqlite> <channel-id> <file-message-id> | --assemble-parts <snapshot> <channel-id> <file-message-id> <private-parts-dir> <private-target> <sha256> | --serve-readonly <detached-snapshot.sqlite> <private-token-file> <loopback-port>"
             );
             ExitCode::FAILURE
         }
@@ -215,6 +227,60 @@ fn list_parts(path: &str, channel: &str, message: &str) -> ExitCode {
         }
         Err(_) => {
             eprintln!("multipart snapshot is incomplete or unsafe");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+#[cfg(unix)]
+enum BackupAction {
+    Create,
+    Verify,
+    Restore,
+}
+
+#[cfg(unix)]
+fn backup_command(action: BackupAction, source: &str, destination: Option<&str>) -> ExitCode {
+    use std::path::Component;
+    fn absolute_simple(path: &Path) -> bool {
+        path.is_absolute()
+            && !path.components().any(|component| {
+                matches!(component, Component::ParentDir | Component::CurDir)
+            })
+    }
+
+    let source = Path::new(source);
+    let destination = destination.map(Path::new);
+    if !absolute_simple(source) || destination.is_some_and(|path| !absolute_simple(path)) {
+        eprintln!("backup and clone paths must be absolute");
+        return ExitCode::FAILURE;
+    }
+
+    let result = match (action, destination) {
+        (BackupAction::Create, Some(target)) => {
+            // This operator diagnostic accepts detached snapshots only.
+            // A production online backup requires the daemon's ownership policy.
+            tdrive_storage::inspect_snapshot(source).and_then(|_| {
+                tdrive_storage::create_consistent_snapshot(source, target).map(|_| ())
+            })
+        }
+        (BackupAction::Verify, None) => tdrive_storage::verify_snapshot(source).map(|_| ()),
+        (BackupAction::Restore, Some(target)) => {
+            tdrive_storage::restore_verified_clone(source, target).map(|_| ())
+        }
+        _ => {
+            eprintln!("invalid backup command");
+            return ExitCode::FAILURE;
+        }
+    };
+
+    match result {
+        Ok(()) => {
+            println!("backup operation verified");
+            ExitCode::SUCCESS
+        }
+        Err(_) => {
+            eprintln!("backup operation rejected");
             ExitCode::FAILURE
         }
     }
