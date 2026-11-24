@@ -130,3 +130,16 @@ Integrate existing candidate source changes, not GitLab merge requests, into two
 ### Additional integration candidates
 
 Group C: phases 04 and 06, projection wire metadata/ordinary part transaction and detached multipart read CLI. Group D: phases 05 and 09, vault envelope/session and WebDAV exclusive registry. Existing source commits and tests only, cherry-pick with dry-run on disposable branches; reconcile storage exports and Cargo.lock explicitly if necessary. Latest individual provider callbacks success for 04/05/06/09, but no individual job proof. These are diagnostic candidates, not verification or completion of dependent phases; no main/MR merge or live service changes.
+
+### Wave 7 integration checkpoint
+
+Four isolated integration candidates, 28 source/test cherry-picks, each dry-run succeeded before actual cherry-pick. Actual aggregate diffs reviewed, including both main.rs changes in HTTP, both storage exports in storage, and both Cargo.lock changes plus workspace membership in vault-DAV. Requirements self-review: all listed source and tests preserved; quality/security self-review: no production entrypoint, live DB, network credentials or release settings changed. No local rustc/cargo available (command -v found neither); no actual precommit format/lint/build or RED/GREEN/E2E execution. Independent reviewers unavailable. Provider callbacks are not job evidence. No phase completion, promotion to Draft MR, merge or deployment.
+
+| Group | Phases | SHA | Pipeline | Dispatch | Provider |
+|---|---|---|---|---|---|
+| core | 02, 03, 07 | 412457f08362fc74e6795db041565f2ca5dbac42 | 3106127390 | success | success |
+| http | 10, 12, 13 | 139c7a2fc27428bcd60f8ed91bb158c73ae53b64 | 3106127453 | success | success |
+| storage | 04, 06 | 78843822d677ade29cc05d135d4aa104b6591119 | 3106132198 | success | unknown |
+| vault-dav | 05, 09 | 4d8d0b3037ee98bd578d4f3cc7f33bb345e3d0d4 | 3106132286 | success | unknown |
+
+Phase 04/05/06/09 individual candidate callbacks success, not per-job proof. Phase 08 remains failed with unavailable GitHub job trace; no speculative repair. Phase 01 and 11 remain separate, and 14 not_started. Next diagnostic frontier: reconcile all group diffs on a single isolated candidate after examining group results, particularly the two CLI main.rs variants; no production promotion without actual proof. All source branches retained.

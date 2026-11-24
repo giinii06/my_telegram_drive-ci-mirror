@@ -328,8 +328,8 @@
         "code_sha": "c765f7bd9881063dbe495dfb32977e00a1bce8c0",
         "pipeline_id": 3106120366,
         "dispatch": "success",
-        "provider_result": "unknown",
-        "provider_url": null,
+        "provider_result": "success",
+        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45298790697",
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
         "red_verified": false,
@@ -540,8 +540,8 @@
         "code_sha": "ee857c65d5523c5168a46773f80796dd10224525",
         "pipeline_id": 3106120469,
         "dispatch": "success",
-        "provider_result": "unknown",
-        "provider_url": null,
+        "provider_result": "success",
+        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45298770786",
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
         "red_verified": false,
@@ -790,5 +790,85 @@
   "plan_docs_checkpoint_sha": "bddcf680949861b248316b37ccb465788ca5190f",
   "latest_branch_head": "62610d3bda9c42f74c3a375d04b5a51c38a21bc7",
   "parallel_candidates_base": "16dfe94646c81bc55d5d9ecbb94fe38ca36672a2",
-  "parallel_execution_policy": "Independent candidate branches; no phase completion or integration waiver."
+  "parallel_execution_policy": "Independent candidate branches; no phase completion or integration waiver.",
+  "integration_candidates": [
+    {
+      "name": "core",
+      "branch": "refactor/rust-integration-core-20261124",
+      "phases": [
+        "02",
+        "03",
+        "07"
+      ],
+      "base_sha": "83cfd68f94652296d3af1831a09d7ea1ce15d263",
+      "code_sha": "412457f08362fc74e6795db041565f2ca5dbac42",
+      "pipeline_id": 3106127390,
+      "cherry_picked_commits": 6,
+      "dispatch": "success",
+      "provider_result": "success",
+      "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45299208254",
+      "jobs_verified": "unknown",
+      "e2e_verified": "unknown",
+      "reviewer_type": "self",
+      "status": "integration_candidate_not_promoted"
+    },
+    {
+      "name": "http",
+      "branch": "refactor/rust-integration-http-20261124",
+      "phases": [
+        "10",
+        "12",
+        "13"
+      ],
+      "base_sha": "83cfd68f94652296d3af1831a09d7ea1ce15d263",
+      "code_sha": "139c7a2fc27428bcd60f8ed91bb158c73ae53b64",
+      "pipeline_id": 3106127453,
+      "cherry_picked_commits": 6,
+      "dispatch": "success",
+      "provider_result": "success",
+      "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45299186807",
+      "jobs_verified": "unknown",
+      "e2e_verified": "unknown",
+      "reviewer_type": "self",
+      "status": "integration_candidate_not_promoted"
+    },
+    {
+      "name": "storage",
+      "branch": "refactor/rust-integration-storage-20261124",
+      "phases": [
+        "04",
+        "06"
+      ],
+      "base_sha": "f770546cd4df29cf48cff8807ccd20293fe548d4",
+      "code_sha": "78843822d677ade29cc05d135d4aa104b6591119",
+      "pipeline_id": 3106132198,
+      "cherry_picked_commits": 8,
+      "dispatch": "success",
+      "provider_result": "unknown",
+      "provider_url": null,
+      "jobs_verified": "unknown",
+      "e2e_verified": "unknown",
+      "reviewer_type": "self",
+      "status": "integration_candidate_not_promoted"
+    },
+    {
+      "name": "vault-dav",
+      "branch": "refactor/rust-integration-vault-dav-20261124",
+      "phases": [
+        "05",
+        "09"
+      ],
+      "base_sha": "f770546cd4df29cf48cff8807ccd20293fe548d4",
+      "code_sha": "4d8d0b3037ee98bd578d4f3cc7f33bb345e3d0d4",
+      "pipeline_id": 3106132286,
+      "cherry_picked_commits": 8,
+      "dispatch": "success",
+      "provider_result": "unknown",
+      "provider_url": null,
+      "jobs_verified": "unknown",
+      "e2e_verified": "unknown",
+      "reviewer_type": "self",
+      "status": "integration_candidate_not_promoted"
+    }
+  ]
 }
