@@ -8,3 +8,4 @@ license.workspace = true
 [dependencies]
 sha2 = "=0.10.9"
 tdrive-types = { path = "../tdrive-types" }
+tdrive-projection = { path = "../tdrive-projection" }

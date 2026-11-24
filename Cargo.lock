@@ -401,6 +401,7 @@ name = "tdrive-telegram"
 version = "0.1.0"
 dependencies = [
  "sha2",
+ "tdrive-projection",
  "tdrive-types",
 ]
 
