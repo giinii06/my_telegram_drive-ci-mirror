@@ -16,7 +16,7 @@ pub use digest::{TableDigest, snapshot_table_digests};
 pub use listing::{FileSlim, FolderListing, FolderSlim, list_folder_contents_snapshot};
 pub use replay::{ReplayEntry, read_replay_page_snapshot};
 pub use replay_writer::{
-    IncomingReplayEvent, ReplayWriteError, ReplayWriteOutcome, append_replay_event,
+    IncomingReplayEvent, ReplayWriteError, ReplayWriteOutcome, append_replay_event, project_plain_part,
 };
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
