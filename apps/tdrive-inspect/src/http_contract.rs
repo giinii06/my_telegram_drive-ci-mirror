@@ -135,6 +135,7 @@ pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, Ht
         return Err(HttpError::BadRequest);
     }
     let mut bearer = None;
+    let mut host_seen = false;
     for line in lines {
         if line.is_empty() || line.starts_with(' ') || line.starts_with('\t') {
             return Err(HttpError::BadRequest);
@@ -143,7 +144,16 @@ pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, Ht
         if name.is_empty() || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
             return Err(HttpError::BadRequest);
         }
-        if name.eq_ignore_ascii_case("authorization") {
+        if value.bytes().any(|byte| (byte < 32 && byte != b'\t') || byte == 127) {
+            return Err(HttpError::BadRequest);
+        }
+        if name.eq_ignore_ascii_case("host") {
+            let authority = value.trim();
+            if host_seen || authority.is_empty() || authority.bytes().any(|byte| byte.is_ascii_whitespace()) {
+                return Err(HttpError::BadRequest);
+            }
+            host_seen = true;
+        } else if name.eq_ignore_ascii_case("authorization") {
             if bearer.is_some() {
                 return Err(HttpError::BadRequest);
             }
@@ -155,6 +165,12 @@ pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, Ht
         }
     }
 
+    if !host_seen {
+        return Err(HttpError::BadRequest);
+    }
+    if !valid_token(expected_token) {
+        return Err(HttpError::Unauthorized);
+    }
     let supplied = bearer
         .ok_or(HttpError::Unauthorized)?
         .strip_prefix("Bearer ")
