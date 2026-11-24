@@ -29,3 +29,17 @@ All candidates are isolated from the Draft MR branch; no integration/merge/deplo
 - Phase 06 (tdrive-storage): resolve complete ordered multipart data from detached snapshot and validate manifest count/size/index; later consumer: streaming download. No DB writes.
 
 Keep candidate branches isolated and phase completion gates unchanged. Actual CI failure for Phase 08 remains under investigation; do not infer failure cause from provider callback alone.
+
+### Wave 2 checkpoint
+
+Three isolated candidates, source review only; Rust compiler/Cargo unavailable locally. Test-only commits exist; RED/GREEN execution not observed. Provider callbacks are not job evidence. No merge or deploy.
+
+| Phase | Code SHA | Pipeline | Provider | Scope |
+|---|---|---|---|---|
+| 02 | 22ccc86ebad673d6d4f9b10eda3247f90b33cbc7 | 3106090923 | pending | Reject hardlinked session/config files and compare opened descriptor identity. Windows ACL, data-store runtime integration remain. |
+| 03 | 84f8d4c846b7b3d4f13ec8e4de501b982d8624de | 3106090987 | pending | Send once using persisted random ID; explicit reconciliation port returns receipt or ambiguous outcome without automatic resend. Real MTProto adapter/journal still outstanding. |
+| 06 | cc4cb1683ac7cc9b6ff714a0a48b43655b834edc | 3106091059 | pending | Detached read-only ordered multipart lookup, channel scope, count/size/index/overflow checks. Transfer service, revisions and real remote reads still outstanding. |
+
+### Wave 3 scope
+
+Phase 04: retain currently discarded Go TDX1 write payload fields in the Rust parser (multipart IDs/index, CAS revisions, overwrite destination and retention metadata, protocol/key versions and plaintext size), with regression tests and fail-closed simple formatter. Consumer: eventual transactional projector; do not enable live replay or destructive writes. Isolated from prior branch work.

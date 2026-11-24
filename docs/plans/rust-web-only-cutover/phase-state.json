@@ -123,7 +123,7 @@
       "file": "phase-02-rust-foundation-storage.md",
       "title": "Rust 실행 기반·설정·SQLite v16 저장소",
       "kind": "foundation",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -136,14 +136,40 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated branch refactor/rust-only-parallel-02-private-config. Reject hardlinked session/config files and compare opened descriptor identity. Windows ACL, data-store runtime integration remain."
+        }
+      ],
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-02-private-config",
+        "base_sha": "7fc6f84927df7aeb09d2167a5b64a8f94e8e265e",
+        "test_only_sha": "3077b2db34a63e5d5cce60ca17254daeec11a3cd",
+        "code_sha": "22ccc86ebad673d6d4f9b10eda3247f90b33cbc7",
+        "pipeline_id": 3106090923,
+        "dispatch": "success",
+        "provider_result": "pending",
+        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297183601",
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "Reject hardlinked session/config files and compare opened descriptor identity. Windows ACL, data-store runtime integration remain.",
+        "changed_paths": [
+          "crates/tdrive-config/src/lib.rs",
+          "crates/tdrive-config/tests/private_hardlink.rs"
+        ]
+      }
     },
     {
       "id": "03",
       "file": "phase-03-telegram-mtproto.md",
       "title": "Telegram 사용자 계정 MTProto·세션·전송",
       "kind": "user_flow",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -156,7 +182,33 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated branch refactor/rust-only-parallel-03-send-reconciliation. Send once using persisted random ID; explicit reconciliation port returns receipt or ambiguous outcome without automatic resend. Real MTProto adapter/journal still outstanding."
+        }
+      ],
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-03-send-reconciliation",
+        "base_sha": "7fc6f84927df7aeb09d2167a5b64a8f94e8e265e",
+        "test_only_sha": "ea0b63c4740a2d89c19b9f738b95d9188f062ff2",
+        "code_sha": "84f8d4c846b7b3d4f13ec8e4de501b982d8624de",
+        "pipeline_id": 3106090987,
+        "dispatch": "success",
+        "provider_result": "pending",
+        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297158374",
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "Send once using persisted random ID; explicit reconciliation port returns receipt or ambiguous outcome without automatic resend. Real MTProto adapter/journal still outstanding.",
+        "changed_paths": [
+          "crates/tdrive-telegram/src/lib.rs",
+          "crates/tdrive-telegram/tests/send_reconciliation.rs"
+        ]
+      }
     },
     {
       "id": "04",
@@ -226,7 +278,7 @@
       "file": "phase-06-file-operations.md",
       "title": "파일·폴더·revision·업로드/다운로드",
       "kind": "user_flow",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -239,7 +291,34 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated branch refactor/rust-only-parallel-06-multipart-read. Detached read-only ordered multipart lookup, channel scope, count/size/index/overflow checks. Transfer service, revisions and real remote reads still outstanding."
+        }
+      ],
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-06-multipart-read",
+        "base_sha": "7fc6f84927df7aeb09d2167a5b64a8f94e8e265e",
+        "test_only_sha": "0496b1058562b985ae83b9c7c15800885e955bf0",
+        "code_sha": "cc4cb1683ac7cc9b6ff714a0a48b43655b834edc",
+        "pipeline_id": 3106091059,
+        "dispatch": "success",
+        "provider_result": "pending",
+        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45297140349",
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "scope": "Detached read-only ordered multipart lookup, channel scope, count/size/index/overflow checks. Transfer service, revisions and real remote reads still outstanding.",
+        "changed_paths": [
+          "crates/tdrive-storage/src/lib.rs",
+          "crates/tdrive-storage/src/multipart.rs",
+          "crates/tdrive-storage/tests/multipart_manifest.rs"
+        ]
+      }
     },
     {
       "id": "07",
