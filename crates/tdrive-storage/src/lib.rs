@@ -17,7 +17,7 @@ pub use multipart::{FilePart, MultipartError, resolve_multipart_snapshot, valida
 mod replay;
 mod replay_writer;
 pub use digest::{TableDigest, snapshot_table_digests};
-pub use listing::{FileSlim, FolderListing, FolderSlim, list_folder_contents_snapshot};
+pub use listing::{FileSlim, FolderListing, FolderSlim, list_folder_contents_snapshot, list_folder_contents_snapshot_bounded};
 pub use replay::{ReplayEntry, read_replay_page_snapshot};
 pub use replay_writer::{
     IncomingReplayEvent, ReplayWriteError, ReplayWriteOutcome, append_replay_event, project_plain_part,

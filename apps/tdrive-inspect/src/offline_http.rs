@@ -142,7 +142,7 @@ fn handle(socket: &mut TcpStream, snapshot: &Path, secret: &[u8]) {
             }
         }
         Ok(ApiRoute::Folder { channel_id, parent }) => {
-            match tdrive_storage::list_folder_contents_snapshot(snapshot, channel_id, &parent) {
+            match tdrive_storage::list_folder_contents_snapshot_bounded(snapshot, channel_id, &parent, 10_000, 1024 * 1024) {
                 Ok(listing) => {
                     let json = folder_json::encode_json(&listing);
                     if json.len() > MAX_RESPONSE {
@@ -151,6 +151,7 @@ fn handle(socket: &mut TcpStream, snapshot: &Path, secret: &[u8]) {
                         ("200 OK", json)
                     }
                 }
+                Err(tdrive_storage::SnapshotError::SnapshotTooLarge) => ("413 Content Too Large", r#"{"error":"response too large"}"#.to_string()),
                 Err(_) => ("422 Unprocessable Content", r#"{"error":"invalid snapshot"}"#.to_string()),
             }
         }

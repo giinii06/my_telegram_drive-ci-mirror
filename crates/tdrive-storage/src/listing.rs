@@ -4,7 +4,7 @@
 //! Only invoke the public entrypoint on a detached Go-schema snapshot.
 
 use crate::{SnapshotError, inspect_connection, open_verified_snapshot};
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, Row, params, types::ValueRef};
 use std::path::Path;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,6 +58,72 @@ fn list_folder_contents_connection(
     channel_id: i64,
     parent_id: &str,
 ) -> Result<FolderListing, SnapshotError> {
+    list_with_budget(conn, channel_id, parent_id, None)
+}
+
+/// Bounded API-oriented listing. Rejects rather than truncating rows, and
+/// charges SQLite text lengths before cloning them into Rust-owned strings.
+pub fn list_folder_contents_snapshot_bounded(
+    path: &Path,
+    channel_id: i64,
+    parent_id: &str,
+    max_rows: usize,
+    max_text_bytes: usize,
+) -> Result<FolderListing, SnapshotError> {
+    let connection = open_verified_snapshot(path)?;
+    inspect_connection(&connection)?;
+    list_folder_contents_bounded_connection(
+        &connection, channel_id, parent_id, max_rows, max_text_bytes,
+    )
+}
+
+fn list_folder_contents_bounded_connection(
+    conn: &Connection,
+    channel_id: i64,
+    parent_id: &str,
+    max_rows: usize,
+    max_text_bytes: usize,
+) -> Result<FolderListing, SnapshotError> {
+    if max_rows == 0 || max_rows > 100_000 || max_text_bytes == 0 {
+        return Err(SnapshotError::SnapshotTooLarge);
+    }
+    list_with_budget(conn, channel_id, parent_id, Some(ListingBudget {
+        rows: max_rows,
+        bytes: max_text_bytes,
+        query_limit: max_rows as i64 + 1,
+    }))
+}
+
+struct ListingBudget {
+    rows: usize,
+    bytes: usize,
+    query_limit: i64,
+}
+
+fn charge(
+    budget: &mut Option<ListingBudget>,
+    row: &Row<'_>,
+    columns: &[usize],
+) -> Result<(), SnapshotError> {
+    if let Some(budget) = budget {
+        budget.rows = budget.rows.checked_sub(1).ok_or(SnapshotError::SnapshotTooLarge)?;
+        for &column in columns {
+            if let ValueRef::Text(bytes) = row.get_ref(column)? {
+                budget.bytes = budget.bytes.checked_sub(bytes.len())
+                    .ok_or(SnapshotError::SnapshotTooLarge)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn list_with_budget(
+    conn: &Connection,
+    channel_id: i64,
+    parent_id: &str,
+    mut budget: Option<ListingBudget>,
+) -> Result<FolderListing, SnapshotError> {
+    let query_limit = budget.as_ref().map_or(-1, |budget| budget.query_limit);
     // These two SELECT statements intentionally mirror the Go oracle, including
     // its distinct folder and file sorting rules and soft-delete behavior.
     let mut folder_stmt = conn.prepare(
@@ -66,19 +132,18 @@ fn list_folder_contents_connection(
          JOIN folders f ON f.channel_id = d.channel_id AND f.id = d.object_id
          WHERE d.channel_id = ?1 AND d.parent_id = ?2 AND d.object_kind = 'folder'
            AND d.tombstoned = 0 AND f.tombstoned = 0
-         ORDER BY d.display_name, d.object_id",
+         ORDER BY d.display_name, d.object_id LIMIT ?3",
     )?;
-    let folder_rows = folder_stmt.query_map(params![channel_id, parent_id], |row| {
-        Ok(FolderSlim {
+    let mut folder_rows = folder_stmt.query(params![channel_id, parent_id, query_limit])?;
+    let mut folders = Vec::new();
+    while let Some(row) = folder_rows.next()? {
+        charge(&mut budget, row, &[0, 1, 2])?;
+        folders.push(FolderSlim {
             id: row.get(0)?,
             name: row.get(1)?,
             parent_id: row.get(2)?,
             revision: row.get(3)?,
-        })
-    })?;
-    let mut folders = Vec::new();
-    for row in folder_rows {
-        folders.push(row?);
+        });
     }
 
     let mut file_stmt = conn.prepare(
@@ -90,10 +155,13 @@ fn list_folder_contents_connection(
            ON d.channel_id = f.channel_id AND d.object_id = 'f:' || f.msg_id
          WHERE f.channel_id = ?1 AND f.parent_id = ?2 AND f.tombstoned = 0
            AND d.tombstoned = 0
-         ORDER BY upload_time DESC, msg_id DESC",
+         ORDER BY upload_time DESC, msg_id DESC LIMIT ?3",
     )?;
-    let file_rows = file_stmt.query_map(params![channel_id, parent_id], |row| {
-        Ok(FileSlim {
+    let mut file_rows = file_stmt.query(params![channel_id, parent_id, query_limit])?;
+    let mut files = Vec::new();
+    while let Some(row) = file_rows.next()? {
+        charge(&mut budget, row, &[2, 4, 6, 8])?;
+        files.push(FileSlim {
             msg_id: row.get(0)?,
             content_msg_id: row.get(1)?,
             content_hash: row.get(2)?,
@@ -107,11 +175,7 @@ fn list_folder_contents_connection(
             uploader_id: row.get(10)?,
             encrypted: row.get::<_, i64>(11)? == 1,
             plaintext_size: row.get(12)?,
-        })
-    })?;
-    let mut files = Vec::new();
-    for row in file_rows {
-        files.push(row?);
+        });
     }
     Ok(FolderListing { folders, files })
 }
