@@ -126,3 +126,7 @@ Two isolated candidates, with test-only commits followed by code commits. Actual
 ## Wave 7: isolated integration candidates
 
 Integrate existing candidate source changes, not GitLab merge requests, into two new disposable review branches based on this checkpoint. Group A: phases 02,03,07 (configuration, send contract, backup guard). Group B: phases 10,12,13 (HTTP parser/deadline and shadow compare CLI). Reconcile main.rs edits using exact hunk context; retain all tests. Verify each source diff against the common base, do not copy historical plan files. Branches remain isolated, production entrypoint stays Go. No MR merge, deployment, phase completion or verification waiver. Phase 08 remains excluded until actual failing job evidence is available. This is an integration diagnostic, not an approved production cutover. If combined checks fail, inspect evidence before further promotion.
+
+### Additional integration candidates
+
+Group C: phases 04 and 06, projection wire metadata/ordinary part transaction and detached multipart read CLI. Group D: phases 05 and 09, vault envelope/session and WebDAV exclusive registry. Existing source commits and tests only, cherry-pick with dry-run on disposable branches; reconcile storage exports and Cargo.lock explicitly if necessary. Latest individual provider callbacks success for 04/05/06/09, but no individual job proof. These are diagnostic candidates, not verification or completion of dependent phases; no main/MR merge or live service changes.
