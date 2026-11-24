@@ -3,6 +3,8 @@ mod folder_json;
 #[cfg(unix)]
 mod http_contract;
 #[cfg(unix)]
+mod http_deadline;
+#[cfg(unix)]
 mod offline_crypto;
 #[cfg(unix)]
 mod offline_http;
@@ -63,6 +65,9 @@ fn main() -> ExitCode {
         [option, source, destination, key] if option == "--decrypt-file" => {
             offline_file(offline_crypto::Mode::Decrypt, source, destination, key)
         }
+        [option, baseline, candidate] if option == "--compare-snapshots" => {
+            compare_snapshots(Path::new(baseline), Path::new(candidate))
+        }
         [option, path, channel, parent] if option == "--list-folder" => {
             list_folder(path, channel, parent)
         }
@@ -86,7 +91,7 @@ fn main() -> ExitCode {
         }
         _ => {
             eprintln!(
-                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id> | --serve-readonly <detached-snapshot.sqlite> <private-token-file> <loopback-port>"
+                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --compare-snapshots <baseline.sqlite> <candidate.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id> | --serve-readonly <detached-snapshot.sqlite> <private-token-file> <loopback-port>"
             );
             ExitCode::FAILURE
         }
@@ -132,4 +137,29 @@ fn list_folder(path: &str, channel: &str, parent: &str) -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+fn compare_snapshots(baseline: &Path, candidate: &Path) -> ExitCode {
+    if !baseline.is_absolute() || !candidate.is_absolute() {
+        eprintln!("snapshot comparison failed: absolute detached paths required");
+        return ExitCode::FAILURE;
+    }
+    let (Ok(left), Ok(right)) = (
+        tdrive_storage::snapshot_table_digests(baseline),
+        tdrive_storage::snapshot_table_digests(candidate),
+    ) else {
+        eprintln!("snapshot comparison failed: invalid or unsafe detached snapshot");
+        return ExitCode::FAILURE;
+    };
+    if left == right {
+        println!("core tables match: {}", left.len());
+        return ExitCode::SUCCESS;
+    }
+    for table in &left {
+        if !right.iter().any(|other| other == table) {
+            eprintln!("core table differs: {}", table.table);
+        }
+    }
+    eprintln!("snapshot comparison failed: core table mismatch");
+    ExitCode::FAILURE
 }

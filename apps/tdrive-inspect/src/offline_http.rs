@@ -1,15 +1,17 @@
 //! Localhost-only, read-only HTTP adapter for detached Go v16 snapshots.
 //! No public bind, remote Telegram access, write endpoints or TLS is exposed.
 use crate::folder_json;
+use crate::http_deadline::remaining;
 use crate::http_contract::{ApiRoute, HttpError, parse_request, valid_token};
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::Path;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 const MAX_REQUEST: usize = 8192;
+const HEADER_TIMEOUT: Duration = Duration::from_secs(3);
 const MAX_RESPONSE: usize = 16 * 1024 * 1024;
 
 struct PrivateToken(Vec<u8>);
@@ -35,6 +37,7 @@ fn read_token(path: &Path) -> Result<PrivateToken, &'static str> {
     let before = fs::symlink_metadata(path).map_err(|_| "private bearer token unavailable")?;
     if !before.is_file()
         || before.file_type().is_symlink()
+        || before.nlink() != 1
         || before.permissions().mode() & 0o077 != 0
         || !(32..=128).contains(&before.len())
     {
@@ -45,6 +48,7 @@ fn read_token(path: &Path) -> Result<PrivateToken, &'static str> {
     if !opened.is_file()
         || before.dev() != opened.dev()
         || before.ino() != opened.ino()
+        || opened.nlink() != 1
         || opened.permissions().mode() & 0o077 != 0
     {
         return Err("private bearer token changed during read");
@@ -74,11 +78,20 @@ fn send(socket: &mut TcpStream, status: &str, body: &str) -> std::io::Result<()>
 fn receive(socket: &mut TcpStream) -> Result<Vec<u8>, HttpError> {
     let mut request = Vec::with_capacity(1024);
     let mut chunk = [0_u8; 1024];
+    let started = Instant::now();
     loop {
         if request.len() >= MAX_REQUEST {
             return Err(HttpError::TooLarge);
         }
+        let left = remaining(started, Instant::now(), HEADER_TIMEOUT)
+            .ok_or(HttpError::BadRequest)?;
+        socket
+            .set_read_timeout(Some(left))
+            .map_err(|_| HttpError::BadRequest)?;
         let size = socket.read(&mut chunk).map_err(|_| HttpError::BadRequest)?;
+        if remaining(started, Instant::now(), HEADER_TIMEOUT).is_none() {
+            return Err(HttpError::BadRequest);
+        }
         if size == 0 {
             return Err(HttpError::BadRequest);
         }
@@ -93,7 +106,6 @@ fn receive(socket: &mut TcpStream) -> Result<Vec<u8>, HttpError> {
 }
 
 fn handle(socket: &mut TcpStream, snapshot: &Path, secret: &[u8]) {
-    let _ = socket.set_read_timeout(Some(Duration::from_secs(3)));
     let _ = socket.set_write_timeout(Some(Duration::from_secs(3)));
     let route = receive(socket).and_then(|raw| parse_request(&raw, secret));
     let (status, response) = match route {
