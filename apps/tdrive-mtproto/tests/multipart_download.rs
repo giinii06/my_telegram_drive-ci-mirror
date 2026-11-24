@@ -5,7 +5,11 @@ use tdrive_mtproto::policy::{CliAction, parse_action};
 use tdrive_storage::FilePart;
 
 fn part(index: i64, message: i64, size: i64) -> FilePart {
-    FilePart { part_index: index, msg_id: message, size }
+    FilePart {
+        part_index: index,
+        msg_id: message,
+        size,
+    }
 }
 
 #[test]

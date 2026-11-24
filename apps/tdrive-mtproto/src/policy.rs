@@ -36,6 +36,14 @@ pub enum CliAction {
     Upload { peer: String, source: PathBuf },
     Download { peer: String, message_id: i32, destination: PathBuf },
     DownloadVerified { peer: String, message_id: i32, destination: PathBuf, expected: ExpectedContent },
+    DownloadMultipartVerified {
+        peer: String,
+        snapshot: PathBuf,
+        channel_id: i64,
+        file_message_id: i64,
+        destination: PathBuf,
+        expected: ExpectedContent,
+    },
 }
 
 fn valid_peer(value: &str) -> bool {
@@ -52,6 +60,17 @@ fn valid_peer(value: &str) -> bool {
 fn absolute_simple(path: &Path) -> bool {
     path.is_absolute()
         && !path.components().any(|c| matches!(c, Component::CurDir | Component::ParentDir))
+}
+
+fn positive_decimal(value: &str) -> Result<i64, PolicyError> {
+    if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(PolicyError::InvalidArguments);
+    }
+    value
+        .parse::<i64>()
+        .ok()
+        .filter(|id| *id > 0)
+        .ok_or(PolicyError::InvalidArguments)
 }
 
 pub fn parse_action(args: &[String]) -> Result<CliAction, PolicyError> {
@@ -97,6 +116,25 @@ pub fn parse_action(args: &[String]) -> Result<CliAction, PolicyError> {
                 return Err(PolicyError::InvalidArguments);
             }
             Ok(CliAction::Upload { peer: peer.clone(), source })
+        }
+        [cmd, peer, snapshot, channel, message, file, size, digest]
+            if cmd == "download-multipart-verified" && valid_peer(peer) =>
+        {
+            let snapshot = PathBuf::from(snapshot);
+            let destination = PathBuf::from(file);
+            if !absolute_simple(&snapshot) || !absolute_simple(&destination) {
+                return Err(PolicyError::InvalidArguments);
+            }
+            let expected = ExpectedContent::parse(size, digest)
+                .map_err(|_| PolicyError::InvalidArguments)?;
+            Ok(CliAction::DownloadMultipartVerified {
+                peer: peer.clone(),
+                snapshot,
+                channel_id: positive_decimal(channel)?,
+                file_message_id: positive_decimal(message)?,
+                destination,
+                expected,
+            })
         }
         [cmd, peer, message_id, file, size, digest] if cmd == "download-verified" && valid_peer(peer) => {
             let message_id = message_id.parse::<i32>().map_err(|_| PolicyError::InvalidArguments)?;

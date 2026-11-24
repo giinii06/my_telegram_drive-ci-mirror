@@ -30,23 +30,9 @@ where
     let mut buffer = [0_u8; 64 * 1024];
     for part in parts {
         let mut reader = open_part(part)?;
-        let mut remaining = part.size as u64;
-        while remaining > 0 {
-            let n = remaining.min(buffer.len() as u64) as usize;
-            reader.read_exact(&mut buffer[..n])?;
-            staging.write_all(&buffer[..n])?;
-            digest.update(&buffer[..n]);
-            remaining -= n as u64;
-        }
-        let mut extra = [0_u8; 1];
-        loop {
-            match reader.read(&mut extra) {
-                Ok(0) => break,
-                Ok(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "oversized part")),
-                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
-                Err(error) => return Err(error),
-            }
-        }
+        copy_part(&mut reader, staging, part.size as u64, &mut buffer, |bytes| {
+            digest.update(bytes);
+        })?;
     }
     let actual: [u8; 32] = digest.finalize().into();
     if actual != expected_sha256 {
@@ -54,4 +40,45 @@ where
     }
     staging.flush()?;
     Ok(size as u64)
+}
+
+/// Copy precisely one declared part into disposable staging. A mismatch
+/// returns an error; the staging writer may contain partial bytes.
+pub fn copy_exact_part<R: Read, W: Write>(
+    reader: &mut R,
+    staging: &mut W,
+    size: u64,
+) -> io::Result<()> {
+    let mut buffer = [0_u8; 64 * 1024];
+    copy_part(reader, staging, size, &mut buffer, |_| {})
+}
+
+fn copy_part<R: Read, W: Write>(
+    reader: &mut R,
+    staging: &mut W,
+    mut remaining: u64,
+    buffer: &mut [u8],
+    mut observe: impl FnMut(&[u8]),
+) -> io::Result<()> {
+    while remaining > 0 {
+        let n = remaining.min(buffer.len() as u64) as usize;
+        reader.read_exact(&mut buffer[..n])?;
+        staging.write_all(&buffer[..n])?;
+        observe(&buffer[..n]);
+        remaining -= n as u64;
+    }
+    let mut extra = [0_u8; 1];
+    loop {
+        match reader.read(&mut extra) {
+            Ok(0) => return Ok(()),
+            Ok(_) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "oversized part",
+                ));
+            }
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(error),
+        }
+    }
 }

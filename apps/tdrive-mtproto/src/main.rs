@@ -10,7 +10,7 @@ use grammers_client::{Client, SignInError};
 use grammers_mtsender::SenderPool;
 use grammers_session::storages::SqliteSession;
 use std::env;
-use std::fs::{self, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
@@ -363,6 +363,61 @@ async fn download(client: &Client, name: &str, message_id: i32, target: &Path, e
     Ok(())
 }
 
+/// Read only from the explicitly selected Telegram channel. The detached
+/// snapshot and trusted digest must describe the same stored object.
+/// No projected state is written, and temporary bytes are removed on error.
+async fn download_multipart(
+    client: &Client,
+    name: &str,
+    snapshot: &Path,
+    channel_id: i64,
+    file_message_id: i64,
+    target: &Path,
+    expected: ExpectedContent,
+) -> Result<()> {
+    use tdrive_mtproto::multipart_download::{copy_exact_part, validate_manifest};
+
+    validate_private_target(target)?;
+    let parts = tdrive_storage::resolve_multipart_snapshot(snapshot, channel_id, file_message_id)?
+        .ok_or("no complete active multipart manifest")?;
+    validate_manifest(&parts, expected.size())?;
+
+    let peer = resolve_peer(client, name).await?;
+    if !matches!(&peer, Peer::Channel(_) | Peer::Community(_))
+        || peer.id().bare_id_unchecked().to_string() != channel_id.to_string()
+    {
+        return Err("Telegram peer does not match the snapshot channel".into());
+    }
+
+    let reference = peer.to_ref().await?
+        .ok_or("Telegram peer reference not available")?;
+    let complete = StagedDownload::create(target)?;
+    let mut output = OpenOptions::new().write(true).open(&complete.0)?;
+    for part in &parts {
+        let message_id = i32::try_from(part.msg_id)?;
+        let found = client.get_messages_by_id(reference.clone(), &[message_id]).await
+            .map_err(|_| "Telegram part fetch failed")?;
+        let message = found.into_iter().next().flatten()
+            .ok_or("Telegram part not found")?;
+        if message.id() != message_id || message.media().is_none() {
+            return Err("Telegram part identity or media mismatch".into());
+        }
+        let staged = StagedDownload::create(target)?;
+        if !message.download_media(&staged.0).await
+            .map_err(|_| "Telegram part download failed")?
+        {
+            return Err("Telegram part unavailable".into());
+        }
+        let mut input = File::open(&staged.0)?;
+        copy_exact_part(&mut input, &mut output, part.size as u64)?;
+    }
+    output.sync_all()?;
+    drop(output);
+    publish_verified(&complete.0, target, expected)?;
+    println!("Verified multipart download saved");
+    Ok(())
+}
+
 async fn run() -> Result<()> {
     let args: Vec<String> = env::args().skip(1).collect();
     let action = parse_action(&args)?;
@@ -372,6 +427,7 @@ async fn run() -> Result<()> {
         println!("          upload <@username|dialog-id> <absolute-source>");
         println!("          download <@username|dialog-id> <message-id> <absolute-target>");
         println!("          download-verified <peer> <message-id> <private-absolute-target> <size> <sha256>");
+        println!("          download-multipart-verified <peer> <snapshot> <channel-id> <file-message-id> <private-absolute-target> <size> <sha256>");
         println!("          ingest <@username|dialog-id> <1..100> | inbox-stats");
         println!("          catchup <@username|dialog-id> <1..10000>");
         println!("          watch <@username|dialog-id> <1..10000> <15..3600-seconds>");
@@ -428,6 +484,11 @@ async fn run() -> Result<()> {
                 download(&client, &peer, message_id, &destination, None).await,
             CliAction::DownloadVerified { peer, message_id, destination, expected } =>
                 download(&client, &peer, message_id, &destination, Some(expected)).await,
+            CliAction::DownloadMultipartVerified {
+                peer, snapshot, channel_id, file_message_id, destination, expected,
+            } => download_multipart(
+                &client, &peer, &snapshot, channel_id, file_message_id, &destination, expected,
+            ).await,
             CliAction::Help | CliAction::InboxStats | CliAction::Login => unreachable!(),
         }
     }.await;
