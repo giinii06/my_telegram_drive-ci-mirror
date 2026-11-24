@@ -50,6 +50,7 @@ REQUIRED_STEPS = {
     "legacy-go-tests": (
         "Verify checkout SHA",
         "Go projection tests",
+        "Go data/auth/lock tests",
         "Go crypto tests",
         "Go Telegram tests",
         "Go backup tests",
@@ -170,6 +171,8 @@ def fetch_evidence(repo: str, run_id: int, token: str | None = None) -> tuple[di
     run = _get_json(base, token)
     if not isinstance(run, dict):
         raise ValueError("run endpoint returned invalid data")
+    if type(run.get("id")) is not int or run["id"] != run_id:
+        raise ValueError("GitHub API returned a different run ID")
     jobs: list[dict] = []
     total: int | None = None
     for page in range(1, 21):
