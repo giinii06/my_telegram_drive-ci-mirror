@@ -126,6 +126,20 @@ pub struct Operation {
     pub part_count: i64,
     pub content_message_id: i64,
     pub operation_id: Option<String>,
+    pub protocol_version: i64,
+    pub upload_uuid: Option<String>,
+    pub part_index: i64,
+    pub content_hash: Option<String>,
+    pub expected_revision: i64,
+    pub expected_destination_revision: i64,
+    pub destination_object: Option<String>,
+    pub overwrite: bool,
+    pub deleted_at: i64,
+    pub purge_after: i64,
+    pub retained_until: i64,
+    pub name_key_version: i64,
+    pub encryption_version: i64,
+    pub plaintext_size: i64,
 }
 
 impl Operation {
@@ -142,6 +156,20 @@ impl Operation {
             part_count: 0,
             content_message_id: 0,
             operation_id: None,
+            protocol_version: 0,
+            upload_uuid: None,
+            part_index: 0,
+            content_hash: None,
+            expected_revision: 0,
+            expected_destination_revision: 0,
+            destination_object: None,
+            overwrite: false,
+            deleted_at: 0,
+            purge_after: 0,
+            retained_until: 0,
+            name_key_version: 0,
+            encryption_version: 0,
+            plaintext_size: 0,
         }
     }
 }
@@ -257,7 +285,7 @@ fn name(op: &mut Operation, fields: &HashMap<&str, &str>) -> Result<(), WireErro
         if !envelope.starts_with("v1:") {
             return Err(WireError::Malformed);
         }
-        positive(field(fields, "kid"))?;
+        op.name_key_version = positive(field(fields, "kid"))?;
         op.encrypted_name = Some((*envelope).to_owned());
     }
     Ok(())
@@ -276,6 +304,7 @@ fn writable(op: &mut Operation, fields: &HashMap<&str, &str>) -> Result<(), Wire
         return Err(WireError::Malformed);
     }
     op.operation_id = Some(id);
+    op.protocol_version = 1;
     Ok(())
 }
 
@@ -285,12 +314,15 @@ fn content_reference(op: &mut Operation, fields: &HashMap<&str, &str>) -> Result
         op.content_message_id = positive(mid)?;
     }
     let uuid = field(fields, "u");
+    if !uuid.is_empty() {
+        op.upload_uuid = Some(uuid.to_owned());
+    }
     let count = field(fields, "pc");
     if !count.is_empty() {
         op.part_count = positive(count)?;
     }
     if !field(fields, "hash").is_empty() {
-        query_unescape(field(fields, "hash"))?;
+        op.content_hash = Some(query_unescape(field(fields, "hash"))?);
     }
     let multipart = !uuid.is_empty() && op.part_count > 0;
     if (op.content_message_id == 0 && !multipart)
@@ -301,12 +333,13 @@ fn content_reference(op: &mut Operation, fields: &HashMap<&str, &str>) -> Result
     Ok(())
 }
 
-fn optional_positive(fields: &HashMap<&str, &str>, name: &str) -> Result<(), WireError> {
+fn optional_positive(fields: &HashMap<&str, &str>, name: &str) -> Result<i64, WireError> {
     let value = field(fields, name);
-    if !value.is_empty() {
-        positive(value)?;
+    if value.is_empty() {
+        Ok(0)
+    } else {
+        positive(value)
     }
-    Ok(())
 }
 
 /// Only decodes and validates; no projection writer calls this yet.
@@ -368,12 +401,14 @@ pub fn parse_wire(raw: &str) -> Result<Operation, WireError> {
             if field(&fields, "u").is_empty() {
                 return Err(WireError::Malformed);
             }
-            non_negative(field(&fields, "pix"))?;
+            op.upload_uuid = Some(field(&fields, "u").to_owned());
+            op.part_index = non_negative(field(&fields, "pix"))?;
         }
         OpType::Manifest => {
             if field(&fields, "u").is_empty() {
                 return Err(WireError::Malformed);
             }
+            op.upload_uuid = Some(field(&fields, "u").to_owned());
             op.parent = valid_parent(field(&fields, "p"))?;
             name(&mut op, &fields)?;
             op.part_count = positive(field(&fields, "pc"))?;
@@ -410,41 +445,42 @@ pub fn parse_wire(raw: &str) -> Result<Operation, WireError> {
         OpType::FileReplace => {
             writable(&mut op, &fields)?;
             op.object = Some(valid_object(field(&fields, "obj"), Some('f'))?);
-            positive(field(&fields, "rev"))?;
+            op.expected_revision = positive(field(&fields, "rev"))?;
             content_reference(&mut op, &fields)?;
-            positive(field(&fields, "retain"))?;
+            op.retained_until = positive(field(&fields, "retain"))?;
         }
         OpType::Relocate => {
             writable(&mut op, &fields)?;
             op.object = Some(valid_object(field(&fields, "obj"), None)?);
             op.parent = valid_parent(field(&fields, "p"))?;
             name(&mut op, &fields)?;
-            positive(field(&fields, "rev"))?;
+            op.expected_revision = positive(field(&fields, "rev"))?;
+            op.overwrite = field(&fields, "ow") == "1";
             if !field(&fields, "dst").is_empty() {
-                valid_object(field(&fields, "dst"), None)?;
+                op.destination_object = Some(valid_object(field(&fields, "dst"), None)?);
             }
-            for key in ["drev", "del", "purge"] {
-                optional_positive(&fields, key)?;
-            }
+            op.expected_destination_revision = optional_positive(&fields, "drev")?;
+            op.deleted_at = optional_positive(&fields, "del")?;
+            op.purge_after = optional_positive(&fields, "purge")?;
         }
         OpType::Trash => {
             writable(&mut op, &fields)?;
             op.object = Some(valid_object(field(&fields, "obj"), None)?);
-            for key in ["rev", "del", "purge"] {
-                positive(field(&fields, key))?;
-            }
+            op.expected_revision = positive(field(&fields, "rev"))?;
+            op.deleted_at = positive(field(&fields, "del"))?;
+            op.purge_after = positive(field(&fields, "purge"))?;
         }
         OpType::HardDelete => {
             writable(&mut op, &fields)?;
             op.object = Some(valid_object(field(&fields, "obj"), None)?);
-            positive(field(&fields, "rev"))?;
+            op.expected_revision = positive(field(&fields, "rev"))?;
         }
         OpType::Untrash => {
             writable(&mut op, &fields)?;
             op.object = Some(valid_object(field(&fields, "obj"), None)?);
             op.parent = valid_parent(field(&fields, "p"))?;
             name(&mut op, &fields)?;
-            positive(field(&fields, "rev"))?;
+            op.expected_revision = positive(field(&fields, "rev"))?;
         }
     }
     if let Some(raw_size) = fields.get("sz") {
@@ -457,11 +493,14 @@ pub fn parse_wire(raw: &str) -> Result<Operation, WireError> {
         }
     }
     op.encrypted = field(&fields, "enc") == "1";
+    if op.encrypted {
+        op.encryption_version = 1;
+    }
     if let Some(raw_ev) = fields.get("ev") {
-        raw_ev.parse::<i64>().map_err(|_| WireError::Malformed)?;
+        op.encryption_version = raw_ev.parse::<i64>().map_err(|_| WireError::Malformed)?;
     }
     if let Some(raw_plaintext) = fields.get("psz") {
-        non_negative(raw_plaintext)?;
+        op.plaintext_size = non_negative(raw_plaintext)?;
     }
     if fields.contains_key("rend") {
         return if kind == OpType::Part {
@@ -496,6 +535,20 @@ pub fn format_simple_wire(op: &Operation) -> Result<String, WireError> {
         || op.part_count != 0
         || op.content_message_id != 0
         || op.operation_id.is_some()
+        || op.protocol_version != 0
+        || op.upload_uuid.is_some()
+        || op.part_index != 0
+        || op.content_hash.is_some()
+        || op.expected_revision != 0
+        || op.expected_destination_revision != 0
+        || op.destination_object.is_some()
+        || op.overwrite
+        || op.deleted_at != 0
+        || op.purge_after != 0
+        || op.retained_until != 0
+        || op.name_key_version != 0
+        || op.encryption_version != 0
+        || op.plaintext_size != 0
         || op.file_size < 0
         || op.upload_time < 0
     {
