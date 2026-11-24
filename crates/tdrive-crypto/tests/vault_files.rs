@@ -14,8 +14,14 @@ impl Drop for Scratch {
 
 #[test]
 fn authenticated_session_encrypts_and_decrypts_without_exporting_key() {
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
-    let root = Scratch(std::env::temp_dir().join(format!("tdrive-vault-file-{}-{now}", std::process::id())));
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = Scratch(std::env::temp_dir().join(format!(
+        "tdrive-vault-file-{}-{now}",
+        std::process::id()
+    )));
     DirBuilder::new().mode(0o700).create(&root.0).unwrap();
     let plain = root.0.join("plain");
     let sealed = root.0.join("sealed");
@@ -26,7 +32,13 @@ fn authenticated_session_encrypts_and_decrypts_without_exporting_key() {
     assert!(!sealed.exists());
     let master = [7; 32];
     let kek = [8; 32];
-    session.unlock(&wrap_master_key(&master, &kek).unwrap(), &encode_key_check(&master).unwrap(), &kek).unwrap();
+    session
+        .unlock(
+            &wrap_master_key(&master, &kek).unwrap(),
+            &encode_key_check(&master).unwrap(),
+            &kek,
+        )
+        .unwrap();
     session.encrypt_file(&plain, &sealed).unwrap();
     assert!(session.encrypt_file(&plain, &sealed).is_err());
     session.decrypt_file(&sealed, &output).unwrap();
