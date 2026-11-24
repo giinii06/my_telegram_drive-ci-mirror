@@ -5,7 +5,7 @@
 //! the signed-in user MTProto protocol.
 
 mod upload;
-pub use upload::{MultipartSendPort, UploadJournal, UploadPlan, UploadState, UploadStep, send_multipart};
+pub use upload::{MultipartSendPort, SqliteUploadJournal, UploadJournal, UploadPlan, UploadState, UploadStep, send_multipart};
 
 use sha2::{Digest, Sha256};
 use std::error::Error;

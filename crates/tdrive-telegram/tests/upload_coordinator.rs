@@ -5,8 +5,17 @@ use tdrive_types::{ChannelId, MessageId};
 #[derive(Default)]
 struct Journal {
     states: Vec<(UploadStep, UploadState)>,
+    bound: Option<[u8; 32]>,
 }
 impl UploadJournal for Journal {
+    fn bind_plan(&mut self, plan: &UploadPlan) -> Result<(), TelegramError> {
+        let fingerprint = plan.fingerprint();
+        if self.bound.is_some_and(|bound| bound != fingerprint) {
+            return Err(TelegramError::InvalidRequest);
+        }
+        self.bound = Some(fingerprint);
+        Ok(())
+    }
     fn state(&mut self, step: &UploadStep) -> Result<UploadState, TelegramError> {
         Ok(self.states.iter().find(|(key, _)| key == step)
             .map_or(UploadState::New, |(_, state)| *state))

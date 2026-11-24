@@ -6,6 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
+rusqlite = { version = "=0.43.0", features = ["bundled"] }
 sha2 = "=0.10.9"
 tdrive-types = { path = "../tdrive-types" }
 tdrive-projection = { path = "../tdrive-projection" }
