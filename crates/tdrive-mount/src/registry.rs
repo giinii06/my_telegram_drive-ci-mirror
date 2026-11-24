@@ -134,6 +134,30 @@ impl LockRegistry {
         Ok(())
     }
 
+    /// Check all affected paths against one lock state, then run a synchronous
+    /// mutation while the registry remains exclusively borrowed. An outer
+    /// service must serialize this call with every other namespace mutation.
+    pub fn with_mutation<T>(
+        &mut self,
+        now: Instant,
+        targets: &[(&str, bool)],
+        supplied_tokens: &[&str],
+        operation: impl FnOnce() -> T,
+    ) -> Result<T, LockError> {
+        if targets.is_empty() || targets.len() > 2 {
+            return Err(LockError::InvalidPath);
+        }
+        for (path, _) in targets {
+            validate_path(path)?;
+        }
+        for &(path, recursive) in targets {
+            if self.blocks_mutation(now, path, recursive, supplied_tokens)? {
+                return Err(LockError::Conflict);
+            }
+        }
+        Ok(operation())
+    }
+
     /// Check all applicable locks, including descendants for recursive
     /// DELETE/MOVE. Supplied tokens must already have passed DAV If parsing.
     /// The caller must prevent other mutations/lock changes after this check.
