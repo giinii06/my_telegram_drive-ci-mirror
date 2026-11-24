@@ -5,6 +5,7 @@ const MAX_HEADER_BYTES: usize = 8192;
 #[derive(Debug, PartialEq, Eq)]
 pub enum ApiRoute {
     Health,
+    Dav { channel_id: i64, segments: Vec<String>, children: bool },
     Media { range: String },
     Parts { channel_id: i64, message_id: i64 },
     Folder { channel_id: i64, parent: String },
@@ -142,7 +143,43 @@ fn parse_parts(target: &str) -> Result<ApiRoute, HttpError> {
     })
 }
 
-/// Parses a complete, non-pipelined GET request. Always authenticate before
+fn parse_dav(target: &str, depth: Option<&str>) -> Result<ApiRoute, HttpError> {
+    let children = match depth {
+        Some("0") => false,
+        Some("1") => true,
+        _ => return Err(HttpError::BadRequest),
+    };
+    let path = target.strip_prefix("/dav/").ok_or(HttpError::NotFound)?;
+    let (channel, rest) = path.split_once('/').ok_or(HttpError::BadRequest)?;
+    if channel.is_empty() || !channel.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(HttpError::BadRequest);
+    }
+    let channel_id = channel.parse::<i64>().map_err(|_| HttpError::BadRequest)?;
+    if channel_id <= 0 || channel_id.to_string() != channel {
+        return Err(HttpError::BadRequest);
+    }
+    if rest.contains(['?', '#']) {
+        return Err(HttpError::BadRequest);
+    }
+    let rest = rest.strip_suffix('/').unwrap_or(rest);
+    let mut segments = Vec::new();
+    if !rest.is_empty() {
+        for segment in rest.split('/') {
+            // Unlike query parameters, '+' is a literal URI path character.
+            let decoded = decode_component(&segment.replace('+', "%2B"))
+                .ok_or(HttpError::BadRequest)?;
+            if !crate::offline_dav::valid_name(&decoded) || segments.len() >= 16 {
+                return Err(HttpError::BadRequest);
+            }
+            segments.push(decoded);
+        }
+    } else if !path.ends_with('/') || path.ends_with("//") {
+        return Err(HttpError::BadRequest);
+    }
+    Ok(ApiRoute::Dav { channel_id, segments, children })
+}
+
+/// Parses a complete, non-pipelined GET or bodyless diagnostic PROPFIND request. Always authenticate before
 /// looking up a route, so anonymous callers cannot enumerate API endpoints.
 pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, HttpError> {
     if bytes.len() > MAX_HEADER_BYTES {
@@ -164,6 +201,8 @@ pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, Ht
     let mut bearer = None;
     let mut host_seen = false;
     let mut range = None;
+    let mut depth = None;
+    let mut length_seen = false;
     for line in lines {
         if line.is_empty() || line.starts_with(' ') || line.starts_with('\t') {
             return Err(HttpError::BadRequest);
@@ -191,9 +230,15 @@ pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, Ht
                 return Err(HttpError::BadRequest);
             }
             range = Some(value.trim());
-        } else if name.eq_ignore_ascii_case("content-length")
-            || name.eq_ignore_ascii_case("transfer-encoding")
-        {
+        } else if name.eq_ignore_ascii_case("depth") {
+            if depth.is_some() { return Err(HttpError::BadRequest); }
+            depth = Some(value.trim());
+        } else if name.eq_ignore_ascii_case("content-length") {
+            if method != "PROPFIND" || length_seen || value.trim() != "0" {
+                return Err(HttpError::BadRequest);
+            }
+            length_seen = true;
+        } else if name.eq_ignore_ascii_case("transfer-encoding") {
             return Err(HttpError::BadRequest);
         }
     }
@@ -210,6 +255,10 @@ pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, Ht
         .ok_or(HttpError::Unauthorized)?;
     if !constant_time_equal(supplied.as_bytes(), expected_token) {
         return Err(HttpError::Unauthorized);
+    }
+    if method == "PROPFIND" {
+        if range.is_some() { return Err(HttpError::BadRequest); }
+        return parse_dav(target, depth);
     }
     if method != "GET" {
         return Err(HttpError::MethodNotAllowed);

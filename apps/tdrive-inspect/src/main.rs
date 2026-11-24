@@ -14,6 +14,8 @@ mod offline_upload;
 mod offline_assembly;
 #[cfg(unix)]
 mod offline_http;
+#[cfg(unix)]
+mod offline_dav;
 
 use std::env;
 use std::io::{self, Read};

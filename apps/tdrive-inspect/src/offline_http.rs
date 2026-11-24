@@ -81,8 +81,12 @@ fn read_token(path: &Path) -> Result<PrivateToken, &'static str> {
 }
 
 fn send(socket: &mut TcpStream, status: &str, body: &str) -> std::io::Result<()> {
+    send_typed(socket, status, "application/json; charset=utf-8", body)
+}
+
+fn send_typed(socket: &mut TcpStream, status: &str, mime: &str, body: &str) -> std::io::Result<()> {
     let headers = format!(
-        "HTTP/1.1 {status}\r\nContent-Type: application/json; charset=utf-8\r\n\
+        "HTTP/1.1 {status}\r\nContent-Type: {mime}\r\n\
          Content-Length: {}\r\nConnection: close\r\nCache-Control: no-store\r\n\
          X-Content-Type-Options: nosniff\r\n\r\n",
         body.len()
@@ -126,6 +130,20 @@ fn handle(socket: &mut TcpStream, snapshot: &Path, secret: &[u8]) {
     let _ = socket.set_write_timeout(Some(Duration::from_secs(3)));
     let route = receive(socket).and_then(|raw| parse_request(&raw, secret));
     let (status, response) = match route {
+        Ok(ApiRoute::Dav { channel_id, segments, children }) => {
+            match tdrive_storage::dav_listing_snapshot(snapshot, channel_id, &segments, children) {
+                Ok(Some(listing)) => match crate::offline_dav::render(channel_id, &segments, &listing) {
+                    Some(xml) if xml.len() <= MAX_RESPONSE => {
+                        let _ = send_typed(socket, "207 Multi-Status", "application/xml; charset=utf-8", &xml);
+                        return;
+                    }
+                    _ => ("422 Unprocessable Content", r#"{"error":"invalid or oversized metadata"}"#.to_string()),
+                },
+                Ok(None) => ("404 Not Found", r#"{"error":"not found"}"#.to_string()),
+                Err(tdrive_storage::SnapshotError::SnapshotTooLarge) => ("413 Content Too Large", r#"{"error":"response too large"}"#.to_string()),
+                Err(_) => ("422 Unprocessable Content", r#"{"error":"invalid snapshot"}"#.to_string()),
+            }
+        }
         Ok(ApiRoute::Media { .. }) => ("404 Not Found", r#"{"error":"not found"}"#.to_string()),
         Ok(ApiRoute::Health) => ("200 OK", r#"{"status":"ok"}"#.to_string()),
         Ok(ApiRoute::Parts { channel_id, message_id }) => {

@@ -207,3 +207,92 @@ mod budget_tests {
         assert!(listing.files.is_empty());
     }
 }
+
+
+#[derive(Debug)]
+pub struct DavEntry {
+    pub name: String,
+    pub collection: bool,
+    pub size: Option<i64>,
+}
+
+#[derive(Debug)]
+pub struct DavListing {
+    pub resource: DavEntry,
+    pub children: Vec<DavEntry>,
+}
+
+fn dav_file(file: &FileSlim) -> Result<DavEntry, SnapshotError> {
+    if file.size < 0 {
+        return Err(SnapshotError::InvalidObjectIds);
+    }
+    Ok(DavEntry {
+        name: file.name.clone(),
+        collection: false,
+        size: if file.encrypted { None } else { Some(file.size) },
+    })
+}
+
+fn dav_folder(name: String) -> DavEntry {
+    DavEntry { name, collection: true, size: None }
+}
+
+/// Resolve exact, case-sensitive display-name segments within a detached
+/// channel. No filesystem path, fuzzy alias, live mutation or vault unlock.
+/// Depth and row/text budgets bound the diagnostic metadata materialization.
+pub fn dav_listing_snapshot(
+    path: &Path,
+    channel_id: i64,
+    segments: &[String],
+    children: bool,
+) -> Result<Option<DavListing>, SnapshotError> {
+    use rusqlite::OptionalExtension;
+
+    if channel_id <= 0 || segments.len() > 16 {
+        return Err(SnapshotError::InvalidObjectIds);
+    }
+    let conn = open_verified_snapshot(path)?;
+    inspect_connection(&conn)?;
+    let exists: Option<i64> = conn.query_row(
+        "SELECT 1 FROM channels WHERE channel_id=?1 LIMIT 1", [channel_id], |r| r.get(0),
+    ).optional()?;
+    if exists.is_none() {
+        return Ok(None);
+    }
+    let mut parent = String::new();
+    let mut resource = dav_folder(channel_id.to_string());
+    for (index, segment) in segments.iter().enumerate() {
+        let listing = list_folder_contents_bounded_connection(&conn, channel_id, &parent, 10_000, 1024 * 1024)?;
+        let mut folders = listing.folders.into_iter().filter(|item| &item.name == segment);
+        let mut files = listing.files.into_iter().filter(|item| &item.name == segment);
+        let folder = folders.next();
+        let file = files.next();
+        if folders.next().is_some() || files.next().is_some() || (folder.is_some() && file.is_some()) {
+            return Err(SnapshotError::InvalidObjectIds);
+        }
+        match (folder, file) {
+            (Some(folder), None) => {
+                parent = folder.id;
+                resource = dav_folder(folder.name);
+            }
+            (None, Some(file)) if index + 1 == segments.len() => {
+                resource = dav_file(&file)?;
+            }
+            _ => return Ok(None),
+        }
+    }
+    let mut entries = Vec::new();
+    if children && resource.collection {
+        let listing = list_folder_contents_bounded_connection(&conn, channel_id, &parent, 10_000, 1024 * 1024)?;
+        let mut seen = std::collections::HashSet::new();
+        for folder in listing.folders {
+            if !seen.insert(folder.name.clone()) { return Err(SnapshotError::InvalidObjectIds); }
+            entries.push(dav_folder(folder.name));
+        }
+        for file in listing.files {
+            if !seen.insert(file.name.clone()) { return Err(SnapshotError::InvalidObjectIds); }
+            entries.push(dav_file(&file)?);
+        }
+    }
+    Ok(Some(DavListing { resource, children: entries }))
+}
