@@ -30,6 +30,8 @@ pub struct Original {
     /// Stable per-filesystem object identifier captured from trusted metadata.
     /// None is never acceptable when authorizing deletion.
     pub file_id: Option<u128>,
+    /// SHA-256 of the original bytes, measured by the trusted backup adapter.
+    pub sha256: [u8; 32],
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -37,6 +39,8 @@ pub struct RemoteFile {
     pub name: String,
     pub size: i64,
     pub is_regular_file: bool,
+    /// SHA-256 independently measured from the authenticated remote bytes.
+    pub sha256: [u8; 32],
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -128,6 +132,7 @@ impl Uploaded {
         if !entry.is_regular_file
             || entry.name != self.expected_remote_name
             || entry.size != self.original.size
+            || entry.sha256 != self.original.sha256
         {
             return Err(GuardError::RemoteNotVerified);
         }
@@ -187,6 +192,7 @@ mod tests {
             size: 12,
             modified_ns: 1_700_000_000_000,
             file_id: Some(12345),
+            sha256: [1; 32],
         }
     }
 
@@ -207,6 +213,7 @@ mod tests {
             name: "archive.txt".to_owned(),
             size: 12,
             is_regular_file: true,
+            sha256: [1; 32],
         }
     }
 
