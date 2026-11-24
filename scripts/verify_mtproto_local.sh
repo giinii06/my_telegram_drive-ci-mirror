@@ -6,6 +6,16 @@ set +x
 fail() { printf 'tdrive-local-check: %s\n' "$*" >&2; exit 1; }
 step() { printf '\n[tdrive-local-check] %s\n' "$*"; }
 
+scope=full
+if [[ $# == 1 && "$1" == --root-only ]]; then
+  scope=root-only
+elif [[ $# != 0 ]]; then
+  fail 'usage: verify_mtproto_local.sh [--root-only]'
+fi
+if [[ "$scope" == root-only && "${TDRIVE_CHECK_DOCKER:-0}" == 1 ]]; then
+  fail 'Docker requires full verification scope'
+fi
+
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd -- "$root"
 [[ "$(git rev-parse --show-toplevel 2>/dev/null)" == "$root" ]] || fail 'run from a Git checkout root'
@@ -19,7 +29,7 @@ step "private checkout SHA: $sha"
 
 [[ -f Cargo.toml && -f apps/tdrive-mtproto/Cargo.toml ]] || fail 'missing Rust workspace manifest'
 [[ -s Cargo.lock ]] || fail 'root Cargo.lock missing; resolve and review it on a trusted private checkout before retrying'
-if [[ ! -s apps/tdrive-mtproto/Cargo.lock ]]; then
+if [[ "$scope" == full && ! -s apps/tdrive-mtproto/Cargo.lock ]]; then
   fail 'nested Cargo.lock missing; on a trusted machine generate it with: cargo +1.92.0 generate-lockfile --manifest-path apps/tdrive-mtproto/Cargo.toml; audit and commit before retrying'
 fi
 command -v cargo >/dev/null 2>&1 || fail 'cargo not installed (Rust 1.92 required)'
@@ -35,6 +45,10 @@ step 'test root Rust workspace with locked deps'
 cargo +1.92.0 test --workspace --all-targets --locked
 step 'build root Rust workspace release with locked deps'
 cargo +1.92.0 build --workspace --release --locked
+if [[ "$scope" == root-only ]]; then
+  step "PASS: root-only Rust checks finished at SHA $sha (native MTProto checks not performed; no live Telegram E2E performed)"
+  exit 0
+fi
 step 'fmt standalone Telegram workspace'
 cargo +1.92.0 fmt --manifest-path apps/tdrive-mtproto/Cargo.toml --check
 step 'clippy standalone Telegram workspace with locked deps'
