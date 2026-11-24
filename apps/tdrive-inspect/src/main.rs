@@ -63,6 +63,9 @@ fn main() -> ExitCode {
         [option, source, destination, key] if option == "--decrypt-file" => {
             offline_file(offline_crypto::Mode::Decrypt, source, destination, key)
         }
+        [option, path, channel, message] if option == "--list-parts" => {
+            list_parts(path, channel, message)
+        }
         [option, path, channel, parent] if option == "--list-folder" => {
             list_folder(path, channel, parent)
         }
@@ -86,7 +89,7 @@ fn main() -> ExitCode {
         }
         _ => {
             eprintln!(
-                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id> | --serve-readonly <detached-snapshot.sqlite> <private-token-file> <loopback-port>"
+                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id> | --list-parts <detached-snapshot.sqlite> <channel-id> <file-message-id> | --serve-readonly <detached-snapshot.sqlite> <private-token-file> <loopback-port>"
             );
             ExitCode::FAILURE
         }
@@ -129,6 +132,55 @@ fn list_folder(path: &str, channel: &str, parent: &str) -> ExitCode {
         }
         Err(_) => {
             eprintln!("detached SQLite snapshot is invalid or unsafe");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn list_parts(path: &str, channel: &str, message: &str) -> ExitCode {
+    fn positive_decimal(value: &str) -> Option<i64> {
+        if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+            return None;
+        }
+        value.parse::<i64>().ok().filter(|id| *id > 0)
+    }
+
+    let (Some(channel_id), Some(message_id)) =
+        (positive_decimal(channel), positive_decimal(message))
+    else {
+        eprintln!("invalid positive decimal channel or message ID");
+        return ExitCode::FAILURE;
+    };
+    let snapshot = Path::new(path);
+    if !snapshot.is_absolute() {
+        eprintln!("absolute detached SQLite snapshot path required");
+        return ExitCode::FAILURE;
+    }
+    match tdrive_storage::resolve_multipart_snapshot(snapshot, channel_id, message_id) {
+        Ok(Some(parts)) => {
+            use std::fmt::Write as _;
+            let mut output = String::from("{\"parts\":[");
+            for (index, part) in parts.iter().enumerate() {
+                if index != 0 {
+                    output.push(',');
+                }
+                write!(
+                    &mut output,
+                    "{{\"partIndex\":\"{}\",\"msgId\":\"{}\",\"size\":\"{}\"}}",
+                    part.part_index, part.msg_id, part.size
+                )
+                .expect("String writes cannot fail");
+            }
+            output.push_str("]}");
+            println!("{output}");
+            ExitCode::SUCCESS
+        }
+        Ok(None) => {
+            eprintln!("no multipart manifest");
+            ExitCode::FAILURE
+        }
+        Err(_) => {
+            eprintln!("multipart snapshot is incomplete or unsafe");
             ExitCode::FAILURE
         }
     }
