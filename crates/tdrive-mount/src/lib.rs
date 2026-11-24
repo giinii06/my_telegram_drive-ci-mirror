@@ -1,4 +1,7 @@
-//! Offline WebDAV protocol boundaries. No listener or lock state is created here.
+//! Offline WebDAV protocol boundaries and exclusive lock registry.
+//! No listener or live mutation handler is created here.
+mod registry;
+pub use registry::{LockError, LockRegistry};
 use std::time::Duration;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

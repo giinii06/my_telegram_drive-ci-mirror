@@ -376,6 +376,9 @@ version = "0.1.0"
 [[package]]
 name = "tdrive-mount"
 version = "0.1.0"
+dependencies = [
+ "rand_core",
+]
 
 [[package]]
 name = "tdrive-projection"
