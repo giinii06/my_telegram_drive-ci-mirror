@@ -170,3 +170,32 @@ fn never_follows_final_symlink_or_accepts_relative_snapshot() {
         assert!(result.stdout.is_empty());
     }
 }
+
+#[test]
+fn multipart_cli_outputs_complete_ordered_metadata_without_writing_snapshot() {
+    let fixture = Fixture::new();
+    let conn = Connection::open(&fixture.db).unwrap();
+    conn.execute_batch(
+        "DROP TABLE file_parts;
+         CREATE TABLE file_parts(channel_id INTEGER,upload_uuid TEXT,part_index INTEGER,msg_id INTEGER,size INTEGER);
+         INSERT INTO file_parts VALUES(9007199254740993,'uuid',0,9223372036854775805,42);",
+    ).unwrap();
+    drop(conn);
+    let run = || Command::new(env!("CARGO_BIN_EXE_tdrive-inspect"))
+        .args(["--list-parts", fixture.db.to_str().unwrap(), &CHANNEL.to_string(), &FILE_ID.to_string()])
+        .output().unwrap();
+    let before = fs::read(&fixture.db).unwrap();
+    let result = run();
+    assert!(result.status.success());
+    assert_eq!(String::from_utf8(result.stdout).unwrap().trim(),
+        r#"{"parts":[{"partIndex":"0","msgId":"9223372036854775805","size":"42"}]}"#);
+    assert_eq!(fs::read(&fixture.db).unwrap(), before);
+    let conn = Connection::open(&fixture.db).unwrap();
+    conn.execute("DELETE FROM file_parts", []).unwrap();
+    drop(conn);
+    let before = fs::read(&fixture.db).unwrap();
+    let result = run();
+    assert!(!result.status.success());
+    assert!(result.stdout.is_empty());
+    assert_eq!(fs::read(&fixture.db).unwrap(), before);
+}
