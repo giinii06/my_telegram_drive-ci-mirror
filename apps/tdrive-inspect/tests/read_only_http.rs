@@ -53,6 +53,8 @@ fn fixture() -> (PathBuf, PathBuf, PathBuf) {
                (123,12,'',0,1,0,'deleted',1,'',1,3,0,0,0);
          INSERT INTO file_parts VALUES(123,'complete',1,8,3),(123,'complete',0,7,2),
                                       (123,'incomplete',0,7,2),(123,'deleted',0,7,3);
+         INSERT INTO folders VALUES(321,'d:large','',1,0);
+         INSERT INTO dirents VALUES(321,'d:large','','large',1,0,hex(zeroblob(524289)),'folder');
          CREATE TABLE pending_joins(id INTEGER);
          CREATE TABLE trash_entries(id INTEGER);
          CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key)
@@ -137,6 +139,9 @@ fn loopback_health_requires_auth_and_offline_folder_reads_remain_readonly() {
     for path in ["/v1/parts?channel=123", "/v1/parts?channel=123&message=0", "/v1/parts?channel=123&message=10&message=11"] {
         assert!(request(port, Some(good), path).starts_with("HTTP/1.1 400"));
     }
+    let oversized = request(port, Some(good), "/v1/folders?channel=321&parent=");
+    assert!(oversized.starts_with("HTTP/1.1 413 Content Too Large"), "{oversized}");
+    assert!(oversized.ends_with(r#"{"error":"response too large"}"#));
     assert_eq!(fs::read(&snapshot).unwrap(), bytes_before);
 
     drop(guard);
