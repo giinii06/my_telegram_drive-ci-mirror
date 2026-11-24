@@ -61,3 +61,12 @@ Phase 04 source diff reviewed against Go wire.go and existing formatter. Test-on
 | 10 | fa493346fac7a22664eadfd470982c94ab61a9d6 | 3106081056 | success |
 
 Provider callback is not actual job evidence. Failed candidates remain blocked for failure-log inspection, not fixed speculatively. No candidate is merged, verified or completed.
+
+## Wave 4 independent candidate scopes
+
+- Phase 01: CI evidence verifier requires the actual Go data/auth/lock step and rejects a response for another requested run ID. Synthetic tests only; no provider switch.
+- Phase 11: separate experimental offline Rust inspector Dockerfile, nonroot, locked build, explicit version default. No change to live Compose or Go image; future server packaging consumer.
+- Phase 12: bound the total loopback HTTP header read duration, and reject multiply linked token files. No public bind or new routes; future server hardening consumer.
+- Phase 13: offline CLI compares all existing core-table digests on two detached v16 snapshots, reports only changed table names and exit status. No production data, no writes or actual canary claim.
+
+Each candidate gets an isolated branch and own CI. Phase 08 provider failure remains unresolved because the external job trace is not available; do not infer a source error from callback alone. No phase advancement, integration, deployment or Go deletion.
