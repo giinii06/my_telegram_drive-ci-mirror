@@ -253,16 +253,7 @@ pub fn inspect_connection(conn: &Connection) -> Result<SnapshotReport, SnapshotE
         }
     }
 
-    let exists: Option<i64> = conn
-        .query_row(
-            "SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_dirents_live_sibling_name'",
-            [],
-            |row| row.get(0),
-        )
-        .optional()?;
-    if exists.is_none() {
-        return Err(SnapshotError::InvalidIndex);
-    }
+    validate_live_name_index(conn)?;
 
     let result: String = conn.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
     if result != "ok" {
@@ -295,6 +286,60 @@ pub fn inspect_connection(conn: &Connection) -> Result<SnapshotReport, SnapshotE
         schema_version: version,
         table_counts,
     })
+}
+
+fn validate_live_name_index(conn: &Connection) -> Result<(), SnapshotError> {
+    let index: Option<(i64, i64)> = conn
+        .query_row(
+            "SELECT [unique], partial FROM pragma_index_list('dirents')
+             WHERE name='idx_dirents_live_sibling_name'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()?;
+    if index != Some((1, 1)) {
+        return Err(SnapshotError::InvalidIndex);
+    }
+
+    let mut statement = conn.prepare(
+        "SELECT name, coll FROM pragma_index_xinfo('idx_dirents_live_sibling_name')
+         WHERE key=1 ORDER BY seqno",
+    )?;
+    let columns = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, Option<String>>(0)?, row.get::<_, String>(1)?))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    if columns.len() != 3
+        || !columns.iter().zip(["channel_id", "parent_id", "name_key"]).all(
+            |((name, collation), expected)| {
+                name.as_deref() == Some(expected) && collation.eq_ignore_ascii_case("BINARY")
+            },
+        )
+    {
+        return Err(SnapshotError::InvalidIndex);
+    }
+
+    // Require the exact Go-v16 active-row predicate, ignoring whitespace,
+    // case and one enclosing pair of parentheses. Reject unfamiliar schemas.
+    let sql: String = conn.query_row(
+        "SELECT sql FROM sqlite_master WHERE type='index'
+         AND name='idx_dirents_live_sibling_name' AND tbl_name='dirents'",
+        [],
+        |row| row.get(0),
+    )?;
+    let normalized: String = sql
+        .chars()
+        .filter(|character| !character.is_ascii_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect();
+    let predicate = normalized
+        .rsplit_once("where")
+        .map(|(_, predicate)| predicate.trim_end_matches(';'));
+    if !matches!(predicate, Some("tombstoned=0" | "(tombstoned=0)")) {
+        return Err(SnapshotError::InvalidIndex);
+    }
+    Ok(())
 }
 
 fn has_table(conn: &Connection, name: &str) -> Result<bool, SnapshotError> {
