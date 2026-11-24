@@ -1,6 +1,6 @@
 //! Localhost-only, read-only HTTP adapter for detached Go v16 snapshots.
 //! No public bind, remote Telegram access, write endpoints or TLS is exposed.
-use crate::folder_json;
+use crate::{folder_json, parts_json};
 use crate::http_deadline::remaining;
 use crate::http_contract::{ApiRoute, HttpError, parse_request, valid_token};
 use std::fs::{self, File};
@@ -110,6 +110,20 @@ fn handle(socket: &mut TcpStream, snapshot: &Path, secret: &[u8]) {
     let route = receive(socket).and_then(|raw| parse_request(&raw, secret));
     let (status, response) = match route {
         Ok(ApiRoute::Health) => ("200 OK", r#"{"status":"ok"}"#.to_string()),
+        Ok(ApiRoute::Parts { channel_id, message_id }) => {
+            match tdrive_storage::resolve_multipart_snapshot(snapshot, channel_id, message_id) {
+                Ok(Some(parts)) => {
+                    let json = parts_json::encode_json(&parts);
+                    if json.len() > MAX_RESPONSE {
+                        ("413 Content Too Large", r#"{"error":"response too large"}"#.to_string())
+                    } else {
+                        ("200 OK", json)
+                    }
+                }
+                Ok(None) => ("404 Not Found", r#"{"error":"not found"}"#.to_string()),
+                Err(_) => ("422 Unprocessable Content", r#"{"error":"invalid or incomplete snapshot"}"#.to_string()),
+            }
+        }
         Ok(ApiRoute::Folder { channel_id, parent }) => {
             match tdrive_storage::list_folder_contents_snapshot(snapshot, channel_id, &parent) {
                 Ok(listing) => {

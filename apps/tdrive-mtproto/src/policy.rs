@@ -1,4 +1,5 @@
 //! Fail-closed CLI parsing and filesystem guards, without network side effects.
+use crate::verified_download::ExpectedContent;
 use std::fmt;
 use std::fs;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
@@ -34,6 +35,7 @@ pub enum CliAction {
     History { peer: String, limit: usize },
     Upload { peer: String, source: PathBuf },
     Download { peer: String, message_id: i32, destination: PathBuf },
+    DownloadVerified { peer: String, message_id: i32, destination: PathBuf, expected: ExpectedContent },
 }
 
 fn valid_peer(value: &str) -> bool {
@@ -95,6 +97,16 @@ pub fn parse_action(args: &[String]) -> Result<CliAction, PolicyError> {
                 return Err(PolicyError::InvalidArguments);
             }
             Ok(CliAction::Upload { peer: peer.clone(), source })
+        }
+        [cmd, peer, message_id, file, size, digest] if cmd == "download-verified" && valid_peer(peer) => {
+            let message_id = message_id.parse::<i32>().map_err(|_| PolicyError::InvalidArguments)?;
+            let destination = PathBuf::from(file);
+            if message_id <= 0 || !absolute_simple(&destination) {
+                return Err(PolicyError::InvalidArguments);
+            }
+            let expected = ExpectedContent::parse(size, digest)
+                .map_err(|_| PolicyError::InvalidArguments)?;
+            Ok(CliAction::DownloadVerified { peer: peer.clone(), message_id, destination, expected })
         }
         [cmd, peer, message_id, file] if cmd == "download" && valid_peer(peer) => {
             let message_id = message_id.parse::<i32>().map_err(|_| PolicyError::InvalidArguments)?;

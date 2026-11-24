@@ -1,5 +1,6 @@
 //! Offline contract inspector. Never opens Telegram or production services.
 mod folder_json;
+mod parts_json;
 #[cfg(unix)]
 mod http_contract;
 #[cfg(unix)]
@@ -188,21 +189,7 @@ fn list_parts(path: &str, channel: &str, message: &str) -> ExitCode {
     }
     match tdrive_storage::resolve_multipart_snapshot(snapshot, channel_id, message_id) {
         Ok(Some(parts)) => {
-            use std::fmt::Write as _;
-            let mut output = String::from("{\"parts\":[");
-            for (index, part) in parts.iter().enumerate() {
-                if index != 0 {
-                    output.push(',');
-                }
-                write!(
-                    &mut output,
-                    "{{\"partIndex\":\"{}\",\"msgId\":\"{}\",\"size\":\"{}\"}}",
-                    part.part_index, part.msg_id, part.size
-                )
-                .expect("String writes cannot fail");
-            }
-            output.push_str("]}");
-            println!("{output}");
+            println!("{}", parts_json::encode_json(&parts));
             ExitCode::SUCCESS
         }
         Ok(None) => {

@@ -91,7 +91,7 @@ fn resolve_connection(
     }
     let manifest: Option<(String, i64, i64)> = connection
         .query_row(
-            "SELECT upload_uuid, part_count, size FROM files WHERE channel_id=?1 AND msg_id=?2",
+            "SELECT upload_uuid, part_count, size FROM files WHERE channel_id=?1 AND msg_id=?2 AND tombstoned=0",
             params![channel_id, file_msg_id],
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
@@ -102,7 +102,7 @@ fn resolve_connection(
     if uuid.is_empty() {
         return Ok(None);
     }
-    if count <= 0 || size < 0 {
+    if count <= 0 || count > 100_000 || size < 0 {
         return Err(MultipartError::InvalidManifest);
     }
     let mut statement = connection.prepare(
@@ -135,9 +135,9 @@ mod tests {
     fn lookup_is_channel_scoped_and_refuses_missing_parts() {
         let db = Connection::open_in_memory().unwrap();
         db.execute_batch(
-            "CREATE TABLE files(channel_id INTEGER,msg_id INTEGER,upload_uuid TEXT,part_count INTEGER,size INTEGER);
+            "CREATE TABLE files(channel_id INTEGER,msg_id INTEGER,upload_uuid TEXT,part_count INTEGER,size INTEGER,tombstoned INTEGER DEFAULT 0);
              CREATE TABLE file_parts(channel_id INTEGER,upload_uuid TEXT,part_index INTEGER,msg_id INTEGER,size INTEGER);
-             INSERT INTO files VALUES(1,9,'upload',2,7),(2,9,'upload',2,7),(1,10,'',0,2);
+             INSERT INTO files(channel_id,msg_id,upload_uuid,part_count,size) VALUES(1,9,'upload',2,7),(2,9,'upload',2,7),(1,10,'',0,2);
              INSERT INTO file_parts VALUES(1,'upload',1,4,4),(1,'upload',0,3,3),(2,'upload',0,8,7);",
         )
         .unwrap();

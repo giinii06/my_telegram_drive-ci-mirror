@@ -5,6 +5,7 @@ const MAX_HEADER_BYTES: usize = 8192;
 #[derive(Debug, PartialEq, Eq)]
 pub enum ApiRoute {
     Health,
+    Parts { channel_id: i64, message_id: i64 },
     Folder { channel_id: i64, parent: String },
 }
 
@@ -115,6 +116,31 @@ fn parse_folder(target: &str) -> Result<ApiRoute, HttpError> {
     })
 }
 
+fn parse_parts(target: &str) -> Result<ApiRoute, HttpError> {
+    let (_, query) = target.split_once('?').ok_or(HttpError::BadRequest)?;
+    let mut channel = None;
+    let mut message = None;
+    for pair in query.split('&') {
+        let (name, value) = pair.split_once('=').ok_or(HttpError::BadRequest)?;
+        if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+            return Err(HttpError::BadRequest);
+        }
+        let id = value.parse::<i64>().map_err(|_| HttpError::BadRequest)?;
+        if id <= 0 {
+            return Err(HttpError::BadRequest);
+        }
+        match name {
+            "channel" if channel.is_none() => channel = Some(id),
+            "message" if message.is_none() => message = Some(id),
+            _ => return Err(HttpError::BadRequest),
+        }
+    }
+    Ok(ApiRoute::Parts {
+        channel_id: channel.ok_or(HttpError::BadRequest)?,
+        message_id: message.ok_or(HttpError::BadRequest)?,
+    })
+}
+
 /// Parses a complete, non-pipelined GET request. Always authenticate before
 /// looking up a route, so anonymous callers cannot enumerate API endpoints.
 pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, HttpError> {
@@ -183,6 +209,9 @@ pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, Ht
     }
     if target == "/health" {
         return Ok(ApiRoute::Health);
+    }
+    if target.starts_with("/v1/parts?") {
+        return parse_parts(target);
     }
     if target.starts_with("/v1/folders?") {
         return parse_folder(target);

@@ -11,6 +11,8 @@ pub use backup::{
 };
 mod listing;
 mod multipart;
+mod multipart_assembly;
+pub use multipart_assembly::assemble_multipart;
 pub use multipart::{FilePart, MultipartError, resolve_multipart_snapshot, validate_multipart_parts};
 mod replay;
 mod replay_writer;
