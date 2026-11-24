@@ -356,6 +356,7 @@ dependencies = [
  "hkdf",
  "rand_core",
  "sha2",
+ "zeroize",
 ]
 
 [[package]]

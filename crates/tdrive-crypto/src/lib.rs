@@ -10,6 +10,8 @@ mod file_io;
 mod name;
 mod stream;
 mod vault;
+mod vault_session;
+pub use vault_session::{VaultSession, VaultSessionError};
 pub use vault::{
     VaultEnvelopeError, encode_key_check, unwrap_master_key, verify_key_check, wrap_master_key,
 };
