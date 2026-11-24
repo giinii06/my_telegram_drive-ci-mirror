@@ -18,7 +18,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[cfg(unix)]
-use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 
 const APP_DIR: &str = "TDrive";
 const MAX_SECRET_BYTES: usize = 1024 * 1024;
@@ -150,6 +150,15 @@ impl ConfigDirs {
             return Err(ConfigError::OversizedSecret);
         }
         let file = File::open(&path)?;
+        let opened = file.metadata()?;
+        check_private_file(&opened)?;
+        #[cfg(unix)]
+        if metadata.dev() != opened.dev() || metadata.ino() != opened.ino() {
+            return Err(ConfigError::UnsafePath);
+        }
+        if opened.len() > MAX_SECRET_BYTES as u64 {
+            return Err(ConfigError::OversizedSecret);
+        }
         let mut data = Vec::new();
         file.take((MAX_SECRET_BYTES + 1) as u64)
             .read_to_end(&mut data)?;
@@ -258,7 +267,7 @@ fn check_private_directory(metadata: &fs::Metadata) -> Result<(), ConfigError> {
 
 #[cfg(unix)]
 fn check_private_file(metadata: &fs::Metadata) -> Result<(), ConfigError> {
-    if metadata.file_type().is_symlink() || !metadata.is_file() {
+    if metadata.file_type().is_symlink() || !metadata.is_file() || metadata.nlink() != 1 {
         return Err(ConfigError::UnsafePath);
     }
     if metadata.permissions().mode() & 0o077 != 0 {

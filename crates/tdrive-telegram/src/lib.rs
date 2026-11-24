@@ -211,6 +211,39 @@ pub trait TelegramWritePort: Send + Sync {
     ) -> PortFuture<'a, MessageId>;
 }
 
+/// Read-side proof of a previously attempted send, scoped to the same peer
+/// and durable operation key. Implementations must verify the operation
+/// identity, not merely a matching caption.
+pub trait SendReconciliationPort: Send + Sync {
+    fn find_sent_control<'a>(
+        &'a self,
+        peer: InputPeer,
+        key: &'a DurableSendKey,
+    ) -> PortFuture<'a, Option<MessageId>>;
+}
+
+/// Send once and reconcile an uncertain response without issuing a second
+/// write. The caller must persist the key before invoking this function and
+/// persist a successful receipt before advancing the operation journal.
+pub async fn send_control_reconciled<P: TelegramWritePort + SendReconciliationPort>(
+    port: &P,
+    peer: InputPeer,
+    caption: &str,
+    silent: bool,
+    key: &DurableSendKey,
+) -> Result<MessageId, TelegramError> {
+    match port
+        .send_control(peer, caption, silent, key.random_id())
+        .await
+    {
+        Err(TelegramError::SendOutcomeUnknown) => match port.find_sent_control(peer, key).await {
+            Ok(Some(message)) => Ok(message),
+            Ok(None) | Err(_) => Err(TelegramError::SendOutcomeUnknown),
+        },
+        result => result,
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoginStage {
     Unconfigured,
