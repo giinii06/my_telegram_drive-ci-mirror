@@ -187,3 +187,30 @@ fn refuses_corrupt_manifest_and_never_creates_clone() {
     assert!(!clone.exists());
     assert!(tdrive_storage::verify_snapshot(&backup).is_err());
 }
+
+#[test]
+fn backup_verification_rejects_public_or_multiply_linked_material() {
+    use std::os::unix::fs::PermissionsExt;
+    let Some(source) = go_fixture() else {
+        return;
+    };
+    let scratch = Scratch::new();
+    let backup = scratch.file("source-backup.sqlite");
+    let receipt = create_consistent_snapshot(&source, &backup).unwrap();
+    let manifest = receipt.manifest_path;
+    let alias = scratch.file("alias");
+    let clone = scratch.file("clone.sqlite");
+    fs::set_permissions(&manifest, fs::Permissions::from_mode(0o644)).unwrap();
+    assert!(tdrive_storage::verify_snapshot(&backup).is_err());
+    fs::set_permissions(&manifest, fs::Permissions::from_mode(0o600)).unwrap();
+    for original in [&manifest, &backup] {
+        fs::hard_link(original, &alias).unwrap();
+        assert!(tdrive_storage::verify_snapshot(&backup).is_err());
+        assert!(tdrive_storage::restore_verified_clone(&backup, &clone).is_err());
+        assert!(!clone.exists());
+        fs::remove_file(&alias).unwrap();
+    }
+    assert!(tdrive_storage::verify_snapshot(&backup).is_ok());
+    fs::write(&manifest, vec![b'x'; 8193]).unwrap();
+    assert!(tdrive_storage::verify_snapshot(&backup).is_err());
+}
