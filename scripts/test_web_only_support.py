@@ -11,9 +11,14 @@ class WebOnlySupportTests(unittest.TestCase):
         self.assertFalse((ROOT / "packaging" / "android").exists())
 
     def test_release_workflow_has_no_android_apk_job_or_build_path(self):
-        workflow = (ROOT / ".github" / "workflows" / "installers.yml").read_text()
-        self.assertNotRegex(workflow, r"(?im)^  [a-z0-9_-]*(?:android|apk)[a-z0-9_-]*:")
-        self.assertNotRegex(workflow, r"(?i)(?:\bgradlew\b|assemble(?:debug|release)\b|\.apk\b|packaging[/\\]android\b)")
+        workflows = ROOT / ".github" / "workflows"
+        paths = sorted([*workflows.glob("*.yml"), *workflows.glob("*.yaml")])
+        self.assertIn(workflows / "installers.yml", paths)
+        for path in paths:
+            with self.subTest(workflow=path.name):
+                workflow = path.read_text(encoding="utf-8")
+                self.assertNotRegex(workflow, r"(?im)^  [a-z0-9_-]*(?:android|apk)[a-z0-9_-]*:")
+                self.assertNotRegex(workflow, r"(?i)(?:\bgradlew\b|assemble(?:debug|release)\b|\.apk\b|packaging[/\\]android\b)")
 
     def test_current_install_docs_do_not_advertise_android_apk(self):
         for relative in ("README.md", "packaging/README.md"):
