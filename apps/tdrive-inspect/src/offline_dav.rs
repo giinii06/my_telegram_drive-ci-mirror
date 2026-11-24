@@ -3,12 +3,7 @@
 use std::fmt::Write as _;
 use tdrive_storage::{DavEntry, DavListing};
 
-pub fn valid_name(name: &str) -> bool {
-    !name.is_empty() && name.len() <= 240 && name != "." && name != ".."
-        && name.chars().all(|c| {
-            !c.is_control() && !matches!(c, '/' | '\\' | '\u{fffe}' | '\u{ffff}')
-        })
-}
+use crate::http_contract::valid_dav_name;
 
 fn uri_segment(name: &str) -> String {
     let mut result = String::new();
@@ -36,7 +31,7 @@ fn xml_escape(value: &str, output: &mut String) {
 }
 
 fn entry(output: &mut String, href: &str, resource: &DavEntry) -> Option<()> {
-    if !valid_name(&resource.name) {
+    if !valid_dav_name(&resource.name) {
         return None;
     }
     output.push_str("<D:response><D:href>");
@@ -58,14 +53,14 @@ fn entry(output: &mut String, href: &str, resource: &DavEntry) -> Option<()> {
 pub fn render(channel: i64, segments: &[String], listing: &DavListing) -> Option<String> {
     let mut href = format!("/dav/{channel}/");
     for (i, segment) in segments.iter().enumerate() {
-        if !valid_name(segment) { return None; }
+        if !valid_dav_name(segment) { return None; }
         href.push_str(&uri_segment(segment));
         if i + 1 < segments.len() || listing.resource.collection { href.push('/'); }
     }
     let mut xml = String::from("<?xml version=\"1.0\" encoding=\"utf-8\"?><D:multistatus xmlns:D=\"DAV:\">");
     entry(&mut xml, &href, &listing.resource)?;
     for child in &listing.children {
-        if !valid_name(&child.name) { return None; }
+        if !valid_dav_name(&child.name) { return None; }
         let mut child_href = format!("{href}{}", uri_segment(&child.name));
         if child.collection { child_href.push('/'); }
         entry(&mut xml, &child_href, child)?;

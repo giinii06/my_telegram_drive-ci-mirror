@@ -143,6 +143,13 @@ fn parse_parts(target: &str) -> Result<ApiRoute, HttpError> {
     })
 }
 
+pub fn valid_dav_name(name: &str) -> bool {
+    !name.is_empty() && name.len() <= 240 && name != "." && name != ".."
+        && name.chars().all(|c| {
+            !c.is_control() && !matches!(c, '/' | '\\' | '\u{fffe}' | '\u{ffff}')
+        })
+}
+
 fn parse_dav(target: &str, depth: Option<&str>) -> Result<ApiRoute, HttpError> {
     let children = match depth {
         Some("0") => false,
@@ -168,7 +175,7 @@ fn parse_dav(target: &str, depth: Option<&str>) -> Result<ApiRoute, HttpError> {
             // Unlike query parameters, '+' is a literal URI path character.
             let decoded = decode_component(&segment.replace('+', "%2B"))
                 .ok_or(HttpError::BadRequest)?;
-            if !crate::offline_dav::valid_name(&decoded) || segments.len() >= 16 {
+            if !valid_dav_name(&decoded) || segments.len() >= 16 {
                 return Err(HttpError::BadRequest);
             }
             segments.push(decoded);

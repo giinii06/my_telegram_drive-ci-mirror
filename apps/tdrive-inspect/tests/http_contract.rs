@@ -88,3 +88,23 @@ fn malformed_folder_ids_channels_and_unknown_routes_never_resolve() {
         Err(HttpError::NotFound)
     );
 }
+
+
+#[test]
+fn bodyless_dav_path_decode_rejects_traversal_and_duplicate_depth() {
+    let secret = std::str::from_utf8(SECRET).unwrap();
+    let req = |path: &str, headers: &str| format!(
+        "PROPFIND {path} HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer {secret}\r\n{headers}\r\n"
+    ).into_bytes();
+    assert_eq!(parse_request(&req("/dav/124/A+B%20C/", "Depth: 1\r\nContent-Length: 0\r\n"), SECRET),
+        Ok(ApiRoute::Dav {channel_id:124,segments:vec!["A+B C".into()],children:true}));
+    for (path, headers) in [
+        ("/dav/124/%2e%2e/", "Depth: 1\r\n"),
+        ("/dav/124/a%2Fb/", "Depth: 1\r\n"),
+        ("/dav/124/", "Depth: 0\r\nDepth: 1\r\n"),
+        ("/dav/124/", "Depth: 1\r\nContent-Length: 1\r\n"),
+        ("/dav/124//", "Depth: 0\r\n"),
+    ] {
+        assert_eq!(parse_request(&req(path, headers), SECRET), Err(HttpError::BadRequest));
+    }
+}
