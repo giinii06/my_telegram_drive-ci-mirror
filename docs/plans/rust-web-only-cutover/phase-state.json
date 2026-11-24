@@ -264,8 +264,8 @@
         "code_sha": "66ca7485da68c0db466513ca95656f2b88b1a457",
         "pipeline_id": 3106109598,
         "dispatch": "success",
-        "provider_result": "unknown",
-        "provider_url": null,
+        "provider_result": "success",
+        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45298290966",
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
         "red_verified": false,
@@ -323,21 +323,39 @@
       ],
       "parallel_candidate": {
         "branch": "refactor/rust-only-parallel-05-vault-envelope",
-        "base_sha": "16dfe94646c81bc55d5d9ecbb94fe38ca36672a2",
-        "test_only_sha": "37b218c8061b614efcb26a7b3de3323ad730a75d",
-        "code_sha": "a08a20c112464adeb47126f4be451d1573309674",
-        "pipeline_id": 3106080986,
+        "base_sha": "a08a20c112464adeb47126f4be451d1573309674",
+        "test_only_sha": "a08ab5fdb6d3469e9d6d895f4a5297db1cf99225",
+        "code_sha": "c765f7bd9881063dbe495dfb32977e00a1bce8c0",
+        "pipeline_id": 3106120366,
         "dispatch": "success",
-        "provider_result": "success",
+        "provider_result": "unknown",
+        "provider_url": null,
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
         "red_verified": false,
         "green_verified": false,
         "reviewer_type": "self",
-        "scope": "Go-compatible XChaCha20-Poly1305 master-key wrap/unwrap and key-check envelopes; Argon2id, JSON metadata, key ownership and Go golden vectors still outstanding.",
-        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45296648050",
-        "provider_description": "GitHub Actions success"
-      }
+        "scope": "Per-vault authenticated in-memory key owner; failed unlock revokes existing access; explicit lock, no key export, filename encryption/decryption through unlocked session, zeroizing owned key and temporary envelope plaintext. Password KDF, channel binding and server integration remain."
+      },
+      "parallel_candidate_history": [
+        {
+          "branch": "refactor/rust-only-parallel-05-vault-envelope",
+          "base_sha": "16dfe94646c81bc55d5d9ecbb94fe38ca36672a2",
+          "test_only_sha": "37b218c8061b614efcb26a7b3de3323ad730a75d",
+          "code_sha": "a08a20c112464adeb47126f4be451d1573309674",
+          "pipeline_id": 3106080986,
+          "dispatch": "success",
+          "provider_result": "success",
+          "jobs_verified": "unknown",
+          "e2e_verified": "unknown",
+          "red_verified": false,
+          "green_verified": false,
+          "reviewer_type": "self",
+          "scope": "Go-compatible XChaCha20-Poly1305 master-key wrap/unwrap and key-check envelopes; Argon2id, JSON metadata, key ownership and Go golden vectors still outstanding.",
+          "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45296648050",
+          "provider_description": "GitHub Actions success"
+        }
+      ]
     },
     {
       "id": "06",
@@ -371,8 +389,8 @@
         "code_sha": "041b6b2e7a38b460ddf0ead29e573ea5bbcc91cb",
         "pipeline_id": 3106109754,
         "dispatch": "success",
-        "provider_result": "unknown",
-        "provider_url": null,
+        "provider_result": "success",
+        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45298258536",
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
         "red_verified": false,
@@ -517,21 +535,39 @@
       ],
       "parallel_candidate": {
         "branch": "refactor/rust-only-parallel-09-webdav-lock",
-        "base_sha": "16dfe94646c81bc55d5d9ecbb94fe38ca36672a2",
-        "test_only_sha": "830851a92f7540287597f684c5b3b969f5addecc",
-        "code_sha": "1bce87324055616c566e0079f42dd9d997c7be28",
-        "pipeline_id": 3106078024,
+        "base_sha": "1bce87324055616c566e0079f42dd9d997c7be28",
+        "test_only_sha": "f6f850d6e92fdbb4143a0bce1620915a5cfd36ed",
+        "code_sha": "ee857c65d5523c5168a46773f80796dd10224525",
+        "pipeline_id": 3106120469,
         "dispatch": "success",
-        "provider_result": "success",
+        "provider_result": "unknown",
+        "provider_url": null,
         "jobs_verified": "unknown",
         "e2e_verified": "unknown",
         "red_verified": false,
         "green_verified": false,
         "reviewer_type": "self",
-        "scope": "Rust mount crate with Go-compatible LOCK Depth and Timeout parse rules; lock state, DAV handlers, auth, path normalization and integration still outstanding.",
-        "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45296452925",
-        "provider_description": "GitHub Actions success"
-      }
+        "scope": "Bounded in-memory exclusive lock registry with OS-random tokens, hierarchy conflict detection, path-bound refresh/unlock, expiry, recursive mutation conflict query. Caller NFC canonicalization and atomic mutation lease, DAV If parsing, HTTP handlers remain."
+      },
+      "parallel_candidate_history": [
+        {
+          "branch": "refactor/rust-only-parallel-09-webdav-lock",
+          "base_sha": "16dfe94646c81bc55d5d9ecbb94fe38ca36672a2",
+          "test_only_sha": "830851a92f7540287597f684c5b3b969f5addecc",
+          "code_sha": "1bce87324055616c566e0079f42dd9d997c7be28",
+          "pipeline_id": 3106078024,
+          "dispatch": "success",
+          "provider_result": "success",
+          "jobs_verified": "unknown",
+          "e2e_verified": "unknown",
+          "red_verified": false,
+          "green_verified": false,
+          "reviewer_type": "self",
+          "scope": "Rust mount crate with Go-compatible LOCK Depth and Timeout parse rules; lock state, DAV handlers, auth, path normalization and integration still outstanding.",
+          "provider_url": "https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45296452925",
+          "provider_description": "GitHub Actions success"
+        }
+      ]
     },
     {
       "id": "10",

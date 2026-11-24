@@ -107,3 +107,18 @@ Previous Wave 4 (01,11,12,13) exact candidate provider callbacks now success; no
 - Phase 05: continue the existing vault envelope branch. Introduce a non-cloneable, non-Debug, explicitly lockable per-vault session that validates both wrapped master and key-check before exposing filename encryption/decryption. Use existing locked zeroize dependency for best-effort memory clearing; no password KDF or live session service yet. A failed unlock leaves session locked. Consumer: future authenticated vault API.
 - Phase 09: continue existing mount branch. Implement bounded in-memory exclusive lock registry with random opaque tokens, ancestor/descendant collision checks, path-bound refresh/unlock, expiry, and mutation conflict query. Callers must supply canonical NFC resource paths; no HTTP handler or concurrent mutation hold yet. Consumer: future WebDAV handler. No persisted locks or remote mutations.
 - Phase 08: provider failed callback persists; actual job log unavailable and local Rust toolchain absent. No speculative CI fix. No live integration, main merge, deployment, or Go removal. Test-first candidates remain unverified until actual execution.
+
+### Wave 6 checkpoint
+
+Two isolated candidates, with test-only commits followed by code commits. Actual local toolchain check found neither rustc nor cargo, so RED/GREEN and precommit Rust checks not executed. Source diff self-review: vault exposes only authenticated name operations, revokes old key on failed unlock, no Debug/Clone or persistence; WebDAV registry checks ancestor and recursive descendant conflicts and binds refresh/unlock to root. Remaining important integration risks: external authorization and vault identity, canonical NFC validation and atomic mutation hold; no server exposure. New dependencies already existed in the workspace lock; full locked build not observed. Phase 08 failed external callback still has no actual job trace. No independent agent, merge, deploy, live DB or Telegram access. No phase promoted.
+
+| Phase | SHA | Pipeline | Provider |
+|---|---|---|---|
+| 05 | c765f7bd9881063dbe495dfb32977e00a1bce8c0 | 3106120366 | unknown |
+| 09 | ee857c65d5523c5168a46773f80796dd10224525 | 3106120469 | unknown |
+
+- Phase 04: success; job details unknown. https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45298290966
+
+- Phase 06: success; job details unknown. https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45298258536
+
+- Phase 08: failed; job details unknown. https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45296470682
