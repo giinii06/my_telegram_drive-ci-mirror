@@ -4,3 +4,4 @@
 
 pub mod policy;
 pub mod inbox;
+pub mod verified_download;

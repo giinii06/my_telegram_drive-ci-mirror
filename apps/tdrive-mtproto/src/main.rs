@@ -22,6 +22,8 @@ use tdrive_mtproto::policy::{
     validate_session_path, validate_source,
 };
 
+use tdrive_mtproto::verified_download::{ExpectedContent, publish_verified, validate_private_target};
+
 type AnyError = Box<dyn std::error::Error + Send + Sync>;
 type Result<T> = std::result::Result<T, AnyError>;
 const MAX_DIALOGS: usize = 4096;
@@ -328,8 +330,11 @@ impl Drop for StagedDownload {
     fn drop(&mut self) { let _ = fs::remove_file(&self.0); }
 }
 
-async fn download(client: &Client, name: &str, message_id: i32, target: &Path) -> Result<()> {
+async fn download(client: &Client, name: &str, message_id: i32, target: &Path, expected: Option<ExpectedContent>) -> Result<()> {
     validate_download_path(target)?;
+    if expected.is_some() {
+        validate_private_target(target)?;
+    }
     let peer = resolve_peer(client, name).await?;
     let reference = peer.to_ref().await?
         .ok_or("Telegram peer reference not available")?;
@@ -348,8 +353,13 @@ async fn download(client: &Client, name: &str, message_id: i32, target: &Path) -
     }
     // A hard link publishes the already-downloaded file with O_EXCL-like
     // no-clobber semantics. Do not use rename() which replaces existing files.
-    fs::hard_link(&temporary.0, target)?;
-    println!("Downloaded file saved");
+    if let Some(expected) = expected {
+        publish_verified(&temporary.0, target, expected)?;
+        println!("Verified download saved");
+    } else {
+        fs::hard_link(&temporary.0, target)?;
+        println!("Downloaded file saved (content digest not checked)");
+    }
     Ok(())
 }
 
@@ -361,6 +371,7 @@ async fn run() -> Result<()> {
         println!("Commands: login | status | dialogs | history <@username|dialog-id> <1..100>");
         println!("          upload <@username|dialog-id> <absolute-source>");
         println!("          download <@username|dialog-id> <message-id> <absolute-target>");
+        println!("          download-verified <peer> <message-id> <private-absolute-target> <size> <sha256>");
         println!("          ingest <@username|dialog-id> <1..100> | inbox-stats");
         println!("          catchup <@username|dialog-id> <1..10000>");
         println!("          watch <@username|dialog-id> <1..10000> <15..3600-seconds>");
@@ -414,7 +425,9 @@ async fn run() -> Result<()> {
             CliAction::History { peer, limit } => history(&client, &peer, limit).await,
             CliAction::Upload { peer, source } => upload(&client, &peer, &source).await,
             CliAction::Download { peer, message_id, destination } =>
-                download(&client, &peer, message_id, &destination).await,
+                download(&client, &peer, message_id, &destination, None).await,
+            CliAction::DownloadVerified { peer, message_id, destination, expected } =>
+                download(&client, &peer, message_id, &destination, Some(expected)).await,
             CliAction::Help | CliAction::InboxStats | CliAction::Login => unreachable!(),
         }
     }.await;
