@@ -1,7 +1,7 @@
 //! Transactional Go v16 replay journal writer for an explicitly supplied DB.
 //!
-//! This module applies ordinary multipart part metadata only; it does not
-//! mutate folders/files or manage
+//! This module applies ordinary multipart part metadata and a restricted plain
+//! legacy mkdir subset; it does not manage
 //! SQLite locks, Telegram connections, migrations, or live production paths.
 //! The caller must own the only writer and operate on an isolated test clone
 //! until full Go projection parity has been verified.
@@ -84,7 +84,7 @@ pub fn append_replay_event(
     connection: &mut Connection,
     event: &IncomingReplayEvent<'_>,
 ) -> Result<ReplayWriteOutcome, ReplayWriteError> {
-    append_replay_event_inner(connection, event, None)
+    append_replay_event_inner(connection, event, None, None)
 }
 
 /// Project an ordinary multipart part and its journal row atomically on a
@@ -129,13 +129,116 @@ pub fn project_plain_part(
         actor_user_id,
         seen_at,
     };
-    append_replay_event_inner(connection, &event, Some((uuid, op.part_index, op.file_size)))
+    append_replay_event_inner(
+        connection, &event, Some((uuid, op.part_index, op.file_size)), None,
+    )
+}
+
+/// Project the collision-free portable ASCII subset of legacy mkdir on a
+/// disposable clone. Full Unicode normalization/legacy alias parity is pending.
+/// Folder and namespace state must be consistent or the transaction fails.
+pub fn project_plain_folder(
+    connection: &mut Connection,
+    channel_id: i64,
+    msg_id: i64,
+    raw_header: &str,
+    actor_user_id: i64,
+    seen_at: i64,
+) -> Result<ReplayWriteOutcome, ReplayWriteError> {
+    if raw_header.len() > MAX_HEADER_BYTES {
+        return Err(ReplayWriteError::InvalidEntry);
+    }
+    let op = parse_wire(raw_header).map_err(|_| ReplayWriteError::InvalidWire)?;
+    if op.op_type != OpType::Mkdir
+        || op.encrypted
+        || op.encrypted_name.is_some()
+        || op.encryption_version != 0
+        || op.plaintext_size != 0
+    {
+        return Err(ReplayWriteError::UnsupportedProjection);
+    }
+    let id = op.object.as_deref().ok_or(ReplayWriteError::InvalidWire)?;
+    let name = op.name.as_deref().ok_or(ReplayWriteError::InvalidWire)?;
+    if !plain_folder_id(id)
+        || (!op.parent.is_empty() && !plain_folder_id(&op.parent))
+        || plain_name_key(name).is_none()
+    {
+        return Err(ReplayWriteError::UnsupportedProjection);
+    }
+    let payload: String = connection.query_row(
+        "SELECT json_object('Type','mkdir','Obj',?1,'Parent',?2,'Name',?3)",
+        params![id, op.parent, name],
+        |row| row.get(0),
+    )?;
+    let event = IncomingReplayEvent {
+        channel_id,
+        msg_id,
+        op_type: "mkdir",
+        op_payload_json: &payload,
+        raw_header,
+        actor_user_id,
+        seen_at,
+    };
+    append_replay_event_inner(connection, &event, None, Some((id, &op.parent, name)))
+}
+
+fn plain_folder_id(id: &str) -> bool {
+    id.strip_prefix("d:").is_some_and(|value| {
+        !value.is_empty() && value.len() <= 254
+            && value.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    })
+}
+
+fn plain_name_key(name: &str) -> Option<String> {
+    if name.is_empty() || name.len() > 240 || name.trim().is_empty()
+        || name.ends_with([' ', '.'])
+        || !name.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b' ' | b'.' | b'_' | b'-'))
+    {
+        return None;
+    }
+    let key = name.to_ascii_lowercase();
+    let base = key.split('.').next()?;
+    if matches!(base, "con" | "prn" | "aux" | "nul" | "clock$")
+        || (base.len() == 4 && (base.starts_with("com") || base.starts_with("lpt"))
+            && matches!(base.as_bytes()[3], b'1'..=b'9'))
+    {
+        return None;
+    }
+    Some(key)
+}
+
+fn folder_consistent(
+    tx: &rusqlite::Transaction<'_>,
+    channel: i64,
+    id: &str,
+) -> Result<bool, ReplayWriteError> {
+    let row: Option<(String, String, i64, i64)> = tx.query_row(
+        "SELECT name,parent_id,revision,tombstoned FROM folders WHERE channel_id=?1 AND id=?2",
+        params![channel, id],
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+    ).optional()?;
+    let Some((name, parent, revision, tombstoned)) = row else {
+        return Ok(false);
+    };
+    let key = plain_name_key(&name).ok_or(ReplayWriteError::UnsupportedProjection)?;
+    let matches: i64 = tx.query_row(
+        "SELECT COUNT(*) FROM dirents WHERE channel_id=?1 AND object_id=?2
+           AND object_kind='folder' AND parent_id=?3 AND display_name=?4
+           AND name_key=?5 AND revision=?6 AND tombstoned=?7",
+        params![channel, id, parent, name, key, revision, tombstoned],
+        |r| r.get(0),
+    )?;
+    if matches != 1 {
+        return Err(ReplayWriteError::UnappliedReplay);
+    }
+    Ok(true)
 }
 
 fn append_replay_event_inner(
     connection: &mut Connection,
     event: &IncomingReplayEvent<'_>,
     part: Option<(&str, i64, i64)>,
+    folder: Option<(&str, &str, &str)>,
 ) -> Result<ReplayWriteOutcome, ReplayWriteError> {
     if event.channel_id <= 0
         || event.msg_id <= 0
@@ -204,6 +307,11 @@ fn append_replay_event_inner(
                     _ => return Err(ReplayWriteError::UnappliedReplay),
                 }
             }
+            if let Some((id, _, _)) = folder {
+                if !folder_consistent(&transaction, event.channel_id, id)? {
+                    return Err(ReplayWriteError::UnappliedReplay);
+                }
+            }
             ReplayWriteOutcome::AlreadySeen
         }
         Some(hash) => {
@@ -225,7 +333,7 @@ fn append_replay_event_inner(
             ReplayWriteOutcome::TamperRecorded
         }
         None => {
-            if part.is_some() {
+            if part.is_some() || folder.is_some() {
                 let last: Option<i64> = transaction.query_row(
                     "SELECT MAX(msg_id) FROM replay_log WHERE channel_id=?1",
                     [event.channel_id],
@@ -258,6 +366,21 @@ fn append_replay_event_inner(
                      ON CONFLICT(channel_id,upload_uuid,part_index) DO NOTHING",
                     params![event.channel_id, uuid, index, event.msg_id, size],
                 )?;
+            }
+            if let Some((id, parent, name)) = folder {
+                if !folder_consistent(&transaction, event.channel_id, id)? {
+                    let key = plain_name_key(name).ok_or(ReplayWriteError::UnsupportedProjection)?;
+                    transaction.execute(
+                        "INSERT INTO folders(channel_id,id,name,parent_id,tombstoned,revision)
+                         VALUES(?1,?2,?3,?4,0,1)",
+                        params![event.channel_id, id, name, parent],
+                    )?;
+                    transaction.execute(
+                        "INSERT INTO dirents(channel_id,object_id,object_kind,parent_id,display_name,name_key,revision,tombstoned)
+                         VALUES(?1,?2,'folder',?3,?4,?5,1,0)",
+                        params![event.channel_id, id, parent, name, key],
+                    )?;
+                }
             }
             ReplayWriteOutcome::Inserted
         }
