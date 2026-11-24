@@ -15,3 +15,17 @@ All candidates are isolated from the Draft MR branch; no integration/merge/deplo
 | 08 | [962f47e1](https://gitlab.com/blond11qq/my_telegram_drive/-/commit/962f47e126dd871f5d6611e2d6f6d7e271198353) | [3106077952](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3106077952) | pending | Bounded range copy from seekable source, invalid-range no read, short source rejected; actual media endpoint/auth/cache/cancellation/HLS still outstanding. |
 | 09 | [1bce8732](https://gitlab.com/blond11qq/my_telegram_drive/-/commit/1bce87324055616c566e0079f42dd9d997c7be28) | [3106078024](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3106078024) | pending | Rust mount crate with Go-compatible LOCK Depth and Timeout parse rules; lock state, DAV handlers, auth, path normalization and integration still outstanding. |
 | 10 | [fa493346](https://gitlab.com/blond11qq/my_telegram_drive/-/commit/fa493346fac7a22664eadfd470982c94ab61a9d6) | [3106081056](https://gitlab.com/blond11qq/my_telegram_drive/-/pipelines/3106081056) | unknown | Harden existing read-only HTTP parser for missing/duplicate/empty Host, control bytes in header values and invalid configured bearer token; full API parity/browser integration still outstanding. |
+
+## Wave 2: independent implementation scopes
+
+- Phase 05: branch `refactor/rust-only-parallel-vault-envelope` corrected to `refactor/rust-only-parallel-05-vault-envelope`; provider result success, jobs/E2E unknown.
+- Phase 07: branch `refactor/rust-only-parallel-backup-digest` corrected to `refactor/rust-only-parallel-07-backup-digest`; provider result success, jobs/E2E unknown.
+- Phase 08: branch `refactor/rust-only-parallel-bounded-media` corrected to `refactor/rust-only-parallel-08-bounded-media`; provider result failed, jobs/E2E unknown.
+- Phase 09: branch `refactor/rust-only-parallel-webdav-lock` corrected to `refactor/rust-only-parallel-09-webdav-lock`; provider result success, jobs/E2E unknown.
+- Phase 10: branch `refactor/rust-only-parallel-http-boundary` corrected to `refactor/rust-only-parallel-10-http-boundary`; provider result success, jobs/E2E unknown.
+
+- Phase 02 (tdrive-config): reject multiply-linked private files; validate the opened descriptor against pre-open metadata on Unix. Later consumer: native service/session config; no production credentials.
+- Phase 03 (tdrive-telegram): send control once using persisted random ID, reconcile ambiguous outcomes through an explicit read port, fail closed on unresolved delivery; later consumer: MTProto write adapter. No real Telegram account writes.
+- Phase 06 (tdrive-storage): resolve complete ordered multipart data from detached snapshot and validate manifest count/size/index; later consumer: streaming download. No DB writes.
+
+Keep candidate branches isolated and phase completion gates unchanged. Actual CI failure for Phase 08 remains under investigation; do not infer failure cause from provider callback alone.
