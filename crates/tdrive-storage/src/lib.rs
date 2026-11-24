@@ -116,7 +116,7 @@ impl fmt::Display for SnapshotError {
                 f.write_str("snapshot must be an existing regular non-symlink file")
             }
             Self::ActiveWal => {
-                f.write_str("snapshot has a WAL/SHM sidecar: provide a detached SQLite backup")
+                f.write_str("snapshot has a WAL/SHM/rollback journal sidecar: provide a detached SQLite backup")
             }
             Self::InvalidHeader => f.write_str("file is not a SQLite3 database"),
             Self::UnsupportedSchema(v) => {
@@ -192,11 +192,13 @@ fn open_verified_snapshot(path: &Path) -> Result<Connection, SnapshotError> {
     if !meta.file_type().is_file() || meta.file_type().is_symlink() {
         return Err(SnapshotError::UnsafePath);
     }
-    for suffix in ["-wal", "-shm"] {
+    for suffix in ["-wal", "-shm", "-journal"] {
         let mut companion = path.as_os_str().to_os_string();
         companion.push(suffix);
-        if Path::new(&companion).exists() {
-            return Err(SnapshotError::ActiveWal);
+        match fs::symlink_metadata(Path::new(&companion)) {
+            Ok(_) => return Err(SnapshotError::ActiveWal),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
         }
     }
     let mut f = File::open(path)?;
