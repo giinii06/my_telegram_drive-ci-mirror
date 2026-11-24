@@ -1,6 +1,7 @@
 //! Transactional Go v16 replay journal writer for an explicitly supplied DB.
 //!
-//! This module intentionally does NOT apply changes to folders/files or manage
+//! This module applies ordinary multipart part metadata only; it does not
+//! mutate folders/files or manage
 //! SQLite locks, Telegram connections, migrations, or live production paths.
 //! The caller must own the only writer and operate on an isolated test clone
 //! until full Go projection parity has been verified.
@@ -41,6 +42,9 @@ pub enum ReplayWriteError {
     InvalidEntry,
     InvalidWire,
     InvalidPayload,
+    UnsupportedProjection,
+    OutOfOrder,
+    UnappliedReplay,
     WrongSchema,
     Database(rusqlite::Error),
 }
@@ -52,6 +56,9 @@ impl fmt::Display for ReplayWriteError {
             Self::InvalidEntry => "invalid Telegram replay message metadata",
             Self::InvalidWire => "invalid or mismatched Telegram wire operation",
             Self::InvalidPayload => "invalid replay payload JSON object",
+            Self::UnsupportedProjection => "operation is outside the ordinary part projector",
+            Self::OutOfOrder => "unseen replay message is out of order",
+            Self::UnappliedReplay => "existing replay row has no matching projected part",
             Self::WrongSchema => "expected pre-existing Go schema v16",
             Self::Database(_) => "SQLite replay journal transaction failed",
         })
@@ -76,6 +83,59 @@ impl From<rusqlite::Error> for ReplayWriteError {
 pub fn append_replay_event(
     connection: &mut Connection,
     event: &IncomingReplayEvent<'_>,
+) -> Result<ReplayWriteOutcome, ReplayWriteError> {
+    append_replay_event_inner(connection, event, None)
+}
+
+/// Project an ordinary multipart part and its journal row atomically on a
+/// disposable Go-v16 clone. No live sync, rendition or manifest handling.
+/// The caller owns the only writer; no cursor is advanced here.
+pub fn project_plain_part(
+    connection: &mut Connection,
+    channel_id: i64,
+    msg_id: i64,
+    raw_header: &str,
+    actor_user_id: i64,
+    seen_at: i64,
+) -> Result<ReplayWriteOutcome, ReplayWriteError> {
+    if raw_header.len() > MAX_HEADER_BYTES {
+        return Err(ReplayWriteError::InvalidEntry);
+    }
+    let op = parse_wire(raw_header).map_err(|_| ReplayWriteError::InvalidWire)?;
+    if op.op_type != OpType::Part
+        || op.encrypted
+        || op.encryption_version != 0
+        || op.plaintext_size != 0
+        || op.upload_time != 0
+    {
+        return Err(ReplayWriteError::UnsupportedProjection);
+    }
+    let uuid = op.upload_uuid.as_deref().ok_or(ReplayWriteError::InvalidWire)?;
+    if uuid.trim().is_empty() {
+        return Err(ReplayWriteError::InvalidWire);
+    }
+    // Derive the replay payload from the parsed wire, never caller-supplied JSON.
+    let payload: String = connection.query_row(
+        "SELECT json_object('Type','part','UploadUUID',?1,'PartIndex',?2,'FileSize',?3)",
+        params![uuid, op.part_index, op.file_size],
+        |row| row.get(0),
+    )?;
+    let event = IncomingReplayEvent {
+        channel_id,
+        msg_id,
+        op_type: "part",
+        op_payload_json: &payload,
+        raw_header,
+        actor_user_id,
+        seen_at,
+    };
+    append_replay_event_inner(connection, &event, Some((uuid, op.part_index, op.file_size)))
+}
+
+fn append_replay_event_inner(
+    connection: &mut Connection,
+    event: &IncomingReplayEvent<'_>,
+    part: Option<(&str, i64, i64)>,
 ) -> Result<ReplayWriteOutcome, ReplayWriteError> {
     if event.channel_id <= 0
         || event.msg_id <= 0
@@ -128,7 +188,24 @@ pub fn append_replay_event(
         .optional()?;
 
     let outcome = match existing {
-        Some(hash) if hash == incoming_hash => ReplayWriteOutcome::AlreadySeen,
+        Some(hash) if hash == incoming_hash => {
+            if let Some((uuid, index, size)) = part {
+                let projected: Option<(i64, i64)> = transaction
+                    .query_row(
+                        "SELECT msg_id,size FROM file_parts
+                         WHERE channel_id=?1 AND upload_uuid=?2 AND part_index=?3",
+                        params![event.channel_id, uuid, index],
+                        |row| Ok((row.get(0)?, row.get(1)?)),
+                    )
+                    .optional()?;
+                match projected {
+                    Some((id, _)) if id > 0 && id < event.msg_id => {}
+                    Some((id, stored_size)) if id == event.msg_id && stored_size == size => {}
+                    _ => return Err(ReplayWriteError::UnappliedReplay),
+                }
+            }
+            ReplayWriteOutcome::AlreadySeen
+        }
         Some(hash) => {
             transaction.execute(
                 "INSERT INTO replay_log_tamper
@@ -148,6 +225,16 @@ pub fn append_replay_event(
             ReplayWriteOutcome::TamperRecorded
         }
         None => {
+            if part.is_some() {
+                let last: Option<i64> = transaction.query_row(
+                    "SELECT MAX(msg_id) FROM replay_log WHERE channel_id=?1",
+                    [event.channel_id],
+                    |row| row.get(0),
+                )?;
+                if last.is_some_and(|id| id >= event.msg_id) {
+                    return Err(ReplayWriteError::OutOfOrder);
+                }
+            }
             transaction.execute(
                 "INSERT INTO replay_log
                    (channel_id,msg_id,op_type,op_payload_json,raw_header,
@@ -164,6 +251,14 @@ pub fn append_replay_event(
                     event.seen_at,
                 ],
             )?;
+            if let Some((uuid, index, size)) = part {
+                transaction.execute(
+                    "INSERT INTO file_parts(channel_id,upload_uuid,part_index,msg_id,size)
+                     VALUES(?1,?2,?3,?4,?5)
+                     ON CONFLICT(channel_id,upload_uuid,part_index) DO NOTHING",
+                    params![event.channel_id, uuid, index, event.msg_id, size],
+                )?;
+            }
             ReplayWriteOutcome::Inserted
         }
     };
