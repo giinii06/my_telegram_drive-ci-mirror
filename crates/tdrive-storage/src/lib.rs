@@ -10,6 +10,8 @@ pub use backup::{
     BackupReceipt, create_consistent_snapshot, restore_verified_clone, verify_snapshot,
 };
 mod listing;
+mod multipart;
+pub use multipart::{FilePart, MultipartError, resolve_multipart_snapshot, validate_multipart_parts};
 mod replay;
 mod replay_writer;
 pub use digest::{TableDigest, snapshot_table_digests};

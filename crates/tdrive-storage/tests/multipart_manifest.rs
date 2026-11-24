@@ -1,7 +1,11 @@
 use tdrive_storage::{FilePart, validate_multipart_parts};
 
 fn part(index: i64, size: i64) -> FilePart {
-    FilePart { part_index: index, msg_id: index + 10, size }
+    FilePart {
+        part_index: index,
+        msg_id: index + 10,
+        size,
+    }
 }
 
 #[test]
