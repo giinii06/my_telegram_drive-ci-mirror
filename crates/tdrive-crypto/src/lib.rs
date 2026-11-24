@@ -9,6 +9,10 @@ mod auth;
 mod file_io;
 mod name;
 mod stream;
+mod vault;
+pub use vault::{
+    VaultEnvelopeError, encode_key_check, unwrap_master_key, verify_key_check, wrap_master_key,
+};
 pub use name::{NAME_KEY_VERSION, NameCryptoError, decrypt_file_name, encrypt_file_name};
 #[cfg(unix)]
 pub use file_io::{FileCryptoError, decrypt_file_atomic, encrypt_file_atomic};
