@@ -97,3 +97,39 @@ fn unresolved_send_blocks_manifest_and_restart_does_not_resend() {
     assert!(run(send_multipart(&port, &mut journal, &plan)).is_ok());
     assert_eq!(port.sent.lock().unwrap().len(), 3);
 }
+
+#[test]
+fn sqlite_journal_reopen_preserves_attempt_and_rejects_changed_plan() {
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let nonce = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+    let root = std::env::temp_dir().join(format!("tdrive-upload-journal-{}-{nonce}", std::process::id()));
+    fs::create_dir(&root).unwrap();
+    let path = root.join("journal.sqlite");
+    let original = plan();
+    let port = Port::default();
+    port.ambiguous.store(true, std::sync::atomic::Ordering::SeqCst);
+    {
+        let mut journal = SqliteUploadJournal::new(rusqlite::Connection::open(&path).unwrap()).unwrap();
+        assert_eq!(run(send_multipart(&port, &mut journal, &original)), Err(TelegramError::SendOutcomeUnknown));
+    }
+    port.ambiguous.store(false, std::sync::atomic::Ordering::SeqCst);
+    {
+        let mut journal = SqliteUploadJournal::new(rusqlite::Connection::open(&path).unwrap()).unwrap();
+        assert_eq!(run(send_multipart(&port, &mut journal, &original)), Err(TelegramError::SendOutcomeUnknown));
+        let changed = UploadPlan::new(
+            ChannelId::new(7).unwrap(), "upload-1", "", "different",
+            &[(2, [1; 32]), (3, [2; 32])], 5, 100,
+        ).unwrap();
+        assert_eq!(run(send_multipart(&port, &mut journal, &changed)), Err(TelegramError::InvalidRequest));
+        assert_eq!(port.sent.lock().unwrap().len(), 1);
+        port.found.store(true, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(run(send_multipart(&port, &mut journal, &original)).unwrap().get(), 3);
+    }
+    {
+        let mut journal = SqliteUploadJournal::new(rusqlite::Connection::open(&path).unwrap()).unwrap();
+        assert_eq!(run(send_multipart(&port, &mut journal, &original)).unwrap().get(), 3);
+    }
+    assert_eq!(port.sent.lock().unwrap().len(), 3);
+    fs::remove_dir_all(root).unwrap();
+}
