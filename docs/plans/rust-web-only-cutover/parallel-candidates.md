@@ -101,3 +101,9 @@ Both workstreams continue existing isolated branches, not new disconnected crate
 | 06 | 041b6b2e7a38b460ddf0ead29e573ea5bbcc91cb | 3106109754 | unknown |
 
 Previous Wave 4 (01,11,12,13) exact candidate provider callbacks now success; no per-job evidence. Phase 08 failed callback unchanged; actual failing GitHub job log unavailable, so no speculative CI repair. Phase 14 remains gated. Go production untouched.
+
+## Wave 6: Vault key ownership and WebDAV exclusive locks
+
+- Phase 05: continue the existing vault envelope branch. Introduce a non-cloneable, non-Debug, explicitly lockable per-vault session that validates both wrapped master and key-check before exposing filename encryption/decryption. Use existing locked zeroize dependency for best-effort memory clearing; no password KDF or live session service yet. A failed unlock leaves session locked. Consumer: future authenticated vault API.
+- Phase 09: continue existing mount branch. Implement bounded in-memory exclusive lock registry with random opaque tokens, ancestor/descendant collision checks, path-bound refresh/unlock, expiry, and mutation conflict query. Callers must supply canonical NFC resource paths; no HTTP handler or concurrent mutation hold yet. Consumer: future WebDAV handler. No persisted locks or remote mutations.
+- Phase 08: provider failed callback persists; actual job log unavailable and local Rust toolchain absent. No speculative CI fix. No live integration, main merge, deployment, or Go removal. Test-first candidates remain unverified until actual execution.
