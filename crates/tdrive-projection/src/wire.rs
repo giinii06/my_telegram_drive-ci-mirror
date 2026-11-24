@@ -696,3 +696,61 @@ mod tests {
         assert!(operation.encrypted);
     }
 }
+
+
+/// Plain legacy multipart captions ready for a future idempotent send adapter.
+/// These do not represent a committed upload, and no network operation occurs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MultipartWire {
+    pub parts: Vec<String>,
+    pub manifest: String,
+}
+
+fn safe_identifier(value: &str) -> bool {
+    !value.is_empty() && value.len() <= 128
+        && value.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+}
+
+/// Validate a complete stored-byte plan before generating any wire headers.
+/// The sender must still verify staged content and reconcile each send outcome.
+pub fn format_plain_multipart(
+    uuid: &str,
+    parent: &str,
+    name: &str,
+    part_sizes: &[i64],
+    total: i64,
+    timestamp: i64,
+) -> Result<MultipartWire, WireError> {
+    if !safe_identifier(uuid)
+        || (!parent.is_empty() && !parent.strip_prefix("d:").is_some_and(safe_identifier))
+        || name.trim().is_empty()
+        || name.len() > 240
+        || name == "." || name == ".."
+        || name.chars().any(|c| c.is_control() || matches!(c, '/' | '\\'))
+        || !(1..=100_000).contains(&part_sizes.len())
+        || total <= 0
+        || !(0..=MAX_UNIX_TIMESTAMP).contains(&timestamp)
+    {
+        return Err(WireError::Malformed);
+    }
+    let sum = part_sizes.iter().try_fold(0_i64, |sum, &size| {
+        if size <= 0 {
+            return None;
+        }
+        sum.checked_add(size)
+    });
+    if sum != Some(total) {
+        return Err(WireError::Malformed);
+    }
+    let parts = part_sizes.iter().enumerate().map(|(index, size)| {
+        format!("TDX1|t=part|u={uuid}|pix={index}|sz={size}")
+    }).collect();
+    let mut manifest = format!(
+        "TDX1|t=manifest|u={uuid}|p={parent}|n={}|pc={}|sz={total}",
+        query_escape(name), part_sizes.len()
+    );
+    if timestamp > 0 {
+        manifest.push_str(&format!("|ts={timestamp}"));
+    }
+    Ok(MultipartWire { parts, manifest })
+}
