@@ -7,10 +7,9 @@ fn invalid() -> io::Error {
     io::Error::new(io::ErrorKind::InvalidInput, "invalid local media source or range")
 }
 
-pub fn read_range(source: &Path, range: &str, output: &mut impl Write) -> io::Result<()> {
+pub fn open_source(source: &Path) -> io::Result<(File, i64)> {
     if !source.is_absolute()
         || source.components().any(|part| matches!(part, Component::ParentDir))
-        || range.len() > 1024
     {
         return Err(invalid());
     }
@@ -18,7 +17,7 @@ pub fn read_range(source: &Path, range: &str, output: &mut impl Write) -> io::Re
     if !before.is_file() {
         return Err(invalid());
     }
-    let mut file = File::open(source)?;
+    let file = File::open(source)?;
     let opened = file.metadata()?;
     if !opened.is_file() || opened.len() != before.len() {
         return Err(invalid());
@@ -31,6 +30,14 @@ pub fn read_range(source: &Path, range: &str, output: &mut impl Write) -> io::Re
         }
     }
     let size = i64::try_from(opened.len()).map_err(|_| invalid())?;
+    Ok((file, size))
+}
+
+pub fn read_range(source: &Path, range: &str, output: &mut impl Write) -> io::Result<()> {
+    if range.len() > 1024 {
+        return Err(invalid());
+    }
+    let (mut file, size) = open_source(source)?;
     let decision = tdrive_media::copy_range(&mut file, output, range, size)?;
     if !decision.ok {
         return Err(invalid());

@@ -126,6 +126,7 @@ fn handle(socket: &mut TcpStream, snapshot: &Path, secret: &[u8]) {
     let _ = socket.set_write_timeout(Some(Duration::from_secs(3)));
     let route = receive(socket).and_then(|raw| parse_request(&raw, secret));
     let (status, response) = match route {
+        Ok(ApiRoute::Media { .. }) => ("404 Not Found", r#"{"error":"not found"}"#.to_string()),
         Ok(ApiRoute::Health) => ("200 OK", r#"{"status":"ok"}"#.to_string()),
         Ok(ApiRoute::Parts { channel_id, message_id }) => {
             match tdrive_storage::resolve_multipart_snapshot(snapshot, channel_id, message_id) {
@@ -178,6 +179,65 @@ pub fn serve(snapshot: &Path, key: &Path, port: u16) -> Result<(), &'static str>
         handle(&mut socket, snapshot, &secret.0);
     }
     Ok(())
+}
+
+/// Serve one explicitly selected local file. No request can choose a filesystem
+/// path. The operator must keep the opened source immutable while serving it.
+pub fn serve_media(source: &Path, key: &Path, port: u16) -> Result<(), &'static str> {
+    if port == 0 {
+        return Err("nonzero loopback port required");
+    }
+    let secret = read_token(key)?;
+    let (mut file, size) = crate::offline_media::open_source(source)
+        .map_err(|_| "invalid local media source")?;
+    let listener = TcpListener::bind(("127.0.0.1", port))
+        .map_err(|_| "cannot bind loopback socket")?;
+    println!("Rust fixed media API listening on 127.0.0.1:{port}");
+    for mut socket in listener.incoming().flatten() {
+        let _ = socket.set_write_timeout(Some(Duration::from_secs(3)));
+        let route = receive(&mut socket).and_then(|raw| parse_request(&raw, &secret.0));
+        match route {
+            Ok(ApiRoute::Media { range }) => {
+                let _ = send_media(&mut socket, &mut file, size, &range);
+            }
+            Ok(ApiRoute::Health) => {
+                let _ = send(&mut socket, "200 OK", r#"{"status":"ok"}"#);
+            }
+            result => {
+                let status = match result {
+                    Err(HttpError::Unauthorized) => "401 Unauthorized",
+                    Err(HttpError::BadRequest) => "400 Bad Request",
+                    Err(HttpError::MethodNotAllowed) => "405 Method Not Allowed",
+                    Err(HttpError::TooLarge) => "431 Request Header Fields Too Large",
+                    _ => "404 Not Found",
+                };
+                let _ = send(&mut socket, status, r#"{"error":"request rejected"}"#);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn send_media(socket: &mut TcpStream, file: &mut File, size: i64, range: &str) -> std::io::Result<()> {
+    if i64::try_from(file.metadata()?.len()).ok() != Some(size) {
+        return send(socket, "409 Conflict", r#"{"error":"media source changed"}"#);
+    }
+    let decision = tdrive_media::parse_range_header(range, size);
+    let status = match decision.response_code() {
+        200 => "200 OK",
+        206 => "206 Partial Content",
+        _ => "416 Range Not Satisfiable",
+    };
+    let length = decision.length(size).unwrap_or(0);
+    let content_range = decision.content_range(size)
+        .map_or(String::new(), |value| format!("Content-Range: {value}\r\n"));
+    write!(socket,
+        "HTTP/1.1 {status}\r\nContent-Type: application/octet-stream\r\nAccept-Ranges: bytes\r\nContent-Length: {length}\r\n{content_range}Connection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n\r\n"
+    )?;
+    if decision.ok {
+        tdrive_media::copy_range(file, socket, range, size)?;
+    }
+    socket.flush()
 }
 
 #[cfg(test)]
