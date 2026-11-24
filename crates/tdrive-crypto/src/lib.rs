@@ -12,6 +12,8 @@ mod stream;
 mod vault;
 mod vault_session;
 pub use vault_session::{VaultSession, VaultSessionError};
+#[cfg(unix)]
+pub use vault_session::VaultFileError;
 pub use vault::{
     VaultEnvelopeError, encode_key_check, unwrap_master_key, verify_key_check, wrap_master_key,
 };
