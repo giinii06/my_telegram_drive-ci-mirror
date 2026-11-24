@@ -220,7 +220,7 @@ fn offline_assembly_publishes_only_verified_complete_bytes() {
         fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
     }
     let target = fixture.dir.join("joined");
-    let hash = "36bbe50ed96841d10443bcb670d6554f0a34b03d10ae61eea12f1e8ab85a10c";
+    let hash = "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c";
     let run = |digest: &str| Command::new(env!("CARGO_BIN_EXE_tdrive-inspect"))
         .arg("--assemble-parts").arg(&fixture.db).arg(CHANNEL.to_string()).arg(FILE_ID.to_string())
         .arg(&fixture.dir).arg(&target).arg(digest).output().unwrap();

@@ -8,6 +8,8 @@ mod http_deadline;
 #[cfg(unix)]
 mod offline_crypto;
 #[cfg(unix)]
+mod offline_assembly;
+#[cfg(unix)]
 mod offline_http;
 
 use std::env;
@@ -69,6 +71,21 @@ fn main() -> ExitCode {
         [option, baseline, candidate] if option == "--compare-snapshots" => {
             compare_snapshots(Path::new(baseline), Path::new(candidate))
         }
+        #[cfg(unix)]
+        [option, snapshot, channel, message, parts, target, digest] if option == "--assemble-parts" => {
+            match offline_assembly::run(
+                Path::new(snapshot), channel, message, Path::new(parts), Path::new(target), digest,
+            ) {
+                Ok(()) => {
+                    println!("verified multipart file created");
+                    ExitCode::SUCCESS
+                }
+                Err(_) => {
+                    eprintln!("multipart assembly failed");
+                    ExitCode::FAILURE
+                }
+            }
+        }
         [option, path, channel, message] if option == "--list-parts" => {
             list_parts(path, channel, message)
         }
@@ -95,7 +112,7 @@ fn main() -> ExitCode {
         }
         _ => {
             eprintln!(
-                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --compare-snapshots <baseline.sqlite> <candidate.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id> | --list-parts <detached-snapshot.sqlite> <channel-id> <file-message-id> | --serve-readonly <detached-snapshot.sqlite> <private-token-file> <loopback-port>"
+                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --compare-snapshots <baseline.sqlite> <candidate.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id> | --list-parts <detached-snapshot.sqlite> <channel-id> <file-message-id> | --assemble-parts <snapshot> <channel-id> <file-message-id> <private-parts-dir> <private-target> <sha256> | --serve-readonly <detached-snapshot.sqlite> <private-token-file> <loopback-port>"
             );
             ExitCode::FAILURE
         }
