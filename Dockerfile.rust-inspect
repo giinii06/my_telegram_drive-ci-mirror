@@ -1,0 +1,18 @@
+# Experimental offline snapshot inspector, not the production web server.
+FROM rust:1.92-bookworm AS builder
+WORKDIR /src
+COPY Cargo.toml Cargo.lock ./
+COPY crates/ ./crates/
+COPY apps/tdrive-inspect/ ./apps/tdrive-inspect/
+RUN cargo build --release --locked -p tdrive-inspect
+
+FROM debian:bookworm-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tini \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 10001 tdrive \
+    && useradd --system --uid 10001 --gid 10001 --home-dir /nonexistent tdrive
+COPY --from=builder /src/target/release/tdrive-inspect /usr/local/bin/tdrive-inspect
+USER 10001:10001
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/tdrive-inspect"]
+CMD ["--version"]
