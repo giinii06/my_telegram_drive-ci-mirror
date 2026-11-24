@@ -146,3 +146,47 @@ fn loopback_health_requires_auth_and_offline_folder_reads_remain_readonly() {
 
     drop(guard);
 }
+
+#[test]
+fn dav_propfind_is_bounded_authenticated_and_readonly() {
+    let (root, snapshot, token) = fixture();
+    let db = Connection::open(&snapshot).unwrap();
+    db.execute_batch("INSERT INTO channels VALUES(124);
+        INSERT INTO folders VALUES(124,'d:docs','',1,0),(124,'d:child','d:docs',1,0);
+        INSERT INTO dirents VALUES(124,'d:docs','','a & b',1,0,'A & B','folder'),
+           (124,'d:child','d:docs','child',1,0,'Child','folder');").unwrap();
+    drop(db);
+    let bytes = fs::read(&snapshot).unwrap();
+    let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let port = listener.local_addr().unwrap().port();
+    drop(listener);
+    let child = Command::new(env!("CARGO_BIN_EXE_tdrive-inspect"))
+        .args(["--serve-readonly",snapshot.to_str().unwrap(),token.to_str().unwrap(),&port.to_string()])
+        .stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
+    let _guard = Cleanup {root, child};
+    let call = |method: &str, path: &str, depth: &str, auth: bool| {
+        let mut socket = (0..100).find_map(|_| match TcpStream::connect(("127.0.0.1",port)) {
+            Ok(s) => Some(s),
+            Err(_) => {std::thread::sleep(Duration::from_millis(30)); None}
+        }).unwrap();
+        socket.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+        let auth = if auth {"Authorization: Bearer 0123456789abcdefghijklmnopqrstuvwxyzABCDEF\r\n"} else {""};
+        write!(socket,"{method} {path} HTTP/1.1\r\nHost: localhost\r\n{auth}{depth}\r\n").unwrap();
+        let mut response = String::new();
+        socket.read_to_string(&mut response).unwrap();
+        response
+    };
+    assert!(call("PROPFIND","/dav/124/","Depth: 1\r\n",false).starts_with("HTTP/1.1 401"));
+    let root = call("PROPFIND","/dav/124/","Depth: 1\r\nContent-Length: 0\r\n",true);
+    assert!(root.starts_with("HTTP/1.1 207"));
+    assert!(root.contains("/dav/124/A%20%26%20B/"));
+    assert!(root.contains("A &amp; B"));
+    let child = call("PROPFIND","/dav/124/A%20%26%20B/","Depth: 1\r\n",true);
+    assert!(child.contains("/dav/124/A%20%26%20B/Child/"));
+    assert!(call("PROPFIND","/dav/124/","Depth: 0\r\n",true).starts_with("HTTP/1.1 207"));
+    assert!(call("PROPFIND","/dav/999/","Depth: 1\r\n",true).starts_with("HTTP/1.1 404"));
+    assert!(call("PROPFIND","/dav/124/%2e%2e/","Depth: 1\r\n",true).starts_with("HTTP/1.1 400"));
+    assert!(call("PROPFIND","/dav/124/","Depth: infinity\r\n",true).starts_with("HTTP/1.1 400"));
+    assert!(call("PUT","/dav/124/","",true).starts_with("HTTP/1.1 405"));
+    assert_eq!(fs::read(&snapshot).unwrap(), bytes);
+}
