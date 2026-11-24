@@ -143,3 +143,7 @@ Four isolated integration candidates, 28 source/test cherry-picks, each dry-run 
 | vault-dav | 05, 09 | 4d8d0b3037ee98bd578d4f3cc7f33bb345e3d0d4 | 3106132286 | success | unknown |
 
 Phase 04/05/06/09 individual candidate callbacks success, not per-job proof. Phase 08 remains failed with unavailable GitHub job trace; no speculative repair. Phase 01 and 11 remain separate, and 14 not_started. Next diagnostic frontier: reconcile all group diffs on a single isolated candidate after examining group results, particularly the two CLI main.rs variants; no production promotion without actual proof. All source branches retained.
+
+## Wave 8: combined candidate and media investigation
+
+All four group candidates now report external provider success on the pinned SHAs; individual job evidence remains unknown. Build a new isolated aggregate candidate from this checkpoint, applying source/test diffs for groups core, HTTP, storage, vault-DAV plus phases 01 and 11. Reconcile inspector main.rs routes and imports without dropping either group. Preserve all group branches. Exclude phase 08 failed source until its failure is reproduced or independently demonstrated; do not alter the CI provider or existing MR. Run exact-SHA CI on the aggregate candidate. This is a diagnostic integration, not phase advancement or approval to replace Go. Actual local environment lacks rustc/cargo/docker. Inspect media independently against the exact candidate and available job evidence.
