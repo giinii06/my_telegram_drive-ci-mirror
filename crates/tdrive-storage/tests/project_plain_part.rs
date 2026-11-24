@@ -46,3 +46,23 @@ fn projection_failure_rolls_back_journal_and_out_of_order_is_rejected() {
     conn.execute("DELETE FROM file_parts", []).unwrap();
     assert!(matches!(project_plain_part(&mut conn, 1, 10, PART, 7, 100), Err(ReplayWriteError::UnappliedReplay)));
 }
+
+#[test]
+fn future_or_inconsistent_existing_part_cannot_commit_new_replay_row() {
+    for (id, size) in [(20, 42), (10, 99), (5, -1)] {
+        let mut conn = db();
+        conn.execute("INSERT INTO file_parts VALUES(1,'upload-1',0,?1,?2)", [id, size]).unwrap();
+        assert!(matches!(
+            project_plain_part(&mut conn, 1, 10, PART, 7, 100),
+            Err(ReplayWriteError::UnappliedReplay)
+        ));
+        let count: i64 = conn.query_row("SELECT COUNT(*) FROM replay_log", [], |r| r.get(0)).unwrap();
+        assert_eq!(count, 0);
+        let row: (i64, i64) = conn.query_row("SELECT msg_id,size FROM file_parts", [], |r| Ok((r.get(0)?,r.get(1)?))).unwrap();
+        assert_eq!(row, (id,size));
+    }
+    let mut conn = db();
+    conn.execute("INSERT INTO file_parts VALUES(1,'upload-1',0,5,41)", []).unwrap();
+    assert_eq!(project_plain_part(&mut conn, 1, 10, PART, 7, 100).unwrap(), ReplayWriteOutcome::Inserted);
+    assert_eq!(project_plain_part(&mut conn, 1, 10, PART, 7, 100).unwrap(), ReplayWriteOutcome::AlreadySeen);
+}
