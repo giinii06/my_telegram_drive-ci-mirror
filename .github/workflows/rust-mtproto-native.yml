@@ -4,12 +4,19 @@ on:
   push:
     paths:
       - "apps/tdrive-mtproto/**"
+      - "apps/tdrive-inspect/**"
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".dockerignore"
+      - "scripts/test_mtproto_docker_contract.py"
+      - "scripts/test_mtproto_ci_triggers.py"
       - "Dockerfile.mtproto"
       - "docker-compose.rust.yml"
       - "docker-compose.rust-watch.yml"
       - ".github/workflows/rust-mtproto-native.yml"
     branches:
-      - "refactor/rust-only-*"
+      - "refactor/rust-*"
   workflow_dispatch:
 
 permissions:
@@ -54,7 +61,7 @@ jobs:
       - name: Verify checked-out commit
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Validate Docker build context and session privacy
-        run: python3 -m unittest scripts/test_mtproto_docker_contract.py
+        run: python3 -m unittest scripts/test_mtproto_docker_contract.py scripts/test_mtproto_ci_triggers.py
       - name: Validate opt-in Compose configuration without real credentials
         env:
           TG_API_ID: "12345"
