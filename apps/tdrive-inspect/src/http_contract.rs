@@ -5,6 +5,7 @@ const MAX_HEADER_BYTES: usize = 8192;
 #[derive(Debug, PartialEq, Eq)]
 pub enum ApiRoute {
     Health,
+    Media { range: String },
     Parts { channel_id: i64, message_id: i64 },
     Folder { channel_id: i64, parent: String },
 }
@@ -162,6 +163,7 @@ pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, Ht
     }
     let mut bearer = None;
     let mut host_seen = false;
+    let mut range = None;
     for line in lines {
         if line.is_empty() || line.starts_with(' ') || line.starts_with('\t') {
             return Err(HttpError::BadRequest);
@@ -184,6 +186,11 @@ pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, Ht
                 return Err(HttpError::BadRequest);
             }
             bearer = Some(value.trim());
+        } else if name.eq_ignore_ascii_case("range") {
+            if range.is_some() || value.trim().is_empty() || value.len() > 1024 {
+                return Err(HttpError::BadRequest);
+            }
+            range = Some(value.trim());
         } else if name.eq_ignore_ascii_case("content-length")
             || name.eq_ignore_ascii_case("transfer-encoding")
         {
@@ -206,6 +213,9 @@ pub fn parse_request(bytes: &[u8], expected_token: &[u8]) -> Result<ApiRoute, Ht
     }
     if method != "GET" {
         return Err(HttpError::MethodNotAllowed);
+    }
+    if target == "/v1/media" {
+        return Ok(ApiRoute::Media { range: range.unwrap_or_default().to_owned() });
     }
     if target == "/health" {
         return Ok(ApiRoute::Health);
