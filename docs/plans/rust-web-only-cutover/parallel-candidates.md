@@ -43,3 +43,21 @@ Three isolated candidates, source review only; Rust compiler/Cargo unavailable l
 ### Wave 3 scope
 
 Phase 04: retain currently discarded Go TDX1 write payload fields in the Rust parser (multipart IDs/index, CAS revisions, overwrite destination and retention metadata, protocol/key versions and plaintext size), with regression tests and fail-closed simple formatter. Consumer: eventual transactional projector; do not enable live replay or destructive writes. Isolated from prior branch work.
+
+### Wave 3 checkpoint and live provider status
+
+Phase 04 source diff reviewed against Go wire.go and existing formatter. Test-only and implementation commits are separate. No actual Rust execution here (rustc/cargo unavailable); no verified full checkout or E2E. Requirements review: preserve parsed fields, retain existing validation and reject unsupported formatter payloads. Quality/security review: no new database or network writes; encrypted payload application and compatibility still require further tests. Self-review only.
+
+| Phase | Candidate SHA | GitLab pipeline | Provider result |
+|---|---|---|---|
+| 02 | 22ccc86ebad673d6d4f9b10eda3247f90b33cbc7 | 3106090923 | pending |
+| 03 | 84f8d4c846b7b3d4f13ec8e4de501b982d8624de | 3106090987 | pending |
+| 04 | dff9179e6a893248a97d7efd115cfc18124fdcb3 | 3106095246 | unknown |
+| 05 | a08a20c112464adeb47126f4be451d1573309674 | 3106080986 | success |
+| 06 | cc4cb1683ac7cc9b6ff714a0a48b43655b834edc | 3106091059 | pending |
+| 07 | ec075b06cdbfa97584f0319a9c19b60599060d22 | 3106077901 | success |
+| 08 | 962f47e126dd871f5d6611e2d6f6d7e271198353 | 3106077952 | failed |
+| 09 | 1bce87324055616c566e0079f42dd9d997c7be28 | 3106078024 | success |
+| 10 | fa493346fac7a22664eadfd470982c94ab61a9d6 | 3106081056 | success |
+
+Provider callback is not actual job evidence. Failed candidates remain blocked for failure-log inspection, not fixed speculatively. No candidate is merged, verified or completed.

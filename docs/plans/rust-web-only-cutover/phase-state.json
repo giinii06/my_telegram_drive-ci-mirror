@@ -215,7 +215,7 @@
       "file": "phase-04-projection-sync.md",
       "title": "17-op TDX1 projection·history/live sync",
       "kind": "user_flow",
-      "status": "not_started",
+      "status": "in_progress",
       "implemented": false,
       "tested": false,
       "verified": false,
@@ -228,7 +228,33 @@
       "jobs_verified": "unknown",
       "e2e_verified": "unknown",
       "review_report": null,
-      "history": []
+      "history": [
+        {
+          "from": "not_started",
+          "to": "in_progress",
+          "evidence": "Isolated candidate refactor/rust-only-parallel-04-wire-payload; Retain 14 previously discarded wire payload fields (multipart identity/index, revision, overwrite, retention and crypto metadata), prevent simple formatter from discarding these fields. Vault material, renditions, full projection transactions and E2E still outstanding."
+        }
+      ],
+      "parallel_candidate": {
+        "branch": "refactor/rust-only-parallel-04-wire-payload",
+        "base_sha": "c9e16150ce3cb236c8d68273b3f57605f3f210ba",
+        "test_only_sha": "dd50c496808dc60085b093027eeeb9e331e83f13",
+        "code_sha": "dff9179e6a893248a97d7efd115cfc18124fdcb3",
+        "pipeline_id": 3106095246,
+        "scope": "Retain 14 previously discarded wire payload fields (multipart identity/index, revision, overwrite, retention and crypto metadata), prevent simple formatter from discarding these fields. Vault material, renditions, full projection transactions and E2E still outstanding.",
+        "red_verified": false,
+        "green_verified": false,
+        "reviewer_type": "self",
+        "changed_paths": [
+          "crates/tdrive-projection/src/wire.rs",
+          "crates/tdrive-projection/tests/write_payload.rs"
+        ],
+        "dispatch": "success",
+        "provider_result": "unknown",
+        "provider_url": null,
+        "jobs_verified": "unknown",
+        "e2e_verified": "unknown"
+      }
     },
     {
       "id": "05",
