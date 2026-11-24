@@ -6,6 +6,7 @@ use chacha20poly1305::{
 };
 use rand_core::{OsRng, RngCore};
 use std::{error::Error, fmt};
+use zeroize::Zeroize;
 
 const NONCE_LEN: usize = 24;
 const TAG_LEN: usize = 16;
@@ -81,7 +82,7 @@ pub fn unwrap_master_key(
         .as_slice()
         .try_into()
         .map_err(|_| VaultEnvelopeError::MalformedEnvelope);
-    plaintext.fill(0);
+    plaintext.zeroize();
     result
 }
 
@@ -95,7 +96,7 @@ pub fn verify_key_check(
 ) -> Result<(), VaultEnvelopeError> {
     let mut plaintext = open(master, envelope, CHECK.len())?;
     let valid = plaintext == CHECK;
-    plaintext.fill(0);
+    plaintext.zeroize();
     if valid {
         Ok(())
     } else {
