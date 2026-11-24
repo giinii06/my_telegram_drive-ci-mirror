@@ -46,7 +46,13 @@ fn fixture() -> (PathBuf, PathBuf, PathBuf) {
          CREATE TABLE file_revisions(channel_id INTEGER,file_msg_id INTEGER,revision INTEGER,content_msg_id INTEGER);
          CREATE TABLE projection_operations(id INTEGER);
          CREATE TABLE encryption(id INTEGER);
-         CREATE TABLE file_parts(id INTEGER);
+         CREATE TABLE file_parts(channel_id INTEGER,upload_uuid TEXT,part_index INTEGER,msg_id INTEGER,size INTEGER);
+         INSERT INTO files(channel_id,msg_id,parent_id,content_msg_id,revision,encrypted,upload_uuid,tombstoned,content_hash,part_count,size,upload_time,uploader_user_id,plaintext_size)
+         VALUES(123,10,'',0,1,0,'complete',0,'',2,5,0,0,0),
+               (123,11,'',0,1,0,'incomplete',0,'',2,5,0,0,0),
+               (123,12,'',0,1,0,'deleted',1,'',1,3,0,0,0);
+         INSERT INTO file_parts VALUES(123,'complete',1,8,3),(123,'complete',0,7,2),
+                                      (123,'incomplete',0,7,2),(123,'deleted',0,7,3);
          CREATE TABLE pending_joins(id INTEGER);
          CREATE TABLE trash_entries(id INTEGER);
          CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key)
@@ -120,6 +126,17 @@ fn loopback_health_requires_auth_and_offline_folder_reads_remain_readonly() {
     let files = request(port, Some(good), "/v1/folders?channel=123&parent=");
     assert!(files.starts_with("HTTP/1.1 200 OK"), "{files}");
     assert!(files.ends_with(r#"{"folders":[],"files":[]}"#), "{files}");
+    let parts = request(port, Some(good), "/v1/parts?channel=123&message=10");
+    assert!(parts.starts_with("HTTP/1.1 200 OK"), "{parts}");
+    assert!(parts.ends_with(r#"{"parts":[{"partIndex":"0","msgId":"7","size":"2"},{"partIndex":"1","msgId":"8","size":"3"}]}"#));
+    assert!(request(port, None, "/v1/parts?channel=123&message=10").starts_with("HTTP/1.1 401"));
+    for path in ["/v1/parts?channel=999&message=10", "/v1/parts?channel=123&message=12"] {
+        assert!(request(port, Some(good), path).starts_with("HTTP/1.1 404"));
+    }
+    assert!(request(port, Some(good), "/v1/parts?channel=123&message=11").starts_with("HTTP/1.1 422"));
+    for path in ["/v1/parts?channel=123", "/v1/parts?channel=123&message=0", "/v1/parts?channel=123&message=10&message=11"] {
+        assert!(request(port, Some(good), path).starts_with("HTTP/1.1 400"));
+    }
     assert_eq!(fs::read(&snapshot).unwrap(), bytes_before);
 
     drop(guard);
