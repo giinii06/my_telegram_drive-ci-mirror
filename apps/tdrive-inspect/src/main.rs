@@ -8,6 +8,8 @@ mod http_deadline;
 #[cfg(unix)]
 mod offline_crypto;
 #[cfg(unix)]
+mod offline_upload;
+#[cfg(unix)]
 mod offline_assembly;
 #[cfg(unix)]
 mod offline_http;
@@ -40,6 +42,19 @@ fn main() -> ExitCode {
                 }
                 Err(error) => {
                     eprintln!("invalid TDX1: {}", error.as_str());
+                    ExitCode::FAILURE
+                }
+            }
+        }
+        #[cfg(unix)]
+        [option, source, destination, size] if option == "--prepare-upload" => {
+            match offline_upload::run(Path::new(source), Path::new(destination), size) {
+                Ok(()) => {
+                    println!("local upload parts prepared");
+                    ExitCode::SUCCESS
+                }
+                Err(_) => {
+                    eprintln!("upload preparation failed");
                     ExitCode::FAILURE
                 }
             }
@@ -124,7 +139,7 @@ fn main() -> ExitCode {
         }
         _ => {
             eprintln!(
-                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --sqlite-check <detached-snapshot.sqlite> | --compare-snapshots <baseline.sqlite> <candidate.sqlite> | --create-backup <source.sqlite> <new-backup.sqlite> | --verify-backup <backup.sqlite> | --restore-clone <backup.sqlite> <new-clone.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id> | --list-parts <detached-snapshot.sqlite> <channel-id> <file-message-id> | --assemble-parts <snapshot> <channel-id> <file-message-id> <private-parts-dir> <private-target> <sha256> | --serve-readonly <detached-snapshot.sqlite> <private-token-file> <loopback-port>"
+                "usage: tdrive-inspect --version | --wire-version | --check-stdin | --prepare-upload <absolute-source> <new-private-parts-directory> <part-size> | --sqlite-check <detached-snapshot.sqlite> | --compare-snapshots <baseline.sqlite> <candidate.sqlite> | --create-backup <source.sqlite> <new-backup.sqlite> | --verify-backup <backup.sqlite> | --restore-clone <backup.sqlite> <new-clone.sqlite> | --encrypt-file <src> <dst> <private-key-file> | --decrypt-file <src> <dst> <private-key-file> | --list-folder <detached-snapshot.sqlite> <channel-id> <parent-id> | --list-parts <detached-snapshot.sqlite> <channel-id> <file-message-id> | --assemble-parts <snapshot> <channel-id> <file-message-id> <private-parts-dir> <private-target> <sha256> | --serve-readonly <detached-snapshot.sqlite> <private-token-file> <loopback-port>"
             );
             ExitCode::FAILURE
         }
