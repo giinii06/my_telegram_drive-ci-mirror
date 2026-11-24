@@ -122,3 +122,7 @@ Two isolated candidates, with test-only commits followed by code commits. Actual
 - Phase 06: success; job details unknown. https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45298258536
 
 - Phase 08: failed; job details unknown. https://github.com/giinii06/my_telegram_drive-ci-mirror/actions/runs/45296470682
+
+## Wave 7: isolated integration candidates
+
+Integrate existing candidate source changes, not GitLab merge requests, into two new disposable review branches based on this checkpoint. Group A: phases 02,03,07 (configuration, send contract, backup guard). Group B: phases 10,12,13 (HTTP parser/deadline and shadow compare CLI). Reconcile main.rs edits using exact hunk context; retain all tests. Verify each source diff against the common base, do not copy historical plan files. Branches remain isolated, production entrypoint stays Go. No MR merge, deployment, phase completion or verification waiver. Phase 08 remains excluded until actual failing job evidence is available. This is an integration diagnostic, not an approved production cutover. If combined checks fail, inspect evidence before further promotion.
