@@ -341,3 +341,47 @@ mod tests {
         ));
     }
 }
+
+#[cfg(test)]
+mod index_integrity_tests {
+    use super::*;
+
+    fn fixture() -> Connection {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(
+            "CREATE TABLE schema_version(version INTEGER PRIMARY KEY);
+             INSERT INTO schema_version VALUES(16);
+             CREATE TABLE files(channel_id INTEGER,msg_id INTEGER,parent_id TEXT,
+                content_msg_id INTEGER,revision INTEGER,encrypted INTEGER,upload_uuid TEXT);
+             CREATE TABLE folders(channel_id INTEGER,id TEXT,parent_id TEXT,revision INTEGER,tombstoned INTEGER);
+             CREATE TABLE replay_log(channel_id INTEGER,msg_id INTEGER,raw_header TEXT,first_seen_hash TEXT);
+             CREATE TABLE dirents(channel_id INTEGER,object_id TEXT,parent_id TEXT,name_key TEXT,
+                revision INTEGER,tombstoned INTEGER,object_kind TEXT);
+             CREATE TABLE file_revisions(channel_id INTEGER,file_msg_id INTEGER,revision INTEGER,content_msg_id INTEGER);",
+        ).unwrap();
+        for &table in REQUIRED_TABLES {
+            if !has_table(&db, table).unwrap() {
+                db.execute(&format!("CREATE TABLE {table}(dummy INTEGER)"), []).unwrap();
+            }
+        }
+        db
+    }
+
+    #[test]
+    fn index_name_alone_cannot_attest_live_sibling_uniqueness() {
+        for definition in [
+            "CREATE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key)",
+            "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key)",
+            "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,object_id) WHERE tombstoned=0",
+            "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key) WHERE tombstoned=1",
+            "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON files(channel_id,parent_id,msg_id) WHERE revision=1",
+        ] {
+            let db = fixture();
+            db.execute_batch(definition).unwrap();
+            assert!(matches!(inspect_connection(&db), Err(SnapshotError::InvalidIndex)), "{definition}");
+        }
+        let db = fixture();
+        db.execute_batch("CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key) WHERE tombstoned = 0").unwrap();
+        assert_eq!(inspect_connection(&db).unwrap().schema_version, 16);
+    }
+}
