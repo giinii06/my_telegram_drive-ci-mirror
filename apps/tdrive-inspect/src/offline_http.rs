@@ -22,6 +22,19 @@ impl Drop for PrivateToken {
     }
 }
 
+fn same_private_token(before: &fs::Metadata, current: &fs::Metadata) -> bool {
+    current.is_file()
+        && current.nlink() == 1
+        && current.permissions().mode() & 0o077 == 0
+        && current.dev() == before.dev()
+        && current.ino() == before.ino()
+        && current.len() == before.len()
+        && current.mtime() == before.mtime()
+        && current.mtime_nsec() == before.mtime_nsec()
+        && current.ctime() == before.ctime()
+        && current.ctime_nsec() == before.ctime_nsec()
+}
+
 fn read_token(path: &Path) -> Result<PrivateToken, &'static str> {
     if !path.is_absolute() {
         return Err("private bearer token path must be absolute");
@@ -43,24 +56,28 @@ fn read_token(path: &Path) -> Result<PrivateToken, &'static str> {
     {
         return Err("private bearer token permissions or size invalid");
     }
-    let file = File::open(path).map_err(|_| "private bearer token unavailable")?;
+    let mut file = File::open(path).map_err(|_| "private bearer token unavailable")?;
     let opened = file.metadata().map_err(|_| "bearer token metadata unavailable")?;
-    if !opened.is_file()
-        || before.dev() != opened.dev()
-        || before.ino() != opened.ino()
-        || opened.nlink() != 1
-        || opened.permissions().mode() & 0o077 != 0
+    if !same_private_token(&before, &opened) {
+        return Err("private bearer token changed during read");
+    }
+    let mut buffer = PrivateToken(Vec::new());
+    (&mut file)
+        .take(129)
+        .read_to_end(&mut buffer.0)
+        .map_err(|_| "private bearer token unreadable")?;
+    let after = file.metadata().map_err(|_| "bearer token metadata unavailable")?;
+    let named = fs::symlink_metadata(path).map_err(|_| "private bearer token unavailable")?;
+    if !same_private_token(&opened, &after)
+        || !same_private_token(&opened, &named)
+        || buffer.0.len() as u64 != opened.len()
     {
         return Err("private bearer token changed during read");
     }
-    let mut buffer = Vec::new();
-    file.take(129).read_to_end(&mut buffer)
-        .map_err(|_| "private bearer token unreadable")?;
-    if !valid_token(&buffer) {
-        buffer.fill(0);
+    if !valid_token(&buffer.0) {
         return Err("private bearer token must be 32–128 header-safe ASCII bytes");
     }
-    Ok(PrivateToken(buffer))
+    Ok(buffer)
 }
 
 fn send(socket: &mut TcpStream, status: &str, body: &str) -> std::io::Result<()> {
