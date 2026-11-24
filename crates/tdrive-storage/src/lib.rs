@@ -334,8 +334,8 @@ fn validate_live_name_index(conn: &Connection) -> Result<(), SnapshotError> {
         .flat_map(char::to_lowercase)
         .collect();
     let predicate = normalized
-        .rsplit_once("where")
-        .map(|(_, predicate)| predicate.trim_end_matches(';'));
+        .strip_prefix("createuniqueindexidx_dirents_live_sibling_nameondirents(channel_id,parent_id,name_key)where")
+        .map(|predicate| predicate.trim_end_matches(';'));
     if !matches!(predicate, Some("tombstoned=0" | "(tombstoned=0)")) {
         return Err(SnapshotError::InvalidIndex);
     }
@@ -419,6 +419,7 @@ mod index_integrity_tests {
             "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key)",
             "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,object_id) WHERE tombstoned=0",
             "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key) WHERE tombstoned=1",
+            "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON dirents(channel_id,parent_id,name_key) WHERE tombstoned=1 --where tombstoned=0",
             "CREATE UNIQUE INDEX idx_dirents_live_sibling_name ON files(channel_id,parent_id,msg_id) WHERE revision=1",
         ] {
             let db = fixture();
