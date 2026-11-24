@@ -8,8 +8,14 @@
 **/imp_config.json
 **/session.json
 **/session.sqlite
+**/session.sqlite-wal
+**/session.sqlite-shm
+**/session.sqlite-journal
 **/*.session
 **/tdrive-inbox.sqlite
+**/tdrive-inbox.sqlite-wal
+**/tdrive-inbox.sqlite-shm
+**/tdrive-inbox.sqlite-journal
 **/config.json
 **/cli.json
 **/vault.pass

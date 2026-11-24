@@ -68,5 +68,12 @@ class MtprotoDockerContract(unittest.TestCase):
             self.assertIn(pattern, ignore)
 
 
+    def test_sqlite_session_sidecars_are_excluded(self):
+        patterns = (ROOT / ".dockerignore").read_text().splitlines()
+        for database in ("session.sqlite", "tdrive-inbox.sqlite"):
+            for suffix in ("-wal", "-shm", "-journal"):
+                self.assertIn("**/" + database + suffix, patterns)
+
+
 if __name__ == "__main__":
     unittest.main()
