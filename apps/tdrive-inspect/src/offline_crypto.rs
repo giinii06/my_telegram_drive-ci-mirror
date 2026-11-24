@@ -33,7 +33,10 @@ fn read_private_key(path: &Path) -> Result<PrivateKey, &'static str> {
         return Err("private key path must be absolute");
     }
     let before = fs::symlink_metadata(path).map_err(|_| "private key unavailable")?;
-    if !before.file_type().is_file() || before.permissions().mode() & 0o177 != 0 {
+    if !before.file_type().is_file()
+        || before.nlink() != 1
+        || before.permissions().mode() & 0o177 != 0
+    {
         return Err("private key must be a regular, owner-only file");
     }
 
@@ -42,6 +45,7 @@ fn read_private_key(path: &Path) -> Result<PrivateKey, &'static str> {
     if !opened.is_file()
         || opened.dev() != before.dev()
         || opened.ino() != before.ino()
+        || opened.nlink() != 1
         || opened.permissions().mode() & 0o177 != 0
         || opened.len() != 32
     {
@@ -55,6 +59,23 @@ fn read_private_key(path: &Path) -> Result<PrivateKey, &'static str> {
     let mut trailing = [0u8; 1];
     if input.read(&mut trailing).map_err(|_| "private key read failed")? != 0 {
         return Err("private key must contain exactly 32 raw bytes");
+    }
+    let after = input.metadata().map_err(|_| "private key unavailable")?;
+    let named = fs::symlink_metadata(path).map_err(|_| "private key unavailable")?;
+    for current in [&after, &named] {
+        if !current.is_file()
+            || current.dev() != opened.dev()
+            || current.ino() != opened.ino()
+            || current.nlink() != 1
+            || current.permissions().mode() & 0o177 != 0
+            || current.len() != 32
+            || current.mtime() != opened.mtime()
+            || current.mtime_nsec() != opened.mtime_nsec()
+            || current.ctime() != opened.ctime()
+            || current.ctime_nsec() != opened.ctime_nsec()
+        {
+            return Err("private key file changed during read");
+        }
     }
     Ok(key)
 }

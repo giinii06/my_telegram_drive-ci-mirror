@@ -199,3 +199,42 @@ fn multipart_cli_outputs_complete_ordered_metadata_without_writing_snapshot() {
     assert!(result.stdout.is_empty());
     assert_eq!(fs::read(&fixture.db).unwrap(), before);
 }
+
+#[cfg(unix)]
+#[test]
+fn offline_assembly_publishes_only_verified_complete_bytes() {
+    use std::os::unix::fs::PermissionsExt;
+    let fixture = Fixture::new();
+    fs::set_permissions(&fixture.dir, fs::Permissions::from_mode(0o700)).unwrap();
+    let conn = Connection::open(&fixture.db).unwrap();
+    conn.execute_batch(
+        "DROP TABLE file_parts;
+         CREATE TABLE file_parts(channel_id INTEGER,upload_uuid TEXT,part_index INTEGER,msg_id INTEGER,size INTEGER);
+         UPDATE files SET part_count=2,size=5;
+         INSERT INTO file_parts VALUES(9007199254740993,'uuid',0,10,2),(9007199254740993,'uuid',1,11,3);",
+    ).unwrap();
+    drop(conn);
+    for (name, bytes) in [("10.part", b"ab".as_slice()), ("11.part", b"cde".as_slice())] {
+        let path = fixture.dir.join(name);
+        fs::write(&path, bytes).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+    }
+    let target = fixture.dir.join("joined");
+    let hash = "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c";
+    let run = |digest: &str| Command::new(env!("CARGO_BIN_EXE_tdrive-inspect"))
+        .arg("--assemble-parts").arg(&fixture.db).arg(CHANNEL.to_string()).arg(FILE_ID.to_string())
+        .arg(&fixture.dir).arg(&target).arg(digest).output().unwrap();
+    let before = fs::read(&fixture.db).unwrap();
+    assert!(!run(&"0".repeat(64)).status.success());
+    assert!(!target.exists());
+    assert!(run(hash).status.success());
+    assert_eq!(fs::read(&target).unwrap(), b"abcde");
+    assert!(!run(hash).status.success());
+    assert_eq!(fs::read(&target).unwrap(), b"abcde");
+    fs::remove_file(&target).unwrap();
+    fs::remove_file(fixture.dir.join("11.part")).unwrap();
+    assert!(!run(hash).status.success());
+    assert!(!target.exists());
+    assert_eq!(fs::read(&fixture.db).unwrap(), before);
+    assert!(fs::read_dir(&fixture.dir).unwrap().all(|entry| !entry.unwrap().file_name().to_string_lossy().starts_with(".tdrive-assembly-")));
+}
