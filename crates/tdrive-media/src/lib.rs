@@ -116,6 +116,37 @@ pub fn parse_range_header(raw: &str, size: i64) -> RangeDecision {
     RangeDecision::selected(start, end)
 }
 
+/// Stream precisely the selected range. Invalid ranges return their decision
+/// without touching either stream. A short source is never a successful read.
+pub fn copy_range<R: std::io::Read + std::io::Seek, W: std::io::Write>(
+    source: &mut R,
+    output: &mut W,
+    header: &str,
+    size: i64,
+) -> std::io::Result<RangeDecision> {
+    use std::io::{self, ErrorKind, SeekFrom};
+
+    if size < 0 {
+        return Err(io::Error::new(ErrorKind::InvalidInput, "negative media size"));
+    }
+    let decision = parse_range_header(header, size);
+    let Some(length) = decision.length(size) else {
+        return Ok(decision);
+    };
+    if length == 0 {
+        return Ok(decision);
+    }
+    source.seek(SeekFrom::Start(decision.start as u64))?;
+    let mut limited = std::io::Read::take(source, length as u64);
+    if io::copy(&mut limited, output)? != length as u64 {
+        return Err(io::Error::new(
+            ErrorKind::UnexpectedEof,
+            "truncated media source",
+        ));
+    }
+    Ok(decision)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
